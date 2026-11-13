@@ -9,7 +9,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 - Se bajaron de Yuca los scripts, los logs y `output.zip` (sin los rasters).
 - Claude revisó scripts, logs y salidas.
 - Se ordenó la carpeta: logs en `logs/`, JSON de salida en `output/`, documentación en `docs/`.
-- Se creó el repositorio en GitHub.
+- Se creó el repositorio en GitHub (privado) y se invitó al equipo con permiso de escritura: Javier033x, FernyBoy, EmiB-05, FlorMMF y verdielias.
 
 **Estado del prototipo**
 
