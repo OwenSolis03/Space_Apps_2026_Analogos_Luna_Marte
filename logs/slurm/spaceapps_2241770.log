@@ -1,0 +1,4 @@
+[*] Ejecutando pipeline en amdcpu-hpc-23 | Proyecto: /lustre/proyectos/p089
+[*] Procesando métricas globales para Mars: /lustre/proyectos/p089/data/raw/mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif
+[*] Procesando métricas globales para Moon: /lustre/proyectos/p089/data/raw/moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif
+[DONE] Archivo generado en: /lustre/proyectos/p089/output/planetary_baselines.json

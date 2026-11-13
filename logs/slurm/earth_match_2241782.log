@@ -1,0 +1,10 @@
+[*] Tiles terrestres: 5175 | Workers: 32
+    Progreso: 1000/5175 tiles -> 17221 sitios candidatos
+    Progreso: 2000/5175 tiles -> 34220 sitios candidatos
+    Progreso: 3000/5175 tiles -> 53215 sitios candidatos
+    Progreso: 4000/5175 tiles -> 73506 sitios candidatos
+    Progreso: 5000/5175 tiles -> 94857 sitios candidatos
+    Progreso: 5175/5175 tiles -> 98465 sitios candidatos
+[OK] Mars: 40 arquetipos emparejados.
+[OK] Moon: 40 arquetipos emparejados.
+[DONE] Guardado en: /lustre/proyectos/p089/output/analogs.json

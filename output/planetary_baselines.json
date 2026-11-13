@@ -1,0 +1,1775 @@
+{
+  "generated_on": "Yuca HPC Cluster",
+  "targets": {
+    "Mars": {
+      "total_windows_analyzed": 4500,
+      "archetypes": [
+        {
+          "cluster_id": "mars-c00",
+          "lat": -27.0045,
+          "lon": -40.997,
+          "metrics": {
+            "mean_elev_m": 744.63,
+            "roughness_std_m": 173.54,
+            "mean_slope_deg": 1.24,
+            "p90_slope_deg": 2.47,
+            "tri": 127.38,
+            "themis_ir_day": 124.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Nirgal Vallis",
+            "feature_type": "Vallis, valles",
+            "distance_km": 77.4,
+            "regional_landmark": "Nirgal Vallis",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 77.4,
+            "display_label": "Nirgal Vallis (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c01",
+          "lat": 32.9968,
+          "lon": 73.0055,
+          "metrics": {
+            "mean_elev_m": -1476.76,
+            "roughness_std_m": 874.96,
+            "mean_slope_deg": 6.34,
+            "p90_slope_deg": 15.88,
+            "tri": 747.79,
+            "themis_ir_day": 108.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Meroe",
+            "feature_type": "Albedo Feature",
+            "distance_km": 140.1,
+            "regional_landmark": "Nilosyrtis Mensae",
+            "regional_type": "Mensa, mensae",
+            "regional_distance_km": 246.8,
+            "display_label": "Near Nilosyrtis Mensae (Mensa, mensae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c02",
+          "lat": 56.9973,
+          "lon": -70.9976,
+          "metrics": {
+            "mean_elev_m": -3714.09,
+            "roughness_std_m": 48.47,
+            "mean_slope_deg": 0.29,
+            "p90_slope_deg": 0.56,
+            "tri": 39.4,
+            "themis_ir_day": 123.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Maricourt",
+            "feature_type": "Crater, craters",
+            "distance_km": 217.0,
+            "regional_landmark": "Perepelkin",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 342.8,
+            "display_label": "Near Perepelkin (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c03",
+          "lat": -39.0047,
+          "lon": -148.9993,
+          "metrics": {
+            "mean_elev_m": 1606.39,
+            "roughness_std_m": 464.95,
+            "mean_slope_deg": 2.65,
+            "p90_slope_deg": 6.69,
+            "tri": 321.79,
+            "themis_ir_day": 124.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Sirenum Mons",
+            "feature_type": "Mons, montes",
+            "distance_km": 70.9,
+            "regional_landmark": "Sirenum Mons",
+            "regional_type": "Mons, montes",
+            "regional_distance_km": 70.9,
+            "display_label": "Sirenum Mons (Mons, montes)"
+          }
+        },
+        {
+          "cluster_id": "mars-c04",
+          "lat": -15.0042,
+          "lon": -58.9974,
+          "metrics": {
+            "mean_elev_m": 2060.88,
+            "roughness_std_m": 2190.07,
+            "mean_slope_deg": 9.04,
+            "p90_slope_deg": 25.38,
+            "tri": 1298.73,
+            "themis_ir_day": 138.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Valles Marineris",
+            "feature_type": "Vallis, valles",
+            "distance_km": 63.7,
+            "regional_landmark": "Valles Marineris",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 63.7,
+            "display_label": "Valles Marineris (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c05",
+          "lat": 44.9971,
+          "lon": 49.005,
+          "metrics": {
+            "mean_elev_m": -2764.49,
+            "roughness_std_m": 268.96,
+            "mean_slope_deg": 2.3,
+            "p90_slope_deg": 5.46,
+            "tri": 197.09,
+            "themis_ir_day": 93.5
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Protonilus Mensae",
+            "feature_type": "Mensa, mensae",
+            "distance_km": 67.1,
+            "regional_landmark": "Protonilus Mensae",
+            "regional_type": "Mensa, mensae",
+            "regional_distance_km": 67.1,
+            "display_label": "Protonilus Mensae (Mensa, mensae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c06",
+          "lat": 16.9965,
+          "lon": -130.9989,
+          "metrics": {
+            "mean_elev_m": 12246.74,
+            "roughness_std_m": 3192.95,
+            "mean_slope_deg": 5.45,
+            "p90_slope_deg": 8.75,
+            "tri": 2615.51,
+            "themis_ir_day": 119.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Karzok",
+            "feature_type": "Crater, craters",
+            "distance_km": 93.2,
+            "regional_landmark": "Zeus Patera",
+            "regional_type": "Patera, paterae",
+            "regional_distance_km": 136.8,
+            "display_label": "Near Zeus Patera (Patera, paterae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c07",
+          "lat": -55.0051,
+          "lon": 79.0056,
+          "metrics": {
+            "mean_elev_m": -2021.13,
+            "roughness_std_m": 1148.16,
+            "mean_slope_deg": 5.1,
+            "p90_slope_deg": 11.45,
+            "tri": 953.65,
+            "themis_ir_day": 169.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mad Vallis",
+            "feature_type": "Vallis, valles",
+            "distance_km": 113.4,
+            "regional_landmark": "Mad Vallis",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 113.4,
+            "display_label": "Near Mad Vallis (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c08",
+          "lat": 68.9976,
+          "lon": 103.0061,
+          "metrics": {
+            "mean_elev_m": -4014.48,
+            "roughness_std_m": 105.16,
+            "mean_slope_deg": 0.76,
+            "p90_slope_deg": 1.55,
+            "tri": 57.54,
+            "themis_ir_day": 130.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Louth",
+            "feature_type": "Crater, craters",
+            "distance_km": 70.7,
+            "regional_landmark": "Louth",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 70.7,
+            "display_label": "Louth (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c09",
+          "lat": -57.0051,
+          "lon": -22.9966,
+          "metrics": {
+            "mean_elev_m": 821.41,
+            "roughness_std_m": 571.3,
+            "mean_slope_deg": 2.97,
+            "p90_slope_deg": 7.4,
+            "tri": 459.72,
+            "themis_ir_day": 132.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Darwin",
+            "feature_type": "Crater, craters",
+            "distance_km": 124.2,
+            "regional_landmark": "Darwin",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 124.2,
+            "display_label": "Near Darwin (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c10",
+          "lat": -5.004,
+          "lon": -124.9988,
+          "metrics": {
+            "mean_elev_m": 4500.33,
+            "roughness_std_m": 313.07,
+            "mean_slope_deg": 1.15,
+            "p90_slope_deg": 2.07,
+            "tri": 270.84,
+            "themis_ir_day": 113.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Aganippe Fossa",
+            "feature_type": "Fossa, fossae",
+            "distance_km": 214.8,
+            "regional_landmark": "Aganippe Fossa",
+            "regional_type": "Fossa, fossae",
+            "regional_distance_km": 214.8,
+            "display_label": "Near Aganippe Fossa (Fossa, fossae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c11",
+          "lat": -37.0047,
+          "lon": 85.0057,
+          "metrics": {
+            "mean_elev_m": -5034.84,
+            "roughness_std_m": 185.96,
+            "mean_slope_deg": 1.38,
+            "p90_slope_deg": 2.65,
+            "tri": 122.87,
+            "themis_ir_day": 148.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Poti",
+            "feature_type": "Crater, craters",
+            "distance_km": 84.6,
+            "regional_landmark": "Poti",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 84.6,
+            "display_label": "Near Poti (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c12",
+          "lat": 48.9971,
+          "lon": -70.9976,
+          "metrics": {
+            "mean_elev_m": -2304.84,
+            "roughness_std_m": 652.08,
+            "mean_slope_deg": 4.09,
+            "p90_slope_deg": 9.84,
+            "tri": 561.87,
+            "themis_ir_day": 156.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tanais",
+            "feature_type": "Albedo Feature",
+            "distance_km": 55.3,
+            "regional_landmark": "Barabashov",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 133.1,
+            "display_label": "Tanais (Albedo Feature)"
+          }
+        },
+        {
+          "cluster_id": "mars-c13",
+          "lat": 8.9963,
+          "lon": -106.9984,
+          "metrics": {
+            "mean_elev_m": 7573.49,
+            "roughness_std_m": 1369.31,
+            "mean_slope_deg": 2.98,
+            "p90_slope_deg": 5.18,
+            "tri": 1149.44,
+            "themis_ir_day": 94.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Ascraeus Chasmata",
+            "feature_type": "Chasma, chasmata",
+            "distance_km": 81.4,
+            "regional_landmark": "Ascraeus Chasmata",
+            "regional_type": "Chasma, chasmata",
+            "regional_distance_km": 81.4,
+            "display_label": "Near Ascraeus Chasmata (Chasma, chasmata)"
+          }
+        },
+        {
+          "cluster_id": "mars-c14",
+          "lat": -19.0043,
+          "lon": 49.005,
+          "metrics": {
+            "mean_elev_m": 1956.8,
+            "roughness_std_m": 398.6,
+            "mean_slope_deg": 1.66,
+            "p90_slope_deg": 3.43,
+            "tri": 302.4,
+            "themis_ir_day": 146.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Cankuzo",
+            "feature_type": "Crater, craters",
+            "distance_km": 171.3,
+            "regional_landmark": "Cankuzo",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 171.3,
+            "display_label": "Near Cankuzo (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c15",
+          "lat": -33.0046,
+          "lon": -166.9997,
+          "metrics": {
+            "mean_elev_m": 2148.84,
+            "roughness_std_m": 253.9,
+            "mean_slope_deg": 1.43,
+            "p90_slope_deg": 2.96,
+            "tri": 172.46,
+            "themis_ir_day": 129.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mariner",
+            "feature_type": "Crater, craters",
+            "distance_km": 168.5,
+            "regional_landmark": "Mariner",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 168.5,
+            "display_label": "Near Mariner (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c16",
+          "lat": -55.0051,
+          "lon": 25.0044,
+          "metrics": {
+            "mean_elev_m": 1986.97,
+            "roughness_std_m": 117.75,
+            "mean_slope_deg": 0.62,
+            "p90_slope_deg": 1.19,
+            "tri": 88.14,
+            "themis_ir_day": 147.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Chalcoporos Rupēs",
+            "feature_type": "Rupes, rupēs",
+            "distance_km": 154.3,
+            "regional_landmark": "Chalcoporos Rupēs",
+            "regional_type": "Rupes, rupēs",
+            "regional_distance_km": 154.3,
+            "display_label": "Near Chalcoporos Rupēs (Rupes, rupēs)"
+          }
+        },
+        {
+          "cluster_id": "mars-c17",
+          "lat": 86.998,
+          "lon": 1.0039,
+          "metrics": {
+            "mean_elev_m": -2874.68,
+            "roughness_std_m": 158.63,
+            "mean_slope_deg": 0.91,
+            "p90_slope_deg": 2.29,
+            "tri": 121.09,
+            "themis_ir_day": 105.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Vastitas Borealis",
+            "feature_type": "Vastitas, vastitates",
+            "distance_km": 94.6,
+            "regional_landmark": "Vastitas Borealis",
+            "regional_type": "Vastitas, vastitates",
+            "regional_distance_km": 94.6,
+            "display_label": "Near Vastitas Borealis (Vastitas, vastitates)"
+          }
+        },
+        {
+          "cluster_id": "mars-c18",
+          "lat": 26.9967,
+          "lon": -136.999,
+          "metrics": {
+            "mean_elev_m": -1765.65,
+            "roughness_std_m": 436.02,
+            "mean_slope_deg": 6.4,
+            "p90_slope_deg": 13.45,
+            "tri": 360.16,
+            "themis_ir_day": 164.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Lycus Sulci",
+            "feature_type": "Sulcus, sulci",
+            "distance_km": 398.3,
+            "regional_landmark": "Lycus Sulci",
+            "regional_type": "Sulcus, sulci",
+            "regional_distance_km": 398.3,
+            "display_label": "Near Lycus Sulci (Sulcus, sulci)"
+          }
+        },
+        {
+          "cluster_id": "mars-c19",
+          "lat": -9.0041,
+          "lon": 97.006,
+          "metrics": {
+            "mean_elev_m": 1953.26,
+            "roughness_std_m": 302.29,
+            "mean_slope_deg": 2.14,
+            "p90_slope_deg": 4.94,
+            "tri": 222.08,
+            "themis_ir_day": 127.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Steyr",
+            "feature_type": "Crater, craters",
+            "distance_km": 317.6,
+            "regional_landmark": "López",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 335.2,
+            "display_label": "Near López (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c20",
+          "lat": 84.9979,
+          "lon": 7.0041,
+          "metrics": {
+            "mean_elev_m": -3436.63,
+            "roughness_std_m": 295.24,
+            "mean_slope_deg": 1.22,
+            "p90_slope_deg": 2.97,
+            "tri": 260.38,
+            "themis_ir_day": 151.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tenuis Cavus",
+            "feature_type": "Cavus, cavi",
+            "distance_km": 32.8,
+            "regional_landmark": "Tenuis Cavus",
+            "regional_type": "Cavus, cavi",
+            "regional_distance_km": 32.8,
+            "display_label": "Tenuis Cavus (Cavus, cavi)"
+          }
+        },
+        {
+          "cluster_id": "mars-c21",
+          "lat": -55.0051,
+          "lon": -34.9968,
+          "metrics": {
+            "mean_elev_m": 668.71,
+            "roughness_std_m": 2069.33,
+            "mean_slope_deg": 5.76,
+            "p90_slope_deg": 14.18,
+            "tri": 1895.84,
+            "themis_ir_day": 130.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Nia Vallis",
+            "feature_type": "Vallis, valles",
+            "distance_km": 87.8,
+            "regional_landmark": "Nia Vallis",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 87.8,
+            "display_label": "Near Nia Vallis (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c22",
+          "lat": -33.0046,
+          "lon": -34.9968,
+          "metrics": {
+            "mean_elev_m": 196.46,
+            "roughness_std_m": 985.33,
+            "mean_slope_deg": 2.83,
+            "p90_slope_deg": 7.14,
+            "tri": 818.73,
+            "themis_ir_day": 125.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Bond",
+            "feature_type": "Crater, craters",
+            "distance_km": 48.5,
+            "regional_landmark": "Bond",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 48.5,
+            "display_label": "Bond (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c23",
+          "lat": -39.0047,
+          "lon": 151.0072,
+          "metrics": {
+            "mean_elev_m": 1058.63,
+            "roughness_std_m": 233.86,
+            "mean_slope_deg": 1.75,
+            "p90_slope_deg": 3.41,
+            "tri": 171.22,
+            "themis_ir_day": 158.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Roseau",
+            "feature_type": "Crater, craters",
+            "distance_km": 160.2,
+            "regional_landmark": "Electris Mons",
+            "regional_type": "Mons, montes",
+            "regional_distance_km": 402.1,
+            "display_label": "Near Electris Mons (Mons, montes)"
+          }
+        },
+        {
+          "cluster_id": "mars-c24",
+          "lat": 44.9971,
+          "lon": -130.9989,
+          "metrics": {
+            "mean_elev_m": -1688.28,
+            "roughness_std_m": 120.86,
+            "mean_slope_deg": 0.56,
+            "p90_slope_deg": 0.89,
+            "tri": 97.66,
+            "themis_ir_day": 135.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Domoni",
+            "feature_type": "Crater, craters",
+            "distance_km": 434.1,
+            "regional_landmark": "Acheron Fossae",
+            "regional_type": "Fossa, fossae",
+            "regional_distance_km": 436.4,
+            "display_label": "Near Acheron Fossae (Fossa, fossae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c25",
+          "lat": -7.0041,
+          "lon": -64.9975,
+          "metrics": {
+            "mean_elev_m": 1472.36,
+            "roughness_std_m": 2769.08,
+            "mean_slope_deg": 9.63,
+            "p90_slope_deg": 27.17,
+            "tri": 2243.85,
+            "themis_ir_day": 137.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Juventae Mensa",
+            "feature_type": "Mensa, mensae",
+            "distance_km": 66.1,
+            "regional_landmark": "Juventae Mensa",
+            "regional_type": "Mensa, mensae",
+            "regional_distance_km": 66.1,
+            "display_label": "Juventae Mensa (Mensa, mensae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c26",
+          "lat": 52.9972,
+          "lon": 13.0042,
+          "metrics": {
+            "mean_elev_m": -4270.73,
+            "roughness_std_m": 57.53,
+            "mean_slope_deg": 0.5,
+            "p90_slope_deg": 0.99,
+            "tri": 43.33,
+            "themis_ir_day": 151.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Micoud",
+            "feature_type": "Crater, craters",
+            "distance_km": 189.1,
+            "regional_landmark": "Micoud",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 189.1,
+            "display_label": "Near Micoud (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c27",
+          "lat": -23.0044,
+          "lon": -106.9984,
+          "metrics": {
+            "mean_elev_m": 5328.06,
+            "roughness_std_m": 519.92,
+            "mean_slope_deg": 3.39,
+            "p90_slope_deg": 7.55,
+            "tri": 421.19,
+            "themis_ir_day": 134.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tame",
+            "feature_type": "Crater, craters",
+            "distance_km": 56.6,
+            "regional_landmark": "Tecolote",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 92.0,
+            "display_label": "Tame (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c28",
+          "lat": -13.0042,
+          "lon": -172.9998,
+          "metrics": {
+            "mean_elev_m": 569.94,
+            "roughness_std_m": 779.07,
+            "mean_slope_deg": 3.8,
+            "p90_slope_deg": 9.72,
+            "tri": 596.77,
+            "themis_ir_day": 121.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Ejriksson",
+            "feature_type": "Crater, craters",
+            "distance_km": 370.3,
+            "regional_landmark": "Ejriksson",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 370.3,
+            "display_label": "Near Ejriksson (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c29",
+          "lat": 48.9971,
+          "lon": -64.9975,
+          "metrics": {
+            "mean_elev_m": -1789.1,
+            "roughness_std_m": 220.16,
+            "mean_slope_deg": 1.7,
+            "p90_slope_deg": 3.5,
+            "tri": 125.08,
+            "themis_ir_day": 90.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Barabashov",
+            "feature_type": "Crater, craters",
+            "distance_km": 178.4,
+            "regional_landmark": "Barabashov",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 178.4,
+            "display_label": "Near Barabashov (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c30",
+          "lat": 84.9979,
+          "lon": -4.9962,
+          "metrics": {
+            "mean_elev_m": -3779.22,
+            "roughness_std_m": 446.07,
+            "mean_slope_deg": 1.78,
+            "p90_slope_deg": 3.77,
+            "tri": 370.31,
+            "themis_ir_day": 174.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tenuis Cavus",
+            "feature_type": "Cavus, cavi",
+            "distance_km": 36.5,
+            "regional_landmark": "Tenuis Cavus",
+            "regional_type": "Cavus, cavi",
+            "regional_distance_km": 36.5,
+            "display_label": "Tenuis Cavus (Cavus, cavi)"
+          }
+        },
+        {
+          "cluster_id": "mars-c31",
+          "lat": 4.9962,
+          "lon": -16.9965,
+          "metrics": {
+            "mean_elev_m": -2350.67,
+            "roughness_std_m": 517.13,
+            "mean_slope_deg": 3.14,
+            "p90_slope_deg": 7.53,
+            "tri": 377.37,
+            "themis_ir_day": 131.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Melosh",
+            "feature_type": "Crater, craters",
+            "distance_km": 163.2,
+            "regional_landmark": "Melosh",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 163.2,
+            "display_label": "Near Melosh (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c32",
+          "lat": 42.997,
+          "lon": 55.0051,
+          "metrics": {
+            "mean_elev_m": -2513.4,
+            "roughness_std_m": 308.03,
+            "mean_slope_deg": 3.55,
+            "p90_slope_deg": 9.08,
+            "tri": 214.0,
+            "themis_ir_day": 99.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Protonilus Mensae",
+            "feature_type": "Mensa, mensae",
+            "distance_km": 269.3,
+            "regional_landmark": "Protonilus Mensae",
+            "regional_type": "Mensa, mensae",
+            "regional_distance_km": 269.3,
+            "display_label": "Near Protonilus Mensae (Mensa, mensae)"
+          }
+        },
+        {
+          "cluster_id": "mars-c33",
+          "lat": 38.9969,
+          "lon": 55.0051,
+          "metrics": {
+            "mean_elev_m": -719.04,
+            "roughness_std_m": 490.37,
+            "mean_slope_deg": 3.06,
+            "p90_slope_deg": 7.65,
+            "tri": 287.54,
+            "themis_ir_day": 150.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Anio Valles",
+            "feature_type": "Vallis, valles",
+            "distance_km": 84.5,
+            "regional_landmark": "Anio Valles",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 84.5,
+            "display_label": "Near Anio Valles (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c34",
+          "lat": -49.005,
+          "lon": 139.0069,
+          "metrics": {
+            "mean_elev_m": 1709.04,
+            "roughness_std_m": 672.42,
+            "mean_slope_deg": 2.37,
+            "p90_slope_deg": 5.33,
+            "tri": 515.01,
+            "themis_ir_day": 121.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Kepler",
+            "feature_type": "Crater, craters",
+            "distance_km": 157.9,
+            "regional_landmark": "Kepler",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 157.9,
+            "display_label": "Near Kepler (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c35",
+          "lat": 56.9973,
+          "lon": 1.0039,
+          "metrics": {
+            "mean_elev_m": -4689.27,
+            "roughness_std_m": 31.1,
+            "mean_slope_deg": 0.34,
+            "p90_slope_deg": 0.65,
+            "tri": 23.68,
+            "themis_ir_day": 145.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Ortygia",
+            "feature_type": "Albedo Feature",
+            "distance_km": 163.6,
+            "regional_landmark": "Kunowsky",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 344.4,
+            "display_label": "Near Kunowsky (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c36",
+          "lat": -21.0044,
+          "lon": -112.9985,
+          "metrics": {
+            "mean_elev_m": 5424.77,
+            "roughness_std_m": 133.18,
+            "mean_slope_deg": 0.51,
+            "p90_slope_deg": 0.78,
+            "tri": 114.95,
+            "themis_ir_day": 92.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tame",
+            "feature_type": "Crater, craters",
+            "distance_km": 293.8,
+            "regional_landmark": "Tecolote",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 396.8,
+            "display_label": "Near Tecolote (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c37",
+          "lat": -49.005,
+          "lon": -34.9968,
+          "metrics": {
+            "mean_elev_m": -2035.66,
+            "roughness_std_m": 543.19,
+            "mean_slope_deg": 1.83,
+            "p90_slope_deg": 3.59,
+            "tri": 460.94,
+            "themis_ir_day": 122.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Jezža",
+            "feature_type": "Crater, craters",
+            "distance_km": 119.5,
+            "regional_landmark": "Galle",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 180.6,
+            "display_label": "Near Galle (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "mars-c38",
+          "lat": 32.9968,
+          "lon": 55.0051,
+          "metrics": {
+            "mean_elev_m": -482.59,
+            "roughness_std_m": 337.39,
+            "mean_slope_deg": 2.1,
+            "p90_slope_deg": 5.54,
+            "tri": 221.78,
+            "themis_ir_day": 132.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Clasia Vallis",
+            "feature_type": "Vallis, valles",
+            "distance_km": 110.5,
+            "regional_landmark": "Clasia Vallis",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 110.5,
+            "display_label": "Near Clasia Vallis (Vallis, valles)"
+          }
+        },
+        {
+          "cluster_id": "mars-c39",
+          "lat": 0.9961,
+          "lon": -64.9975,
+          "metrics": {
+            "mean_elev_m": 1456.09,
+            "roughness_std_m": 146.53,
+            "mean_slope_deg": 0.98,
+            "p90_slope_deg": 1.81,
+            "tri": 105.38,
+            "themis_ir_day": 140.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Sepik Vallis",
+            "feature_type": "Vallis, valles",
+            "distance_km": 126.4,
+            "regional_landmark": "Sepik Vallis",
+            "regional_type": "Vallis, valles",
+            "regional_distance_km": 126.4,
+            "display_label": "Near Sepik Vallis (Vallis, valles)"
+          }
+        }
+      ]
+    },
+    "Moon": {
+      "total_windows_analyzed": 4500,
+      "archetypes": [
+        {
+          "cluster_id": "moon-c00",
+          "lat": -54.502,
+          "lon": 88.502,
+          "metrics": {
+            "mean_elev_m": -65.87,
+            "roughness_std_m": 1853.1,
+            "mean_slope_deg": 15.39,
+            "p90_slope_deg": 28.26,
+            "tri": 1584.97,
+            "lola_albedo_shade": 82.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Jeans U",
+            "feature_type": "Satellite Feature",
+            "distance_km": 27.4,
+            "regional_landmark": "Jeans U",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 27.4,
+            "display_label": "Jeans U (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c01",
+          "lat": -61.502,
+          "lon": -23.498,
+          "metrics": {
+            "mean_elev_m": -1315.46,
+            "roughness_std_m": 493.04,
+            "mean_slope_deg": 9.72,
+            "p90_slope_deg": 19.0,
+            "tri": 411.76,
+            "lola_albedo_shade": 91.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Blancanus K",
+            "feature_type": "Satellite Feature",
+            "distance_km": 29.6,
+            "regional_landmark": "Scheiner",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 72.4,
+            "display_label": "Blancanus K (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c02",
+          "lat": -24.502,
+          "lon": -87.498,
+          "metrics": {
+            "mean_elev_m": -75.77,
+            "roughness_std_m": 858.45,
+            "mean_slope_deg": 15.27,
+            "p90_slope_deg": 30.05,
+            "tri": 609.33,
+            "lola_albedo_shade": 74.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Pettit C",
+            "feature_type": "Satellite Feature",
+            "distance_km": 44.9,
+            "regional_landmark": "Nicholson",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 81.4,
+            "display_label": "Pettit C (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c03",
+          "lat": 14.498,
+          "lon": -33.498,
+          "metrics": {
+            "mean_elev_m": -2245.68,
+            "roughness_std_m": 211.64,
+            "mean_slope_deg": 5.96,
+            "p90_slope_deg": 14.69,
+            "tri": 175.85,
+            "lola_albedo_shade": 88.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Bessarion V",
+            "feature_type": "Satellite Feature",
+            "distance_km": 46.8,
+            "regional_landmark": "Rima T. Mayer",
+            "regional_type": "Rima, rimae",
+            "regional_distance_km": 73.0,
+            "display_label": "Bessarion V (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c04",
+          "lat": 35.498,
+          "lon": 162.502,
+          "metrics": {
+            "mean_elev_m": 5482.79,
+            "roughness_std_m": 1371.32,
+            "mean_slope_deg": 19.37,
+            "p90_slope_deg": 39.17,
+            "tri": 1092.71,
+            "lola_albedo_shade": 111.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Stearns",
+            "feature_type": "Crater, craters",
+            "distance_km": 24.9,
+            "regional_landmark": "Stearns",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 24.9,
+            "display_label": "Stearns (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c05",
+          "lat": -55.502,
+          "lon": 134.502,
+          "metrics": {
+            "mean_elev_m": -6577.22,
+            "roughness_std_m": 271.21,
+            "mean_slope_deg": 6.42,
+            "p90_slope_deg": 14.81,
+            "tri": 176.0,
+            "lola_albedo_shade": 86.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Planck Z",
+            "feature_type": "Satellite Feature",
+            "distance_km": 13.8,
+            "regional_landmark": "Planck Z",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 13.8,
+            "display_label": "Planck Z (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c06",
+          "lat": 67.498,
+          "lon": -105.498,
+          "metrics": {
+            "mean_elev_m": -1339.3,
+            "roughness_std_m": 2598.58,
+            "mean_slope_deg": 19.55,
+            "p90_slope_deg": 36.3,
+            "tri": 2138.45,
+            "lola_albedo_shade": 34.5
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Nöther (Noether) E",
+            "feature_type": "Satellite Feature",
+            "distance_km": 21.0,
+            "regional_landmark": "Nöther (Noether) E",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 21.0,
+            "display_label": "Nöther (Noether) E (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c07",
+          "lat": 85.498,
+          "lon": 60.502,
+          "metrics": {
+            "mean_elev_m": -5056.29,
+            "roughness_std_m": 1441.93,
+            "mean_slope_deg": 13.21,
+            "p90_slope_deg": 28.57,
+            "tri": 1200.41,
+            "lola_albedo_shade": 69.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Nansen F",
+            "feature_type": "Satellite Feature",
+            "distance_km": 17.3,
+            "regional_landmark": "Nansen F",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 17.3,
+            "display_label": "Nansen F (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c08",
+          "lat": 30.498,
+          "lon": -55.498,
+          "metrics": {
+            "mean_elev_m": -4476.58,
+            "roughness_std_m": 72.98,
+            "mean_slope_deg": 1.94,
+            "p90_slope_deg": 3.62,
+            "tri": 53.44,
+            "lola_albedo_shade": 85.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Humason",
+            "feature_type": "Crater, craters",
+            "distance_km": 31.1,
+            "regional_landmark": "Dorsa Whiston",
+            "regional_type": "Dorsum, dorsa",
+            "regional_distance_km": 44.3,
+            "display_label": "Humason (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c09",
+          "lat": 40.498,
+          "lon": -123.498,
+          "metrics": {
+            "mean_elev_m": 5085.71,
+            "roughness_std_m": 1603.47,
+            "mean_slope_deg": 15.66,
+            "p90_slope_deg": 28.01,
+            "tri": 1151.28,
+            "lola_albedo_shade": 86.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Landau Q",
+            "feature_type": "Satellite Feature",
+            "distance_km": 34.4,
+            "regional_landmark": "Perrine G",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 48.7,
+            "display_label": "Landau Q (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c10",
+          "lat": -13.502,
+          "lon": 134.502,
+          "metrics": {
+            "mean_elev_m": 4966.55,
+            "roughness_std_m": 1012.38,
+            "mean_slope_deg": 15.98,
+            "p90_slope_deg": 29.11,
+            "tri": 824.0,
+            "lola_albedo_shade": 68.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Volkov F",
+            "feature_type": "Satellite Feature",
+            "distance_km": 14.1,
+            "regional_landmark": "Chauvenet S",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 36.9,
+            "display_label": "Volkov F (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c11",
+          "lat": -21.502,
+          "lon": -57.498,
+          "metrics": {
+            "mean_elev_m": -1167.21,
+            "roughness_std_m": 890.97,
+            "mean_slope_deg": 10.17,
+            "p90_slope_deg": 20.93,
+            "tri": 806.92,
+            "lola_albedo_shade": 94.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Henry Frères R",
+            "feature_type": "Satellite Feature",
+            "distance_km": 11.4,
+            "regional_landmark": "Henry Frères",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 74.6,
+            "display_label": "Henry Frères R (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c12",
+          "lat": 72.498,
+          "lon": -97.498,
+          "metrics": {
+            "mean_elev_m": -1014.2,
+            "roughness_std_m": 1117.58,
+            "mean_slope_deg": 12.77,
+            "p90_slope_deg": 26.66,
+            "tri": 965.37,
+            "lola_albedo_shade": 82.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Lindblad Y",
+            "feature_type": "Satellite Feature",
+            "distance_km": 33.8,
+            "regional_landmark": "Lindblad",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 76.6,
+            "display_label": "Lindblad Y (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c13",
+          "lat": -51.502,
+          "lon": -147.498,
+          "metrics": {
+            "mean_elev_m": -9418.89,
+            "roughness_std_m": 1336.77,
+            "mean_slope_deg": 17.86,
+            "p90_slope_deg": 36.53,
+            "tri": 1115.06,
+            "lola_albedo_shade": 94.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Cori G",
+            "feature_type": "Satellite Feature",
+            "distance_km": 17.2,
+            "regional_landmark": "Grissom K",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 66.8,
+            "display_label": "Cori G (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c14",
+          "lat": -78.502,
+          "lon": -39.498,
+          "metrics": {
+            "mean_elev_m": 857.5,
+            "roughness_std_m": 3062.34,
+            "mean_slope_deg": 23.51,
+            "p90_slope_deg": 39.11,
+            "tri": 2514.64,
+            "lola_albedo_shade": 64.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Newton E",
+            "feature_type": "Satellite Feature",
+            "distance_km": 42.9,
+            "regional_landmark": "Casatus D",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 54.7,
+            "display_label": "Newton E (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c15",
+          "lat": 15.498,
+          "lon": -149.498,
+          "metrics": {
+            "mean_elev_m": 9726.09,
+            "roughness_std_m": 2680.71,
+            "mean_slope_deg": 22.5,
+            "p90_slope_deg": 40.48,
+            "tri": 2051.47,
+            "lola_albedo_shade": 199.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mach",
+            "feature_type": "Crater, craters",
+            "distance_km": 80.1,
+            "regional_landmark": "Mach",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 80.1,
+            "display_label": "Near Mach (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c16",
+          "lat": -10.502,
+          "lon": 66.502,
+          "metrics": {
+            "mean_elev_m": -2851.85,
+            "roughness_std_m": 1558.5,
+            "mean_slope_deg": 20.76,
+            "p90_slope_deg": 39.32,
+            "tri": 1249.45,
+            "lola_albedo_shade": 98.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Langrenus M",
+            "feature_type": "Satellite Feature",
+            "distance_km": 21.0,
+            "regional_landmark": "Barkla",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 21.9,
+            "display_label": "Langrenus M (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c17",
+          "lat": -27.502,
+          "lon": -145.498,
+          "metrics": {
+            "mean_elev_m": 5316.45,
+            "roughness_std_m": 2018.84,
+            "mean_slope_deg": 18.98,
+            "p90_slope_deg": 35.27,
+            "tri": 1713.6,
+            "lola_albedo_shade": 63.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mariotte U",
+            "feature_type": "Satellite Feature",
+            "distance_km": 64.8,
+            "regional_landmark": "Mariotte U",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 64.8,
+            "display_label": "Mariotte U (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c18",
+          "lat": -2.502,
+          "lon": -91.498,
+          "metrics": {
+            "mean_elev_m": 6081.06,
+            "roughness_std_m": 667.33,
+            "mean_slope_deg": 10.5,
+            "p90_slope_deg": 22.4,
+            "tri": 462.45,
+            "lola_albedo_shade": 84.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Maunder A",
+            "feature_type": "Satellite Feature",
+            "distance_km": 35.6,
+            "regional_landmark": "Schlüter",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 266.4,
+            "display_label": "Maunder A (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c19",
+          "lat": -58.502,
+          "lon": 20.502,
+          "metrics": {
+            "mean_elev_m": -2106.98,
+            "roughness_std_m": 607.8,
+            "mean_slope_deg": 12.67,
+            "p90_slope_deg": 27.44,
+            "tri": 433.44,
+            "lola_albedo_shade": 87.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mutus K",
+            "feature_type": "Satellite Feature",
+            "distance_km": 24.6,
+            "regional_landmark": "Mutus T",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 25.1,
+            "display_label": "Mutus K (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c20",
+          "lat": 6.498,
+          "lon": -169.498,
+          "metrics": {
+            "mean_elev_m": 10037.05,
+            "roughness_std_m": 1400.07,
+            "mean_slope_deg": 17.97,
+            "p90_slope_deg": 36.36,
+            "tri": 1092.79,
+            "lola_albedo_shade": 175.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Zhukovskiy Q",
+            "feature_type": "Satellite Feature",
+            "distance_km": 18.9,
+            "regional_landmark": "Zhukovskiy",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 74.1,
+            "display_label": "Zhukovskiy Q (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c21",
+          "lat": 79.498,
+          "lon": 168.502,
+          "metrics": {
+            "mean_elev_m": -3557.76,
+            "roughness_std_m": 875.32,
+            "mean_slope_deg": 14.64,
+            "p90_slope_deg": 31.1,
+            "tri": 646.31,
+            "lola_albedo_shade": 81.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Plaskett",
+            "feature_type": "Crater, craters",
+            "distance_km": 76.4,
+            "regional_landmark": "Plaskett",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 76.4,
+            "display_label": "Plaskett (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c22",
+          "lat": -72.502,
+          "lon": -147.498,
+          "metrics": {
+            "mean_elev_m": -4622.17,
+            "roughness_std_m": 2127.93,
+            "mean_slope_deg": 16.37,
+            "p90_slope_deg": 30.23,
+            "tri": 1835.82,
+            "lola_albedo_shade": 106.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Zeeman U",
+            "feature_type": "Satellite Feature",
+            "distance_km": 38.9,
+            "regional_landmark": "Zeeman Y",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 89.3,
+            "display_label": "Zeeman U (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c23",
+          "lat": 60.498,
+          "lon": -7.498,
+          "metrics": {
+            "mean_elev_m": -4279.37,
+            "roughness_std_m": 526.15,
+            "mean_slope_deg": 10.39,
+            "p90_slope_deg": 22.32,
+            "tri": 406.22,
+            "lola_albedo_shade": 100.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Birmingham B",
+            "feature_type": "Satellite Feature",
+            "distance_km": 106.1,
+            "regional_landmark": "Timaeus",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 123.7,
+            "display_label": "Near Timaeus (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c24",
+          "lat": 33.498,
+          "lon": -81.498,
+          "metrics": {
+            "mean_elev_m": -2996.96,
+            "roughness_std_m": 311.28,
+            "mean_slope_deg": 8.34,
+            "p90_slope_deg": 18.28,
+            "tri": 244.77,
+            "lola_albedo_shade": 83.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Ulugh Beigh",
+            "feature_type": "Crater, craters",
+            "distance_km": 27.7,
+            "regional_landmark": "Ulugh Beigh",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 27.7,
+            "display_label": "Ulugh Beigh (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c25",
+          "lat": 40.498,
+          "lon": -109.498,
+          "metrics": {
+            "mean_elev_m": 2524.48,
+            "roughness_std_m": 306.45,
+            "mean_slope_deg": 7.65,
+            "p90_slope_deg": 14.81,
+            "tri": 231.96,
+            "lola_albedo_shade": 79.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Lacchini",
+            "feature_type": "Crater, craters",
+            "distance_km": 45.2,
+            "regional_landmark": "Lacchini",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 45.2,
+            "display_label": "Lacchini (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c26",
+          "lat": -27.502,
+          "lon": -89.498,
+          "metrics": {
+            "mean_elev_m": -284.66,
+            "roughness_std_m": 1188.4,
+            "mean_slope_deg": 17.95,
+            "p90_slope_deg": 37.45,
+            "tri": 822.89,
+            "lola_albedo_shade": 73.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Pettit",
+            "feature_type": "Crater, craters",
+            "distance_km": 73.8,
+            "regional_landmark": "Pettit",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 73.8,
+            "display_label": "Pettit (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c27",
+          "lat": 52.498,
+          "lon": -73.498,
+          "metrics": {
+            "mean_elev_m": -3963.13,
+            "roughness_std_m": 163.16,
+            "mean_slope_deg": 4.02,
+            "p90_slope_deg": 9.22,
+            "tri": 131.25,
+            "lola_albedo_shade": 83.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Repsold B",
+            "feature_type": "Satellite Feature",
+            "distance_km": 48.0,
+            "regional_landmark": "Repsold B",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 48.0,
+            "display_label": "Repsold B (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c28",
+          "lat": -53.502,
+          "lon": -125.498,
+          "metrics": {
+            "mean_elev_m": -5730.38,
+            "roughness_std_m": 1027.31,
+            "mean_slope_deg": 11.72,
+            "p90_slope_deg": 21.16,
+            "tri": 815.56,
+            "lola_albedo_shade": 100.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tiling G",
+            "feature_type": "Satellite Feature",
+            "distance_km": 61.4,
+            "regional_landmark": "Tiling D",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 116.9,
+            "display_label": "Tiling G (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c29",
+          "lat": -14.502,
+          "lon": 152.502,
+          "metrics": {
+            "mean_elev_m": 2952.94,
+            "roughness_std_m": 2285.3,
+            "mean_slope_deg": 22.43,
+            "p90_slope_deg": 41.47,
+            "tri": 1777.98,
+            "lola_albedo_shade": 93.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Beijerinck H",
+            "feature_type": "Satellite Feature",
+            "distance_km": 30.6,
+            "regional_landmark": "Beijerinck",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 38.7,
+            "display_label": "Beijerinck H (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c30",
+          "lat": 34.498,
+          "lon": 166.502,
+          "metrics": {
+            "mean_elev_m": -844.0,
+            "roughness_std_m": 1283.18,
+            "mean_slope_deg": 16.38,
+            "p90_slope_deg": 30.85,
+            "tri": 1005.69,
+            "lola_albedo_shade": 84.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Nušl Y",
+            "feature_type": "Satellite Feature",
+            "distance_km": 12.7,
+            "regional_landmark": "Nušl Y",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 12.7,
+            "display_label": "Nušl Y (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c31",
+          "lat": -51.502,
+          "lon": -161.498,
+          "metrics": {
+            "mean_elev_m": -9712.64,
+            "roughness_std_m": 171.25,
+            "mean_slope_deg": 4.36,
+            "p90_slope_deg": 9.67,
+            "tri": 126.24,
+            "lola_albedo_shade": 83.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Hendrix M",
+            "feature_type": "Satellite Feature",
+            "distance_km": 96.0,
+            "regional_landmark": "Bose A",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 127.5,
+            "display_label": "Near Bose A (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c32",
+          "lat": -26.502,
+          "lon": 46.502,
+          "metrics": {
+            "mean_elev_m": 203.23,
+            "roughness_std_m": 1768.25,
+            "mean_slope_deg": 20.7,
+            "p90_slope_deg": 37.24,
+            "tri": 1526.82,
+            "lola_albedo_shade": 72.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Borda H",
+            "feature_type": "Satellite Feature",
+            "distance_km": 7.6,
+            "regional_landmark": "Borda",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 39.6,
+            "display_label": "Borda H (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c33",
+          "lat": 24.498,
+          "lon": -143.498,
+          "metrics": {
+            "mean_elev_m": 10054.18,
+            "roughness_std_m": 868.81,
+            "mean_slope_deg": 14.41,
+            "p90_slope_deg": 27.85,
+            "tri": 628.68,
+            "lola_albedo_shade": 153.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Joule L",
+            "feature_type": "Satellite Feature",
+            "distance_km": 41.4,
+            "regional_landmark": "Joule L",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 41.4,
+            "display_label": "Joule L (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c34",
+          "lat": -16.502,
+          "lon": 20.502,
+          "metrics": {
+            "mean_elev_m": 3416.23,
+            "roughness_std_m": 762.99,
+            "mean_slope_deg": 13.46,
+            "p90_slope_deg": 26.24,
+            "tri": 592.42,
+            "lola_albedo_shade": 79.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Tacitus R",
+            "feature_type": "Satellite Feature",
+            "distance_km": 24.4,
+            "regional_landmark": "Tacitus",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 46.1,
+            "display_label": "Tacitus R (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c35",
+          "lat": 32.498,
+          "lon": 90.502,
+          "metrics": {
+            "mean_elev_m": -1037.17,
+            "roughness_std_m": 734.17,
+            "mean_slope_deg": 12.52,
+            "p90_slope_deg": 24.73,
+            "tri": 582.79,
+            "lola_albedo_shade": 77.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Vestine T",
+            "feature_type": "Satellite Feature",
+            "distance_km": 37.3,
+            "regional_landmark": "Vestine T",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 37.3,
+            "display_label": "Vestine T (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c36",
+          "lat": -72.502,
+          "lon": 132.502,
+          "metrics": {
+            "mean_elev_m": -8834.37,
+            "roughness_std_m": 661.84,
+            "mean_slope_deg": 9.09,
+            "p90_slope_deg": 20.44,
+            "tri": 430.77,
+            "lola_albedo_shade": 85.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Schrödinger",
+            "feature_type": "Crater, craters",
+            "distance_km": 67.7,
+            "regional_landmark": "Schrödinger",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 67.7,
+            "display_label": "Schrödinger (Crater, craters)"
+          }
+        },
+        {
+          "cluster_id": "moon-c37",
+          "lat": -83.502,
+          "lon": -103.498,
+          "metrics": {
+            "mean_elev_m": -1763.93,
+            "roughness_std_m": 1639.44,
+            "mean_slope_deg": 15.99,
+            "p90_slope_deg": 29.1,
+            "tri": 1282.4,
+            "lola_albedo_shade": 86.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Mons Kocher",
+            "feature_type": "Mons, montes",
+            "distance_km": 72.5,
+            "regional_landmark": "Mons Kocher",
+            "regional_type": "Mons, montes",
+            "regional_distance_km": 72.5,
+            "display_label": "Mons Kocher (Mons, montes)"
+          }
+        },
+        {
+          "cluster_id": "moon-c38",
+          "lat": 0.498,
+          "lon": 8.502,
+          "metrics": {
+            "mean_elev_m": 1448.14,
+            "roughness_std_m": 602.08,
+            "mean_slope_deg": 10.64,
+            "p90_slope_deg": 22.1,
+            "tri": 418.29,
+            "lola_albedo_shade": 85.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Lade W",
+            "feature_type": "Satellite Feature",
+            "distance_km": 8.4,
+            "regional_landmark": "Godin",
+            "regional_type": "Crater, craters",
+            "regional_distance_km": 64.3,
+            "display_label": "Lade W (Satellite Feature)"
+          }
+        },
+        {
+          "cluster_id": "moon-c39",
+          "lat": -68.502,
+          "lon": -163.498,
+          "metrics": {
+            "mean_elev_m": -8172.93,
+            "roughness_std_m": 732.29,
+            "mean_slope_deg": 13.04,
+            "p90_slope_deg": 25.43,
+            "tri": 547.18,
+            "lola_albedo_shade": 88.0
+          },
+          "iau_nomenclature": {
+            "nearest_feature": "Numerov Z",
+            "feature_type": "Satellite Feature",
+            "distance_km": 31.2,
+            "regional_landmark": "Numerov Z",
+            "regional_type": "Satellite Feature",
+            "regional_distance_km": 31.2,
+            "display_label": "Numerov Z (Satellite Feature)"
+          }
+        }
+      ]
+    }
+  }
+}

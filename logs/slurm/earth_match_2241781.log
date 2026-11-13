@@ -1,0 +1,8 @@
+[*] Tiles terrestres detectados: 3643 | Workers: 32
+    Progreso: 1000/3643 tiles -> 17221 sitios terrestres candidatos
+    Progreso: 2000/3643 tiles -> 34220 sitios terrestres candidatos
+    Progreso: 3000/3643 tiles -> 53215 sitios terrestres candidatos
+    Progreso: 3643/3643 tiles -> 66215 sitios terrestres candidatos
+[OK] Mars: 40 arquetipos emparejados con Top-5 análogos terrestres.
+[OK] Moon: 40 arquetipos emparejados con Top-5 análogos terrestres.
+[DONE] Archivo final para frontend generado en: /lustre/proyectos/p089/output/analogs.json
