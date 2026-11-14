@@ -7,6 +7,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 - Claude redactó [propuesta_de_valor.md](propuesta_de_valor.md) para el equipo de presentación y video: problemática, propuesta de valor, qué agrega el proyecto frente a lo que pide la NASA, diferenciador frente a otros equipos y candidatos en México del prototipo.
 - Incluye una lista de lo que no debe afirmarse todavía, por las limitaciones del prototipo.
 - El diferenciador frente a otros equipos es una hipótesis: sus proyectos no son visibles antes de la entrega.
+- Se subió el mismo contenido a un doc de Claude para el equipo: [Propuesta de valor: Planetary Analog Finder](https://claude.ai/artifact/563rMStp47364hAEc9pCmV). Es privado hasta que se comparta.
 
 ## 2026-11-13: revisión del prototipo y repositorio
 
