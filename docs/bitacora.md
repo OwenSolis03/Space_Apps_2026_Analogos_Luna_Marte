@@ -2,6 +2,19 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T1 — extracción de parches sin distorsión (pipeline/geo.py)
+
+**Qué se hizo (código escrito por Gemini)**
+
+- Se creó la base del paquete `pipeline/` (`__init__.py`, `config.py`, `requirements.txt`).
+- Se implementó `extract_patch` en `pipeline/geo.py`: extrae parches de `32 × 32 km` a `500 m/px` (`64 × 64 px`) en proyección AEQD local centrada en `(lat, lon)`, verificando el radio del elipsoide (`WGS84` para Tierra, `1737400 m` para Luna, `3396190 m` para Marte), reduciendo lectura con `out_shape` en rasters finos, saltando y contando cruces del antimeridiano `±180°`, convirtiendo `nodata` y `|z| > 1e5` a `NaN` y exigiendo al menos 90 % de píxeles válidos.
+- Se agregaron pruebas sintéticas en `tests/__init__.py` y `tests/test_geo.py` (invarianza de pendiente entre lat 0° y 70° en la Luna, cruce de borde entre tiles en VRT terrestre sin huecos, descarte de océano/nodata, cruce de antimeridiano y validación de radio): 5/5 pruebas pasan con `pytest`.
+
+**Qué falta**
+
+- T2 (`pipeline/features.py` + `tests/test_features.py`) y tareas T3–T11 del plan.
+- Ejecutar `pytest -q tests` en Yuca y validar cobertura de descargas T0.
+
 ## 2026-11-13: datos que faltan
 
 - Gemini ya empezó con el plan.
