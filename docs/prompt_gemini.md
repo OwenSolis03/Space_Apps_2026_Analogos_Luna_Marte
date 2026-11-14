@@ -5,11 +5,11 @@ Instrucciones para pegar en Gemini al empezar cada sesión de trabajo. Están pe
 Antes de pegar el prompt, cambia dos cosas:
 
 - la línea **"TAREA DE HOY"**;
-- el **MODO**: A si hay SSH a Yuca, B si no lo hay.
+- el **MODO**: A si Gemini tiene SSH a Yuca; B si no lo tiene (por ejemplo en la sede, donde Owen entra a Yuca por Open OnDemand).
 
 Reparto de papeles: Claude escribe los planes detallados (`docs/plan_*.md`), Gemini escribe el código y Owen aprueba y corre lo que Gemini no pueda correr.
 
-Si no hay SSH (por ejemplo, en la sede del hackathon), lee primero [operacion_sin_ssh.md](operacion_sin_ssh.md).
+Si no hay SSH (por ejemplo, en la sede del hackathon), lee primero [operacion_sin_ssh.md](operacion_sin_ssh.md): Yuca sigue disponible por Open OnDemand, con Owen como puente.
 
 ---
 
@@ -29,7 +29,7 @@ Luego dime en 5 líneas qué entendiste de la tarea de hoy, qué archivos vas a 
 Espera mi "ok" antes de escribir código.
 
 TAREA DE HOY: T4 según docs/plan_t4.md (empezando por T4.0).
-MODO: A (con SSH a Yuca)   ← o B (sin SSH a Yuca)
+MODO: A (tienes SSH a Yuca)   ← o B (no tienes SSH; Owen corre los comandos por Open OnDemand)
 
 CÓMO TRABAJAR
 - Implementa exactamente lo que dice el plan: mismos nombres de archivo, funciones y columnas, mismas fórmulas,
@@ -79,13 +79,18 @@ MODO A (hay SSH a Yuca):
   (tail del archivo en /lustre/proyectos/p089/output/) y dime si cumple los criterios de aceptación.
 - No reenvíes jobs en bucle: si un job falla, diagnostica primero.
 
-MODO B (no hay SSH a Yuca):
-- No intentes conectarte. Trabaja en el clon local de la laptop.
-- Escribe el código y pruébalo con los tests sintéticos en local (pytest con datos sintéticos; no hay rasters).
-  Si hace falta un dato real, usa el kit offline (docs/operacion_sin_ssh.md) y di cuál archivo usaste.
-- Deja listos los comandos de Yuca para cuando vuelva la conexión: dámelos EXACTAMENTE, cada uno en su propio
-  bloque, desde /lustre/proyectos/p089/code y empezando por `git pull`, y agrégalos también a la sección
-  "Cola para cuando haya SSH" de docs/progreso_handoff.md.
+MODO B (no tienes SSH; Yuca sigue disponible para Owen por Open OnDemand):
+- No intentes conectarte a Yuca. Trabaja en el clon local de la laptop.
+- Escribe el código y pruébalo en local con los tests sintéticos (no hay rasters en la laptop).
+  Si hace falta un dato real, usa el kit offline de ~/p089_offline (docs/operacion_sin_ssh.md §4) y di qué
+  archivo usaste.
+- Cuando algo deba correr en Yuca: commit y push a GitHub, y dame los comandos EXACTOS, cada uno en su propio
+  bloque, desde /lustre/proyectos/p089/code y empezando por `git pull`. Yo los corro en la terminal de Open
+  OnDemand, que también es el login node: las reglas de Yuca aplican igual.
+- Dime qué log o archivo necesitas de vuelta (ruta exacta). Te pegaré el texto del log o te pasaré el archivo
+  bajado por OOD. Léelo completo antes de responder.
+- Agrega cada comando pendiente a la sección "Cola para cuando haya SSH" de docs/progreso_handoff.md, para que
+  haya una sola lista, y tacha los que ya corrí.
 
 AL TERMINAR CADA TAREA, responde con:
 1. Qué hiciste (2-3 líneas).

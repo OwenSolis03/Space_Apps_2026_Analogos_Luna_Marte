@@ -16,7 +16,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
   - Se agrega soporte de parches que contienen el polo (Shackleton) sin cambiar T3.
   - Clusters k-means (30 por cuerpo) sobre los rasgos de T3.
 - [prompt_gemini.md](prompt_gemini.md) se reescribió para Gemini 4 en modo Orchestrator (Argon) de Antigravity, que ya tiene acceso a Yuca. Tiene MODO A (con SSH) y MODO B (sin SSH), y reglas reforzadas: nada de `pytest` en el login y no importar los scripts v1.
-- [operacion_sin_ssh.md](operacion_sin_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre. El documento cubre la lista para esta noche, el kit offline, qué avanzar sin Yuca, cómo recuperar el acceso y el plan B.
+- [operacion_sin_ssh.md](operacion_sin_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre, pero Open OnDemand (HTTPS) sí funciona; así se trabajó el 13. El documento cubre el flujo con OOD (Gemini en local, push a GitHub, Owen corre `git pull`/`sbatch` en la terminal de OOD y le pasa los logs), la lista para esta noche, el kit offline, qué avanzar en cada lado y el plan B.
   - El kit offline (`/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz`, 88 MB) tiene los parquet de T3, el gacetero IAU, Natural Earth y la caché de Diviner.
 - [progreso_handoff.md](progreso_handoff.md) se actualizó y ahora incluye la "Cola para cuando haya SSH".
 - Incidente sin daño: al revisar el gacetero, Claude importó `enrich_nomenclature.py`, que se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El contenido quedó idéntico a la copia del repo.

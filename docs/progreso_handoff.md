@@ -7,7 +7,7 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 - **Estado de datos y corridas en Yuca:** `docs/pipeline.md` y `docs/bitacora.md`
 - **Instrucciones operativas de trabajo y SLURM:** `docs/prompt_gemini.md` (MODO A con SSH / MODO B sin SSH)
 - **Plan detallado de la siguiente tarea:** `docs/plan_t4.md`
-- **Sin SSH (sede del hackathon, 14 y 15 de noviembre):** `docs/operacion_sin_ssh.md`
+- **Sin SSH (sede del hackathon, 14 y 15 de noviembre):** `docs/operacion_sin_ssh.md`. Yuca sigue accesible por Open OnDemand (HTTPS): Gemini trabaja en local, Owen hace `git pull` y `sbatch` en la terminal de OOD y le pasa los logs
 
 ---
 
@@ -118,7 +118,7 @@ Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuc
 
 ## Cola para cuando haya SSH
 
-Comandos de Yuca pendientes, en orden. Quien trabaje sin SSH (MODO B) agrega aquí lo que deja listo. Quien vuelva a tener SSH los corre de arriba hacia abajo, revisa cada log contra el criterio indicado y tacha la línea.
+Comandos de Yuca pendientes, en orden. Quien trabaje sin SSH (MODO B) agrega aquí lo que deja listo. Owen los corre de arriba hacia abajo, por SSH o en la terminal de Open OnDemand, revisa cada log contra el criterio indicado y tacha la línea.
 
 | # | Comando (desde `/lustre/proyectos/p089/code`, tras `git pull`) | Revisar en el log |
 | --- | --- | --- |
