@@ -346,3 +346,62 @@ def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
 
     assert flat_patch is not None
     assert np.allclose(flat_patch[np.isfinite(flat_patch)], 300.0, atol=1e-3)
+
+
+def test_uint8_wac_scale_offset_and_giant_float32_nodata(tmp_path: Path) -> None:
+    """Aplica scale/offset de WAC (uint8 a 100 m) y filtra nodata=-3.4e38 sin overflow."""
+    import warnings
+
+    from pipeline.geo import _clean_nodata
+
+    # (a) Caso LROC WAC: uint8 a 100 m/px (activa out_shape), nodata=0, scale=1.00395, offset=-0.00395.
+    radius_m = 1737400.0
+    res_m = 100.0
+    width, height = 400, 400
+    eqc_crs = f"+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R={radius_m} +units=m +no_defs"
+    transform = from_origin(-20000.0, 20000.0, res_m, res_m)
+
+    raw_wac = np.full((height, width), 128, dtype=np.uint8)
+    raw_wac[0:10, 0:10] = 0  # nodata=0 (< 1 % del parche)
+    wac_path = tmp_path / "moon_wac_uint8.tif"
+    with rasterio.open(
+        wac_path,
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype="uint8",
+        crs=eqc_crs,
+        transform=transform,
+        nodata=0,
+    ) as dst:
+        dst.write(raw_wac, 1)
+        dst.scales = (1.00395,)
+        dst.offsets = (-0.00395,)
+
+    with rasterio.open(wac_path) as src:
+        wac_patch = extract_patch(src, lat=0.0, lon=0.0, body="Moon", resampling=Resampling.average)
+
+    assert wac_patch is not None
+    assert wac_patch.shape == (64, 64)
+    expected_wac = 128.0 * 1.00395 - 0.00395
+    assert np.allclose(wac_patch[np.isfinite(wac_patch)], expected_wac, atol=1e-2)
+
+    # (b) Caso IceFavorabilityIndex: float32 con nodata=-3.4e38 sin RuntimeWarning de overflow.
+    ice_arr = np.array([[0.0, 0.45, -3.4e38, -3.4028235e38]], dtype=np.float32)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        cleaned = _clean_nodata(ice_arr, nodata=-3.4e38, scale=1.0, offset=0.0)
+        wac_cleaned = _clean_nodata(
+            np.array([[0, 1, 255]], dtype=np.uint8),
+            nodata=0,
+            scale=1.00395,
+            offset=-0.00395,
+        )
+
+    assert np.allclose(cleaned[0, :2], [0.0, 0.45], atol=1e-6)
+    assert np.isnan(cleaned[0, 2]) and np.isnan(cleaned[0, 3])
+    assert np.isnan(wac_cleaned[0, 0])
+    assert np.isclose(float(wac_cleaned[0, 1]), 1.0, atol=1e-4)
+    assert np.isclose(float(wac_cleaned[0, 2]), 255.0 * 1.00395 - 0.00395, atol=1e-2)

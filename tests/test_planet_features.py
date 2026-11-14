@@ -15,6 +15,7 @@ from pipeline.planet_features import (
     MARS_COLUMNS,
     MOON_COLUMNS,
     apply_limit,
+    compute_lunar_wac_percentile,
     generate_grid,
     prepare_diviner_parquet,
     run_body_extraction,
@@ -286,3 +287,22 @@ def test_diviner_prp_csv_parsing_and_polar_patch(tmp_path: Path, monkeypatch) ->
     assert float(row1["diviner_tavg_k"]) == np.float32(70.0)
     assert float(row1["diviner_tmax_k"]) == np.float32(130.0)
     assert np.isnan(row1["ice_depth_m"])
+
+
+def test_compute_lunar_wac_percentile() -> None:
+    """Convierte brillo relativo WAC a percentil [0, 1] dentro de la distribución lunar."""
+    series = pd.Series([10.0, 20.0, 30.0, np.nan, 40.0], index=["a", "b", "c", "d", "e"])
+    pct = compute_lunar_wac_percentile(series)
+
+    assert isinstance(pct, pd.Series)
+    assert list(pct.index) == ["a", "b", "c", "d", "e"]
+    assert np.isnan(pct.loc["d"])
+    assert np.allclose(pct.dropna().to_numpy(), [0.125, 0.375, 0.625, 0.875], atol=1e-6)
+
+    # Referencia separada, empates, extremos y escalar.
+    ref = np.array([10.0, 20.0, 20.0, 40.0, np.nan], dtype=np.float32)
+    assert abs(float(compute_lunar_wac_percentile(20.0, reference=ref)) - 0.5) < 1e-6
+    assert float(compute_lunar_wac_percentile(5.0, reference=ref)) == 0.0
+    assert float(compute_lunar_wac_percentile(50.0, reference=ref)) == 1.0
+    assert np.isnan(compute_lunar_wac_percentile(np.nan, reference=ref))
+    assert np.isnan(compute_lunar_wac_percentile(25.0, reference=np.array([np.nan, np.nan])))

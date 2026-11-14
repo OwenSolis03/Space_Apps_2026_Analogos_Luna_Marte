@@ -124,6 +124,41 @@ def apply_limit(
     return points[::step][:limit]
 
 
+def compute_lunar_wac_percentile(
+    values: float | np.floating | np.ndarray | pd.Series,
+    reference: np.ndarray | pd.Series | None = None,
+) -> float | np.ndarray | pd.Series:
+    """Convierte valores de brillo LROC WAC a percentil [0, 1] dentro de la Luna.
+
+    El mosaico LROC WAC (uint8 con scale=1.00395, offset=-0.00395, nodata=0) representa
+    brillo relativo (~1-256) y no reflectancia física absoluta, por lo que debe compararse
+    por rango/percentil dentro de la propia distribución lunar.
+    """
+    is_scalar = np.isscalar(values)
+    is_series = isinstance(values, pd.Series)
+
+    val_arr = np.asarray(values, dtype=np.float64)
+    ref_arr = val_arr if reference is None else np.asarray(reference, dtype=np.float64)
+    ref_valid = np.sort(ref_arr[np.isfinite(ref_arr)])
+
+    out = np.full(val_arr.shape, np.nan, dtype=np.float32)
+    if ref_valid.size > 0:
+        finite_mask = np.isfinite(val_arr)
+        if np.any(finite_mask):
+            x = val_arr[finite_mask]
+            left = np.searchsorted(ref_valid, x, side="left")
+            right = np.searchsorted(ref_valid, x, side="right")
+            pct = (0.5 * (left + right)) / float(ref_valid.size)
+            out[finite_mask] = np.clip(pct, 0.0, 1.0).astype(np.float32)
+
+    if is_scalar:
+        val = float(out.reshape(()))
+        return val
+    if is_series:
+        return pd.Series(out, index=values.index, name="wac_percentile", dtype="float32")
+    return out
+
+
 def _diviner_transformer() -> Transformer:
     r_moon = BODY_RADII_M["Moon"]
     geo_crs = CRS.from_proj4(f"+proj=longlat +R={r_moon} +no_defs")
@@ -360,6 +395,8 @@ def _process_point(point: tuple[float, float]) -> dict[str, object] | None:
         row["themis_night"] = themis_night
         row["themis_delta"] = themis_delta
     elif body == "Moon":
+        # Nota: LROC WAC (uint8, scale=1.00395, offset=-0.00395, nodata=0) entrega brillo
+        # relativo (~1-256), no reflectancia absoluta; compararlo por percentil dentro de la Luna.
         row["wac_reflectance"] = _sample_aux_median(
             aux_srcs.get("wac_reflectance"), lat, lon, body, size_km, res_m
         )
@@ -487,21 +524,24 @@ def run_body_extraction(
     if file_overrides:
         resolved.update(file_overrides)
 
+    def _log_raster_meta(layer_name: str, raster_path: Path) -> None:
+        with rasterio.open(raster_path) as meta_src:
+            print(
+                f"[META] {body_norm} {layer_name}: dtype={meta_src.dtypes[0]} nodata={meta_src.nodata} "
+                f"scales={meta_src.scales} offsets={meta_src.offsets} res={meta_src.res}"
+            )
+
     dem_path = resolved["dem"]
     if not dem_path.exists():
         raise FileNotFoundError(f"No se encontró el DEM de {body_norm}: {dem_path}")
-
-    with rasterio.open(dem_path) as dem_meta:
-        print(
-            f"[META] {body_norm} DEM: dtype={dem_meta.dtypes[0]} nodata={dem_meta.nodata} "
-            f"scales={dem_meta.scales} offsets={dem_meta.offsets} res={dem_meta.res}"
-        )
+    _log_raster_meta("DEM", dem_path)
 
     aux_paths: dict[str, str] = {}
     for k, p in resolved.items():
         if k in ("dem", "diviner_prp"):
             continue
         if p.exists():
+            _log_raster_meta(k, p)
             aux_paths[k] = str(p)
         else:
             print(f"[WARN] Capa auxiliar opcional ausente para {body_norm} ({k}): {p}")
@@ -595,6 +635,14 @@ def run_body_extraction(
                 f"mediana={df[col].median():.2f}{unit}, "
                 f"p95={df[col].quantile(0.95):.2f}{unit}, "
                 f"max={df[col].max():.2f}{unit}"
+            )
+        if body_norm == "Moon" and "wac_reflectance" in df.columns and df["wac_reflectance"].notna().any():
+            wac_valid = df["wac_reflectance"].dropna()
+            print(
+                f"     wac_reflectance (brillo rel.): min={wac_valid.min():.2f}, "
+                f"mediana={wac_valid.median():.2f}, "
+                f"p95={wac_valid.quantile(0.95):.2f}, "
+                f"max={wac_valid.max():.2f} (n={len(wac_valid):,})"
             )
         if body_norm == "Moon" and "diviner_tavg_k" in df.columns:
             div_cov = int(df["diviner_tavg_k"].notna().sum())

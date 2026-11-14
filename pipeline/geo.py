@@ -160,11 +160,14 @@ def _clean_nodata(
     offset: float | None = 0.0,
 ) -> np.ndarray:
     arr = data.astype(np.float32, copy=True)
+    arr[~np.isfinite(arr)] = np.nan
+    # Filtrar centinelas gigantes (p. ej. nodata=-3.4e38 en float32) antes de np.isclose
+    # para evitar overflow en float32 y antes de aplicar scale/offset.
+    arr[np.abs(arr) > MAX_ABS_ELEV_M] = np.nan
     if nodata is not None:
         nodata_f = float(nodata)
-        if math.isfinite(nodata_f):
-            arr[np.isclose(arr, nodata_f)] = np.nan
-    arr[~np.isfinite(arr)] = np.nan
+        if math.isfinite(nodata_f) and abs(nodata_f) <= MAX_ABS_ELEV_M:
+            arr[np.isclose(arr, np.float32(nodata_f))] = np.nan
 
     scale_f = 1.0 if scale is None else float(scale)
     offset_f = 0.0 if offset is None else float(offset)
