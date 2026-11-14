@@ -89,6 +89,12 @@ def download_emit(target_dir: Path) -> list[Path]:
         logger.warning("earthaccess not installed; skipping automated EMIT download.")
         return []
 
+    logger.info("Authenticating with earthaccess...")
+    try:
+        earthaccess.login(strategy="netrc")
+    except Exception as e:
+        logger.warning("earthaccess login failed: %s", e)
+
     logger.info("Searching EMIT L3 ASA granule (short_name='EMITL3ASA', version='002')...")
     results = earthaccess.search_data(
         short_name="EMITL3ASA",
