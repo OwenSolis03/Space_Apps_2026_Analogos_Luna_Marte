@@ -30,7 +30,7 @@ defineProps<{
 
 @media (min-width: 900px) {
   .page-hero__grid {
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   }
 }
 
