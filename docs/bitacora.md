@@ -46,10 +46,14 @@ Para correrla: `cd app && npm install && npm run dev`.
     - `wac_reflectance` (Luna, brillo relativo `uint8` con `scale=1.00395, offset=-0.00395, nodata=0`): min `1.00`, mediana `67.26`, p95 `93.85`, máx `136.71` (`n=494`).
     - `ice_south` / `ice_north` (`float32`, `nodata=-3.4028226550889045e+38`): leídos sin warnings y `Diviner polar` con 5 parches de cobertura en la muestra `--limit 500`.
     - Marte en `2242231_0` (`498/500` válidos, `scale=1.0`): `mean_slope_deg` min `0.04°`, mediana `1.08°`, p95 `4.63°`, máx `17.15°`; `relief_m` min `6.04 m`, mediana `239.32 m`, p95 `1476.28 m`, máx `5310.49 m`; `mean_elev_m` min `-6864.79 m`, mediana `-282.06 m`, p95 `4256.35 m`, máx `9031.45 m`.
+  - **Corrida global completa de T3 (jobs `2242278` `0..15` + merge `2242279`):**
+    - Marte: 16 franjas -> **`140,916` parches válidos** (de `141,472`, `99.61 %`; cumple `~141k ± 10 %`) en `/lustre/proyectos/p089/runs/2242278/features_mars.parquet` y mapa `/lustre/proyectos/p089/runs/2242278/map_mars_mean_slope_deg.png`.
+    - Luna: 16 franjas -> **`36,741` parches válidos** (de `37,014`, `99.26 %`; cumple `~37k ± 10 %`) en `/lustre/proyectos/p089/runs/2242278/features_moon.parquet` y mapa `/lustre/proyectos/p089/runs/2242278/map_moon_mean_slope_deg.png`.
 
 **Qué falta**
 
-- Correr en Yuca el job array completo `--array=0-15` de `jobs/t3_planet_features.slurm` y su `--merge` posterior para obtener `features_mars.parquet`, `features_moon.parquet` y los mapas PNG completos, antes de pasar a T4.
+- Inspección visual rápida de los mapas `map_mars_mean_slope_deg.png` y `map_moon_mean_slope_deg.png` de `runs/2242278/` (Valles Marineris / Olympus Mons en Marte; tierras altas frente a mares en la Luna).
+- Implementar **T4** (`pipeline/targets.py` + `pipeline/data/targets.json` + tests): blancos curados (Artemis III + Shackleton, sitios de aterrizaje en Marte con coordenadas verificadas) y 30 clusters por cuerpo sobre los parquet de T3 (`2242278`), luego T6, T5, T7 y T8.
 
 ## 2026-11-13: T3 — barrido global de Marte y la Luna (pipeline/planet_features.py)
 
