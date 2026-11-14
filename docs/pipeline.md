@@ -43,6 +43,20 @@ Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
 
 Los rasters no se suben al repo (ver `.gitignore`).
 
+### Tipo, escala y nodata de cada mosaico
+
+Revisado en Yuca el 2026-11-13 con rasterio. **Siempre aplicar `valor = crudo · scale + offset`**: `rasterio.read()` no lo hace solo.
+
+| Archivo | dtype | scale | offset | nodata | Nota |
+| --- | --- | --- | --- | --- | --- |
+| `Mars_MGS_MOLA_DEM_mosaic_global_463m.tif` | int16 | 1.0 | 0.0 | −32768 | Metros |
+| `Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif` | uint8 | 1.0 | 0.0 | 0 | Nivel de gris, no kelvin |
+| `Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` | uint8 | 1.0 | 0.0 | 0 | Nivel de gris, no kelvin |
+| `Lunar_LRO_LOLA_Global_LDEM_118m.tif` | int16 | **0.5** | 0.0 | −32768 | **Medios metros**: la v1 no aplicó la escala y todas las métricas lunares salieron al doble |
+| `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` | uint8 | 1.00395 | −0.00395 | 0 | Brillo relativo (≈ 1–256), no reflectancia absoluta; compararlo por rango dentro de la Luna |
+| `Moon_IceFavorabilityIndex_{90N,90S}000E_591mp.tif` | float32 | 1.0 | 0.0 | −3.4e38 | Filtrar el nodata gigante |
+| `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | uint8 × 3 | 1.0 | 0.0 | 0 | Obsoleto (ClrShade RGB); mover a `_to_delete/` |
+
 ## Scripts
 
 ### `process_analogs.py`
