@@ -40,6 +40,7 @@ const sunLabel = `${sun.code} / ${sun.label}`;
 
 let scope: ReturnType<typeof createScope> | undefined;
 
+// Restores the dotted orbit pattern once the intro has drawn the orbits.
 function restoreOrbitDash() {
   root.value?.querySelectorAll<SVGEllipseElement>(".orbit").forEach((orbit) => {
     orbit.removeAttribute("pathLength");

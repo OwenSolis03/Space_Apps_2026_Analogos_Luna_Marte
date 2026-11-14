@@ -110,11 +110,16 @@ import imagotipo from "@/assets/Imagotipo.svg";
 
 .log__row {
   display: grid;
-  grid-template-columns: 4rem minmax(0, 1fr) auto;
+  grid-template-columns: 4rem minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   padding-block: var(--space-3);
   border-top: var(--stroke-hairline) solid var(--line-faint);
+
+  .tm-tag {
+    grid-column: 2;
+    justify-self: start;
+  }
 }
 
 .log__year {

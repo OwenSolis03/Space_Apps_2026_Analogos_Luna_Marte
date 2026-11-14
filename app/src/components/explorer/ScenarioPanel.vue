@@ -61,8 +61,10 @@ function toggle(key: string) {
 }
 
 function toggleAll() {
-  open.value = allOpen.value ? new Set() : new Set(KEYS);
-  writeStored(!allOpen.value);
+  // Decide the next state first: reading the computed after the assignment would see the new state.
+  const openAll = !allOpen.value;
+  open.value = openAll ? new Set(KEYS) : new Set();
+  writeStored(openAll);
 }
 
 const activeDims = computed(() => DIMENSIONS.filter((d) => props.available.has(d)));
