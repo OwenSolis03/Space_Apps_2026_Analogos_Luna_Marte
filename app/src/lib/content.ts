@@ -5,11 +5,15 @@ export const BODY_LABEL: Record<Body, { name: string; adj: string }> = {
   Moon: { name: "the Moon", adj: "lunar" },
 };
 
-export const DIM_LABEL: Record<Dimension, { label: string; hint: string; pending: string }> = {
-  topography: { label: "Slope", hint: "mean slope and P90", pending: "" },
-  roughness: { label: "Roughness", hint: "elevation σ and TRI", pending: "" },
-  environment: { label: "Environment", hint: "aridity, dust", pending: "arrives with T5/T6" },
-  thermal: { label: "Thermal", hint: "daily amplitude", pending: "arrives with T7" },
+/** Short labels for sliders and radar axes; the long description comes from metadata.dimensions. */
+export const DIM_LABEL: Record<Dimension, { label: string; hint: string }> = {
+  topography: { label: "Topography", hint: "slope, relief, hypsometry" },
+  roughness: { label: "Roughness", hint: "elevation σ and TRI" },
+  environment: { label: "Aridity", hint: "bare ground (NDVI)" },
+  thermal: { label: "Thermal", hint: "day-night contrast rank" },
+  geology: { label: "Geology", hint: "regional rock class" },
+  dust: { label: "Dust", hint: "dust level and seasons" },
+  ice: { label: "Ice", hint: "cold traps and ice" },
 };
 
 export const FEATURE_LABEL: Record<string, { label: string; unit: string; dim: Dimension | null }> = {
@@ -20,6 +24,30 @@ export const FEATURE_LABEL: Record<string, { label: string; unit: string; dim: D
   relief_m: { label: "Relief", unit: "m", dim: "topography" },
   hypsometric_integral: { label: "Hypsometric integral", unit: "", dim: "topography" },
   mean_elev_m: { label: "Mean elevation", unit: "m", dim: null },
+  geo_class: { label: "Rock class", unit: "", dim: "geology" },
+  thermal_rank: { label: "Thermal contrast rank", unit: "", dim: "thermal" },
+  dust_level_rank: { label: "Dust level rank", unit: "", dim: "dust" },
+  dust_seasonality_rank: { label: "Dust seasonality rank", unit: "", dim: "dust" },
+  dust_peak_phase_deg: { label: "Dust peak season", unit: "°", dim: "dust" },
+  cold_rank: { label: "Cold-trap rank", unit: "", dim: "ice" },
+};
+
+export const GEO_CLASS_LABEL: Record<string, string> = {
+  VOLCANIC_BASIC: "basaltic volcanic",
+  VOLCANIC_OTHER: "other volcanic",
+  PYROCLASTIC: "pyroclastic",
+  SEDIMENTARY: "sedimentary",
+  EVAPORITE: "evaporite",
+  CRYSTALLINE: "crystalline",
+  IMPACT: "impact",
+  ICE: "ice",
+};
+
+export const fmtValue = (v: number | string | null | undefined, unit = ""): string => {
+  if (v == null) return "n/a";
+  if (typeof v === "string") return GEO_CLASS_LABEL[v] ?? v.toLowerCase();
+  const s = Math.abs(v) >= 100 ? Math.round(v).toLocaleString("en-US") : v.toFixed(2);
+  return unit ? `${s} ${unit}` : s;
 };
 
 export const LIMIT_LABEL: Record<string, string> = {
@@ -28,9 +56,19 @@ export const LIMIT_LABEL: Record<string, string> = {
   pressure: "Pressure",
   radiation: "Radiation",
   thermal_cycle: "Thermal cycle",
+  thermal_extremes: "Thermal extremes",
   polar_lighting: "Polar lighting",
+  polar_illumination: "Polar illumination",
+  regolith_and_dust: "Regolith and dust",
+  atmospheric_pressure: "Atmospheric pressure",
+  dust_storms: "Dust storms",
+  perchlorates_and_soil_chemistry: "Soil chemistry",
   elevation_datum: "Elevation",
 };
+
+/** Readable fallback for any new limit key: "some_new_factor" -> "Some new factor". */
+export const limitLabel = (factor: string) =>
+  LIMIT_LABEL[factor] ?? factor.charAt(0).toUpperCase() + factor.slice(1).replace(/_/g, " ");
 
 // Capas base verificadas en docs/plan_implementacion.md (T10).
 export const TILES = {
@@ -51,7 +89,7 @@ export const TILES = {
   },
 } as const;
 
-/** Uso de campo sugerido a partir de los rasgos del blanco (regla simple, provisional hasta T11). */
+/** Suggested field use from the target's terrain features (simple rule on slope and TRI). */
 export function suggestedUses(f: Record<string, number>, body: Body, lat: number): string[] {
   const out: string[] = [];
   const p90 = f.p90_slope_deg ?? 0;

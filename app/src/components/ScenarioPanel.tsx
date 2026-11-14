@@ -1,4 +1,4 @@
-import type { Dimension, Preset, Weights } from "../lib/types";
+import type { Dimension, DimensionInfo, Preset, Weights } from "../lib/types";
 import { DIMENSIONS } from "../lib/types";
 import { DIM_LABEL } from "../lib/content";
 
@@ -8,9 +8,15 @@ interface Props {
   onPreset: (id: string) => void;
   weights: Weights;
   onWeight: (d: Dimension, v: number) => void;
-  available: Set<string>;
+  available: Set<Dimension>;
+  dimInfo: Partial<Record<Dimension, DimensionInfo>>;
+  bodyName: string;
   minScore: number;
   onMinScore: (v: number) => void;
+  lambda: number;
+  onLambda: (v: number) => void;
+  newOnly: boolean;
+  onNewOnly: (v: boolean) => void;
 }
 
 export function ScenarioPanel(p: Props) {
@@ -35,13 +41,14 @@ export function ScenarioPanel(p: Props) {
         {DIMENSIONS.map((d) => {
           const on = p.available.has(d);
           const id = `w-${d}`;
+          const info = p.dimInfo[d];
           return (
-            <div key={d} className={`grid grid-cols-[1fr_auto] items-center gap-x-2 text-sm ${on ? "" : "opacity-60"}`}>
+            <div key={d} className={`grid grid-cols-[1fr_auto] items-center gap-x-2 text-sm ${on ? "" : "opacity-60"}`} title={info?.description}>
               <label htmlFor={id}>
                 {DIM_LABEL[d].label} <span className="text-faint">· {DIM_LABEL[d].hint}</span>
               </label>
               <output htmlFor={id} className="num text-xs">
-                {on ? `${Math.round((p.weights[d] / total) * 100)}%` : "no data"}
+                {on ? `${Math.round((p.weights[d] / total) * 100)}%` : "n/a"}
               </output>
               <input
                 id={id}
@@ -54,7 +61,7 @@ export function ScenarioPanel(p: Props) {
                 onChange={(e) => p.onWeight(d, Number(e.target.value) / 100)}
                 className="col-span-2 w-full disabled:cursor-not-allowed"
               />
-              {!on && <span className="pending col-span-2 w-fit">{DIM_LABEL[d].pending}</span>}
+              {!on && <span className="pending col-span-2 w-fit">not modelled for {p.bodyName}</span>}
             </div>
           );
         })}
@@ -67,12 +74,17 @@ export function ScenarioPanel(p: Props) {
         <input id="min-score" type="range" min={0} max={95} step={5} value={Math.round(p.minScore * 100)} onChange={(e) => p.onMinScore(Number(e.target.value) / 100)} />
       </div>
 
-      <div className="grid gap-1 text-sm">
-        <span className="font-semibold text-muted">Logistics</span>
-        <label className="flex items-center gap-2 opacity-60">
-          <input type="checkbox" disabled /> Prefer sites near a road
+      <div className="grid gap-2 text-sm">
+        <span className="font-semibold text-muted">Logistics and novelty</span>
+        <label htmlFor="lambda" className="grid gap-1">
+          <span>
+            Prefer sites near a road <span className="num text-xs text-faint">λ = {p.lambda.toFixed(2)}</span>
+          </span>
+          <input id="lambda" type="range" min={0} max={30} step={5} value={Math.round(p.lambda * 100)} onChange={(e) => p.onLambda(Number(e.target.value) / 100)} />
         </label>
-        <span className="pending w-fit">road distance arrives with T6</span>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={p.newOnly} onChange={(e) => p.onNewOnly(e.target.checked)} /> Only new candidates (hide well-known analog regions)
+        </label>
       </div>
     </aside>
   );
