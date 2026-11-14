@@ -132,12 +132,18 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Analogs for this target">
-          {ranked.analogs.map((x, i) => (
-            <button key={x.analog.id} type="button" className="chip num" aria-pressed={i === analogIndex} onClick={() => onAnalog(i)}>
-              #{i + 1} · {pct(x.score)}
-            </button>
-          ))}
+        <div className="grid gap-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="eyebrow">Earth analogs, best first</span>
+            <span className="eyebrow num">{ranked.analogs.length} places</span>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2" role="group" aria-label="Analogs for this target">
+            {ranked.analogs.map((x, i) => (
+              <button key={x.analog.id} type="button" className="chip num shrink-0" aria-pressed={i === analogIndex} onClick={() => onAnalog(i)}>
+                #{i + 1} · {pct(x.score)}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="overflow-x-auto">

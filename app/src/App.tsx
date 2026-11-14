@@ -205,14 +205,14 @@ export default function App() {
 
         {data && (
           <>
-            <section id="explorar" aria-labelledby="explorar-h" className="scroll-mt-20 border-t border-line py-8">
+            <section id="explorar" aria-labelledby="explorar-h" className="scroll-mt-20 border-t border-line py-12">
               <div className="mb-5 grid gap-1">
                 <h2 id="explorar-h" className="text-2xl font-semibold">Explorer</h2>
                 <p className="max-w-[70ch] text-sm text-muted">
                   Pick a mission case and adjust the weights. The ranking is recalculated in your browser. Dimensions that do not apply to {B.name} are disabled.
                 </p>
               </div>
-              <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)_20rem]">
+              <div className="grid gap-4 md:grid-cols-[19rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)_20rem]">
                 <ScenarioPanel
                   body={body}
                   presets={data.mission_presets}
@@ -255,7 +255,7 @@ export default function App() {
               </div>
             </section>
 
-            <section id="ficha" aria-labelledby="ficha-h" className="scroll-mt-20 border-t border-line py-8">
+            <section id="ficha" aria-labelledby="ficha-h" className="scroll-mt-20 border-t border-line py-12">
               <div className="mb-5 grid gap-1">
                 <h2 id="ficha-h" className="text-2xl font-semibold">Site sheet</h2>
                 <p className="max-w-[70ch] text-sm text-muted">How close each analog is, feature by feature, and what Earth cannot reproduce.</p>
@@ -267,7 +267,7 @@ export default function App() {
               )}
             </section>
 
-            <section id="metodo" aria-labelledby="metodo-h" className="scroll-mt-20 border-t border-line py-8">
+            <section id="metodo" aria-labelledby="metodo-h" className="scroll-mt-20 border-t border-line py-12">
               <h2 id="metodo-h" className="mb-5 text-2xl font-semibold">Methodology</h2>
               <ol className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
                 {[

@@ -91,6 +91,10 @@
     outline: var(--ring) solid var(--accent);
     outline-offset: var(--ring);
   }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--faint) transparent;
+  }
   input[type="range"] {
     accent-color: var(--accent);
   }
@@ -141,6 +145,15 @@
     border: 1px dashed currentColor;
     border-radius: var(--radius-tag);
     padding: 0 0.4rem;
+  }
+  /* explanation block of the Scenario panel: short fade, no layout movement while dragging sliders */
+  .info-panel:not([hidden]) {
+    animation: info-in var(--dur-fast) ease-out;
+  }
+  @keyframes info-in {
+    from {
+      opacity: 0;
+    }
   }
   .map-frame {
     background: repeating-linear-gradient(135deg, var(--hatch) 0 var(--hatch-a), transparent var(--hatch-a) var(--hatch-b));
