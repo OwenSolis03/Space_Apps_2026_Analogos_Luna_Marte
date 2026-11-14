@@ -1,5 +1,7 @@
 # Rasters y datos pesados (viven en Yuca: /lustre/proyectos/p089/data)
 data/
+# Excepcion: el JSON que consume la app si va al repo (plan, regla 3)
+!app/public/data/
 *.tif
 *.tiff
 *.aria2
