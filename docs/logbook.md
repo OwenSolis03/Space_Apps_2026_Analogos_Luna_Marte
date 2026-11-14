@@ -2,6 +2,17 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: UI pass on the Explorer and the Site sheet
+
+**What was done** (Claude, branch `feat/t17-plain-language`, no copy or behaviour changes):
+
+- **Analog chips:** a target has between 34 and 102 Earth analogs and they were wrapped into a wall of chips that pushed the feature table off the screen. They are now one horizontal, scrollable strip under the label "Earth analogs, best first" with the count.
+- **Side rails:** the Scenario panel (from `md` up) and the Target ranking (from `xl` up) stay fixed while the maps scroll, and the panel scrolls inside itself. With all explanations open the page no longer grows to about 7,700 px, and the ranking stays visible next to the maps at 1366 by 768. This closes the open item of the T17 entry below.
+- Left column widened from 16 rem to 19 rem (20 rem at `xl`) so the explanation text has a more comfortable line length; more vertical space between the Explorer, Site sheet and Methodology sections (`py-12`); thin scrollbars from the tokens.
+- Checked: build passes; no emoji, no hard-coded values, no native select; no horizontal scroll at 390 px; hero, Explorer and Site sheet looked at in the browser at 1366 by 768.
+
+**Known, not fixed:** on a phone with "Show explanations" on, the Scenario panel is about 6,000 px tall and pushes the maps and ranking far down. The switch starts off, but it is remembered between visits. A collapsible panel on small screens would fix it.
+
 ## 2026-11-14: T17 implemented, plain-language explanations in the Scenario panel
 
 **What was done** (code by Claude on branch `feat/t17-plain-language`, copy used as written in [plan_t17_plain_language.md](plan_t17_plain_language.md) §3):

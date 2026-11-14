@@ -62,7 +62,7 @@ export function ScenarioPanel(p: Props) {
   const presetText = p.presetId ? PRESET_EXPLANATION[p.presetId] : undefined;
 
   return (
-    <aside aria-label="Scenario" className="grid content-start gap-5 rounded-panel border border-line bg-surface p-4">
+    <aside aria-label="Scenario" className="grid content-start gap-5 self-start rounded-panel border border-line bg-surface p-4 md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:overflow-y-auto">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <h3 className="text-base font-semibold">Scenario</h3>
         <button

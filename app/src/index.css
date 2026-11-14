@@ -91,6 +91,10 @@
     outline: var(--ring) solid var(--accent);
     outline-offset: var(--ring);
   }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--faint) transparent;
+  }
   input[type="range"] {
     accent-color: var(--accent);
   }
