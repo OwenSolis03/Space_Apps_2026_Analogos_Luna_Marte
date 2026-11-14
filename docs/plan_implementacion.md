@@ -203,6 +203,8 @@ Antes de calcular, rellenar los NaN restantes con la mediana del parche.
 
 **Objetivo:** definir contra qué sitios de la Luna y Marte se buscan análogos.
 
+> **Especificación detallada:** [plan_t4.md](plan_t4.md) (coordenadas verificadas, anclas IAU, soporte polar, firmas, salidas y pruebas). Para T4 manda ese documento.
+
 **Dos tipos de blanco:**
 
 1. **Curados (`CURATED`)**, en `targets.json`. Cada uno con `id`, `body`, `name`, `lat`, `lon`, `category`, `why` (una línea), `source_url`. **Las coordenadas se toman de la fuente oficial**; si no se encuentran, `lat/lon = null` y el blanco se omite.
