@@ -54,11 +54,13 @@ EARTH_RAW_FILES: dict[str, str] = {
     "roads": "earth/naturalearth/ne_10m_roads/ne_10m_roads.shp",
     "airports": "earth/naturalearth/ne_10m_airports/ne_10m_airports.shp",
     "countries": "earth/naturalearth/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp",
+    "copernicus_dir": "earth/copernicus_90m",
 }
 
 EARTH_DERIVED_FILES: dict[str, str] = {
     "ndvi_max": "ndvi_max_2023.tif",
     "lst": "lst_2023.tif",
+    "copernicus_vrt": "copernicus_90m.vrt",
 }
 
 MODIS_CMG_RES_DEG: float = 0.05
