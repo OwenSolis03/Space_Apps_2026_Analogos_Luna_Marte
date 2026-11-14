@@ -11,6 +11,8 @@ Before pasting the prompt, change two things:
 - the **TODAY'S TASK** line;
 - the **MODE**: A if Gemini has SSH access to Yuca; B if it does not (for example at the venue, where Owen reaches Yuca through Open OnDemand).
 
+**Other models.** The prompt works for any coding agent. On 2026-11-14 the implementer was switched to **Claude Sonnet 5.5 (high effort)** for some sessions, because the Gemini 4 quota ran out, and Gemini 4 comes back later in the day. Whoever implements must name the **actual model** in the logbook entry and in the commit body ("code written by Claude Sonnet 5.5 from Claude's plan"), so the use-of-AI section of the submission stays accurate. The Orchestrator (Argon) notes at the end apply only to Gemini.
+
 **Roles:** Claude writes the detailed plans (`docs/plan_*.md`) and the documentation, Gemini writes the code, and Owen approves and runs whatever Gemini cannot run.
 
 Without SSH (for example at the hackathon venue), read [working_without_ssh.md](working_without_ssh.md) first: Yuca is still available through Open OnDemand, with Owen as the bridge.
