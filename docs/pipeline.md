@@ -19,7 +19,7 @@ T14: pipeline/geology.py + overrides ────────► runs/2242486/ge
 T13: pipeline/dust.py ───────────────────────► runs/2242484/dust_{earth,mars,targets}.parquet + 4 PNGs
 T12: pipeline/ice.py + ice_hints.json ───────► runs/2242487/ice_{earth,targets}.parquet (uses T14_DIR=runs/2242486)
                                           │
-T7/T8/T15: match.py, export.py ───────────┴─► runs/2242489/analogs_universe.json (6.23 MB, 7 dims, 5 presets; pending review)
+T7/T8/T15/T16: match.py, export.py ───┴─► runs/2242506/analogs_universe.json (6.35 MB, 7 dims, 5 presets, missing-data policy)
 ```
 
 **Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (e.g., jobs `2242438`–`2242440` write into `runs/2242438/`, `plan_t5.md` §2).
@@ -159,6 +159,17 @@ Logs in `/lustre/proyectos/p089/output/` (v2) and `logs/slurm/` (v1).
 | 2242487 | `sbatch --export=ALL,T14_DIR=runs/2242486 jobs/t12_ice.slurm` | T12 water & ice re-run: linked to T14 `2242486`, `1/1` hard and `3/3` soft checks |
 | 2242488 | `pytest -q tests` | v2 tests (T1–T8, T12–T15): `81 passed, 73 warnings in 4.00s` (`commit bda0acf`) |
 | 2242489 | `sbatch --export=ALL,T5_DIR=runs/2242438,T12_DIR=runs/2242487,T13_DIR=runs/2242484,T14_DIR=runs/2242486 jobs/t7_match.slurm` | T15 matching & export: 7 dims, 5 presets, 5,010 pairs across 76 targets, `analogs_universe.json` (6.23 MB), 7/7 hard checks, 4/4 soft checks, `t7_report.md` |
+| 2242506 | `sbatch --export=ALL,T5_DIR=runs/2242438,T12_DIR=runs/2242487,T13_DIR=runs/2242484,T14_DIR=runs/2242486 jobs/t7_match.slurm` | T16 production run (`commit 730165a`): missing-data policy (Case C penalisation, target preset coverage filtering), 4,944 pairs across 76 targets, `analogs_universe.json` (6.35 MB), `target_presets.csv`, 10/10 hard checks, 7/7 soft checks |
+
+### T16 Export Fields and Diagnostics
+
+Run `2242506` outputs:
+- `analogs_universe.json`: Universe export loaded by the web app. Adds:
+  - Per target: `available_dims` (active dimensions per target data) and `preset_status` (mapping each preset key to status `ok`, `not_applicable_body`, or `insufficient_target_data`, plus `coverage` and `missing_dims`).
+  - Per analog: `earth_missing_dims` (dimensions present on target but missing on Earth patch) and `msi_by_preset[pkey] = null` for non-ok presets.
+  - In `metadata`: `scoring_policy` (earth_missing_score = 0.0, min_preset_coverage = 0.6, policy rules) and `preset_status_summary`.
+- `target_presets.csv`: Tabular audit of target status across all presets (`target_id,preset,status,coverage,missing_dims,available_dims`).
+- `t7_checks.json` & `t7_report.md`: Verification suite results (10 hard checks, 7 soft checks, all passed).
 
 ## Exploring the data
 

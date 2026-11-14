@@ -2,6 +2,22 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16.6 — production run 2242506 on Yuca and analogs_universe.json
+
+**What was done and why** (run on Yuca by Owen, verified by Gemini per `docs/plan_t16_missing_data.md` §8–§10):
+
+- Launched Slurm job `2242506` (`jobs/t7_match.slurm` with `T5_DIR=runs/2242438`, `T12_DIR=runs/2242487`, `T13_DIR=runs/2242484`, `T14_DIR=runs/2242486` on commit `730165a`). Runtime: 12 seconds.
+- All 10 hard checks passed (`10/10`) and all 7 soft checks passed (`7/7`) in `t7_checks.json`:
+  - **Check 12 (hard):** Recomputed MSI matches `msi_by_preset` within 0.002 for all `ok` presets (`0` violations).
+  - **Check 13 (hard):** For non-ok presets, `msi_by_preset` is null and preset is not in `selected_by` (`0` violations).
+  - **Check 14 (hard):** No Moon target has status `ok` for `dust_and_seasons` (`0` violations).
+  - **Check 15 (soft):** Top-1 analog missing key dimension: `0` across all 5 presets.
+  - **Check 16 (soft):** Mars `dust_and_seasons` top-1 analogs in Antarctica: **0** (was 17; bug completely resolved).
+  - **Check 17 (soft):** `isru_and_ice` status `ok` targets: Mars = 1 (`mars-arcadia-swim`), Moon = 8 (all 8 Diviner targets).
+- Exported `analogs_universe.json` (6.35 MB, 4,944 pairs across 76 targets) and `target_presets.csv`.
+- Updated `app/public/data/analogs_universe.json` with the new export.
+- Updated `docs/pipeline.md`, `docs/HISTORY.md`, `README.md`, and added `tools/verify_t16.py`.
+
 ## 2026-11-14: T16.5 — app mirrors the missing-data policy
 
 **What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §7):

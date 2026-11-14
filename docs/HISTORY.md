@@ -233,11 +233,27 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
   - the Moon has no dust dimension, because it has no atmosphere.
 - **Published:** `app/public/data/analogs_universe.json` (6.2 MB, 76 targets, 5,010 analog pairs). The app has to switch `DATA_URL` and support 7 dimensions (T10, owned by the app developer).
 
+## 16. Missing data as a free pass in the MSI and the T16 policy (T16)
+
+**Commits:** `fed9d16` (T16.1), `0a4b801` (T16.2), `0c2fa71` (T16.3), `dabbc4c` (T16.4), `730165a` (T16.5), and data commit. **Job:** `2242506` (`commit 730165a`, 10/10 hard, 7/7 soft checks).
+
+- **The problem:** In run 2242490, Mars targets ranked under the `dust_and_seasons` preset were dominated by Antarctica, and targets under `isru_and_ice` by the Sahara. Because `msi()` dropped null sub-scores and renormalised the remaining weights, missing data acted as a free pass: MODIS Deep Blue AOD has no retrievals over ice/snow, so 17 Mars targets had Antarctic analogs winning on dust because the 40% dust weight simply vanished; similarly, 37 of 38 Mars targets lacked ice data, so the 50% ice weight vanished and terrain decided.
+- **The policy:** Three distinct cases:
+  1. *Case A (Body):* Dimensions not applicable to the body are ignored, and presets only compute for bodies listed in `applies_to` (e.g. Moon has no dust preset).
+  2. *Case B (Target):* Dimensions missing on the target are ignored, but if available weight drops below 60% (`min_preset_coverage = 0.6`), the target is not ranked for that preset (`insufficient_target_data`).
+  3. *Case C (Earth):* If the target has data for a dimension but the Earth patch does not, the Earth sub-score is penalized to 0.0 (`earth_missing_score = 0.0`: no evidence, no credit). Missing NDVI over permanent snow/ice retains `S_environment = 1.0` (bare ground).
+- **Outcome (run 2242506):**
+  - Mars `dust_and_seasons`: top-1 analogs in Antarctica dropped from 17 to **0**; winners are genuine arid dust basins (Yemen, Algeria, Oman, Chad, Sudan, Iraq). Zero top-1 analogs miss dust data.
+  - `isru_and_ice`: exactly 1 Mars target ranked (`mars-arcadia-swim`) and 8 Moon targets ranked (the Diviner cold trap sites). All other targets cleanly marked `insufficient_target_data`.
+  - Moon `dust_and_seasons`: cleanly marked `not_applicable_body` (0 ranked).
+  - Check 12 (browser MSI recomputation matches pipeline export within 0.002): 0 violations.
+
 ---
 
 ## Next
 
-- **App (T10):** switch `DATA_URL` to `analogs_universe.json`, build the sliders from `metadata.dimensions` (7 dimensions, 5 presets) and deploy.
+- **App (T10):** deploy the app running on `analogs_universe.json` (7 dimensions, 5 presets, missing data policy).
+- **Code in English:** translate the older Spanish docstrings and comments in `pipeline/` (T1–T6), without behaviour changes.
 - **Code in English:** translate the older Spanish docstrings and comments in `pipeline/` (T1–T6), without behaviour changes.
 - **Optional refinements**, not needed for the submission:
   - keep only dust-dominated months using the Deep Blue Ångström exponent;

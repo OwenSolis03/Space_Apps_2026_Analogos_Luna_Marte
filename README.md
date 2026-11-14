@@ -44,8 +44,9 @@ Raw data on Yuca (/lustre/proyectos/p089/data)
   - eight Mars sites: Jezero, Gale, Gusev, Meridiani, Utopia, Elysium, Oxia Planum and the shallow-ice region of Arcadia Planitia;
   - 30 global terrain archetypes per body, for exploration.
 - **Explainable score.**
-  - Each dimension (topography, roughness, environment, and thermal for Mars) gets a Gaussian similarity in [0, 1].
-  - The Mission Similarity Index (MSI) is their weighted mean. Three mission presets set the weights, and the user can re-weight them in the browser.
+  - Seven dimensions: topography, roughness, aridity (vegetation mask), thermal contrast, regional lithology, dust seasons, and cold traps/ice.
+  - The Mission Similarity Index (MSI) is their weighted mean. Five mission presets set the weights, and the user can re-weight them in the browser.
+  - Missing-data policy: dimensions not applicable to the body are ignored; dimensions missing on the target drop that weight, but if remaining preset weight is < 60% the target is unranked; dimensions present on the target but missing on Earth score 0 (no evidence, no credit).
 - **Where it breaks.** Each analog lists the features that differ by more than 1.5 typical Earth deviations, in physical units, plus the fixed physical limits of each body.
 - **New vs. known.** Sites inside 12 well-studied analog regions are labelled `KNOWN_ANALOG`; everything else is a `NEW_CANDIDATE`. Each site also shows its distance to the nearest road and airport.
 
