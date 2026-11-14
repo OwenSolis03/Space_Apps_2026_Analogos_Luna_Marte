@@ -63,6 +63,7 @@ python -m pipeline.minerals \
   --universe "$UNIVERSE" \
   --out "$OUT_DIR/analogs_universe.json" \
   --emit-file "$EMIT_FILE" \
+  --emit-scale "${EMIT_SCALE:-100}" \
   --report "$OUT_DIR/mineral_report.md"
 
 echo "=== report"
