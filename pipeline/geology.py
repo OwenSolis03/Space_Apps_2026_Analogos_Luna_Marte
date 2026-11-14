@@ -207,7 +207,27 @@ def _load_planetary_polygons(
 
     chosen_source: Path | None = None
     chosen_layer: str | None = None
+    best_rank = (999, "")
     tables_to_check: list[tuple[Path, str]] = []
+
+    skip_tokens = (
+        "contact",
+        "fault",
+        "line",
+        "point",
+        "grid",
+        "graticule",
+        "neatline",
+        "boundary",
+        "clip",
+        "mask",
+        "extent",
+        "anno",
+        "label",
+        "structure",
+        "landing",
+        "published",
+    )
 
     for src in sources:
         try:
@@ -219,18 +239,25 @@ def _load_planetary_polygons(
         for layer_name, geom_type in layers:
             lname = str(layer_name)
             gtype = "" if geom_type is None else str(geom_type)
-            if "polygon" in gtype.lower() or "multipolygon" in gtype.lower() or gtype == "":
-                lname_low = lname.lower()
-                if any(
-                    skip in lname_low
-                    for skip in ("contact", "fault", "line", "point", "grid", "graticule", "neatline")
-                ):
-                    continue
-                if "poly" in lname_low or "unit" in lname_low or "geo" in lname_low:
-                    if chosen_source is None:
+            lname_low = lname.lower()
+            if "polygon" in gtype.lower():
+                if not any(tok in lname_low for tok in skip_tokens):
+                    if lname_low in ("geounits", "mapunitpolys", "sim3292_global_geology"):
+                        prio = 0
+                    elif "geounit" in lname_low or "global_geology" in lname_low:
+                        prio = 1
+                    elif "unit" in lname_low or "geo" in lname_low:
+                        prio = 2
+                    elif "poly" in lname_low:
+                        prio = 3
+                    else:
+                        prio = 4
+                    cand_rank = (prio, lname_low)
+                    if cand_rank < best_rank:
+                        best_rank = cand_rank
                         chosen_source = src
                         chosen_layer = lname
-            if gtype == "" or gtype.lower() == "none" or "desc" in lname.lower() or "dmu" in lname.lower():
+            if gtype == "" or gtype.lower() == "none" or "desc" in lname_low or "dmu" in lname_low:
                 tables_to_check.append((src, lname))
 
     # Fallback: take first polygon layer in any source
