@@ -251,6 +251,8 @@ Funciones que cargan una vez (en memoria, por proceso) y responden por (lat, lon
 
 ### T7. `pipeline/match.py`: puntaje y selección
 
+> **Detailed spec (English):** [plan_t7_t8.md](plan_t7_t8.md). It wins over this section for T7 and T8.
+
 **1. Normalización común.** Juntar todos los parches (Tierra + blancos). A los rasgos con cola larga (`relief_m`, `detrended_std_m`, `tri_m`) aplicarles `log1p`. Luego, para cada rasgo, z robusto: `z = (x - mediana) / (1.4826 · MAD)`, con mediana y MAD **calculadas sobre la Tierra** (así las unidades son "desviaciones típicas terrestres").
 
 **2. Dimensiones y RBF.**

@@ -113,7 +113,7 @@ AL TERMINAR CADA TAREA, responde con:
 | 3 | T4 (blancos curados y clusters) | [plan_t4.md](plan_t4.md) | Para la corrida sí; código y tests no | Hecho (`2242423`) |
 | 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | Para cachear MODIS sí; el código no | Plan listo |
 | 5 | T5 (`earth_features.py` + job array) | [plan_t5.md](plan_t5.md) | Sí: es la corrida más pesada (después de T6) | Plan listo |
-| 6 | T7 y T8 (`match.py`, `export.py`) | Pendiente (Claude) | Para la corrida sí; se puede desarrollar con el kit offline | Pendiente |
+| 6 | T7 y T8 (`match.py`, `export.py`) | [plan_t7_t8.md](plan_t7_t8.md) (English) | Para la corrida sí; se puede desarrollar con la prueba de T5 (`runs/2242432`) | Plan listo |
 | En paralelo (Javier) | T10 (app) con `app/public/data/sample.json` | `plan_implementacion.md` | No | Esqueleto en `main` |
 
 ## Notas sobre el modo Orchestrator (Argon)
