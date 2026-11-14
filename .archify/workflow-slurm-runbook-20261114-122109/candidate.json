@@ -1,0 +1,93 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Slurm Job Runbook on Yuca (v2 pipeline)",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-slurm-runbook-20261114-122109/slurm-runbook.html",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "lanes": [
+    { "id": "ops", "label": "Operator (login node)" },
+    { "id": "planet", "label": "Moon & Mars jobs" },
+    { "id": "earth", "label": "Earth jobs" },
+    { "id": "layers", "label": "Context layer jobs" },
+    { "id": "matchlane", "label": "Match + export job" },
+    { "id": "fail", "label": "Failure path", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "sweeps", "label": "Sweeps", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "context", "label": "Context layers", "fromCol": 3, "toCol": 4 },
+    { "id": "scoring", "label": "Score + publish", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["pull", "t6", "t5", "t14", "t12", "match", "publish"],
+  "nodes": [
+    { "id": "pull", "lane": "ops", "col": 0, "type": "external", "label": "git pull", "sublabel": "p089/code",
+      "sources": [{ "path": "README.md", "line": 85, "end_line": 85, "label": "quick start" }] },
+    { "id": "publish", "lane": "ops", "col": 5, "type": "frontend", "label": "Publish to app", "sublabel": "cp + git commit",
+      "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374 }] },
+    { "id": "t3", "lane": "planet", "col": 1, "type": "backend", "label": "T3 sweep", "sublabel": "array 0–15, then --merge", "tag": "8 CPU · 2 h",
+      "sources": [
+        { "path": "jobs/t3_planet_features.slurm", "line": 5, "end_line": 43 },
+        { "path": "pipeline/planet_features.py", "line": 792, "end_line": 795, "label": "--merge" }
+      ] },
+    { "id": "t4", "lane": "planet", "col": 2, "type": "backend", "label": "T4 targets", "sublabel": "curated + k-means",
+      "sources": [{ "path": "pipeline/targets.py", "line": 934, "end_line": 943, "label": "CLI" }] },
+    { "id": "t13", "lane": "planet", "col": 3, "type": "backend", "label": "T13 dust", "sublabel": "Mars CDOD + Earth AOD",
+      "sources": [{ "path": "pipeline/dust.py", "line": 1000, "end_line": 1006, "label": "CLI defaults" }] },
+    { "id": "t6", "lane": "earth", "col": 1, "type": "backend", "label": "T6 Earth layers", "sublabel": "--build --check",
+      "sources": [{ "path": "pipeline/earth_layers.py", "line": 1289, "end_line": 1296, "label": "CLI" }] },
+    { "id": "t5", "lane": "earth", "col": 2, "type": "messagebus", "label": "T5 submit chain", "sublabel": "prepare → 32 stripes → merge", "tag": "afterok deps",
+      "sources": [
+        { "path": "jobs/t5_submit.sh", "line": 6, "end_line": 14 },
+        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963, "label": "subcommands" }
+      ] },
+    { "id": "t14", "lane": "layers", "col": 3, "type": "backend", "label": "T14 geology", "sublabel": "+ overrides",
+      "sources": [{ "path": "jobs/t14_geology.slurm", "line": 20, "end_line": 41 }] },
+    { "id": "t12", "lane": "layers", "col": 4, "type": "backend", "label": "T12 ice", "sublabel": "needs T14_DIR",
+      "sources": [{ "path": "jobs/t12_ice.slurm", "line": 20, "end_line": 42 }] },
+    { "id": "match", "lane": "matchlane", "col": 5, "type": "backend", "label": "T7 match + T8 export", "sublabel": "one sbatch, two steps", "tag": "8 CPU · 45 min",
+      "sources": [
+        { "path": "jobs/t7_match.slurm", "line": 17, "end_line": 52 },
+        { "path": "pipeline/export.py", "line": 1909, "end_line": 1932, "label": "checks + report" }
+      ] },
+    { "id": "failed", "lane": "fail", "col": 5, "type": "security", "label": "Job fails", "sublabel": "exit 1 · no publish",
+      "sources": [{ "path": "pipeline/export.py", "line": 1942, "end_line": 1943, "label": "hard checks" }] }
+  ],
+  "edges": [
+    { "id": "e-pull-t3", "from": "pull", "to": "t3", "label": "sbatch", "role": "branch" },
+    { "id": "e-pull-t6", "from": "pull", "to": "t6", "label": "sbatch", "variant": "emphasis" },
+    { "id": "e-t3-t4", "from": "t3", "to": "t4", "label": "T3_DIR" },
+    { "id": "e-t4-t13", "from": "t4", "to": "t13", "label": "T4_DIR" },
+    { "id": "e-t6-t5", "from": "t6", "to": "t5", "label": "MODIS cache", "variant": "emphasis" },
+    { "id": "e-t5-t14", "from": "t5", "to": "t14", "label": "T5_DIR", "variant": "emphasis" },
+    { "id": "e-t14-t12", "from": "t14", "to": "t12", "label": "T14_DIR", "variant": "emphasis" },
+    { "id": "e-t12-match", "from": "t12", "to": "match", "label": "T12_DIR", "variant": "emphasis" },
+    { "id": "e-t13-match", "from": "t13", "to": "match", "label": "T13_DIR", "role": "branch" },
+    { "id": "e-match-publish", "from": "match", "to": "publish", "label": "hard checks pass", "variant": "emphasis" },
+    { "id": "e-match-fail", "from": "match", "to": "failed", "label": "a hard check fails", "variant": "security", "role": "error" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "How runs are wired", "items": [
+      "Each job writes runs/$SLURM_JOB_ID/; the next job is pointed at it with an exported *_DIR variable",
+      "T12 and T7 refuse to start without their required *_DIR (bash ${VAR:?})",
+      "T3, T4 and T5 dirs default to the accepted runs 2242278, 2242423 and 2242438"
+    ] },
+    { "dot": "amber", "title": "T5 chain", "items": [
+      "t5_submit.sh submits prepare, then a 32-stripe array (max 30 at once), then merge",
+      "Each step depends on the previous with --dependency=afterok",
+      "All three steps share the prepare job's run directory"
+    ] },
+    { "dot": "rose", "title": "Guardrails", "items": [
+      "Nothing heavy runs on the login node; every step is sbatch on the cpu partition",
+      "export.py exits 1 when any hard check fails, so the job is marked failed",
+      "Copying into app/public/data is a separate manual step"
+    ] }
+  ]
+}

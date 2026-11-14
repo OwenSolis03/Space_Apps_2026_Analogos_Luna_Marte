@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "diagram_type": "class",
+  "meta": {
+    "title": "analogs_universe.json Data Contract",
+    "locale": "en",
+    "output": ".archify/class-data-contract-20261114-122109/universe-data-contract.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "layout": { "mode": "grid" },
+  "types": [
+    { "id": "dimInfo", "label": "DimensionInfo", "kind": "record", "sublabel": "metadata.dimensions[]", "row": 0, "col": 0,
+      "attributes": [
+        { "name": "key", "type": "Dimension" },
+        { "name": "bodies", "type": "Body[]" },
+        { "name": "source", "type": "string" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 93, "end_line": 99 }] },
+    { "id": "universe", "label": "Universe", "kind": "record", "sublabel": "root written by export.py", "row": 0, "col": 1,
+      "attributes": [
+        { "name": "metadata", "type": "{version, scoring_policy, …}" },
+        { "name": "mission_presets", "type": "Record<string, Preset>" },
+        { "name": "limits", "type": "Record<Body, Limit[]>" },
+        { "name": "targets", "type": "Target[]" }
+      ],
+      "sources": [
+        { "path": "app/src/lib/types.ts", "line": 101, "end_line": 123 },
+        { "path": "pipeline/export.py", "line": 424, "end_line": 430, "label": "build_universe_dict" }
+      ] },
+    { "id": "preset", "label": "Preset", "kind": "record", "sublabel": "5 mission presets", "row": 0, "col": 2,
+      "attributes": [
+        { "name": "label", "type": "string" },
+        { "name": "weights", "type": "Partial<Weights>" },
+        { "name": "applies_to", "type": "Body[]?" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 13, "end_line": 17 }] },
+    { "id": "limit", "label": "Limit", "kind": "record", "sublabel": "what Earth cannot reproduce", "row": 1, "col": 0,
+      "attributes": [
+        { "name": "factor", "type": "string" },
+        { "name": "consequence", "type": "string" },
+        { "name": "source", "type": "string" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 19, "end_line": 25 }] },
+    { "id": "target", "label": "Target", "kind": "record", "sublabel": "76 Moon/Mars sites", "row": 1, "col": 1,
+      "attributes": [
+        { "name": "type", "type": "CURATED | CLUSTER" },
+        { "name": "body", "type": "Moon | Mars" },
+        { "name": "features", "type": "Record<string, number>" },
+        { "name": "available_dims", "type": "Dimension[]?" },
+        { "name": "preset_status", "type": "Record<preset, status>?" },
+        { "name": "analogs", "type": "Analog[]" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 63, "end_line": 91 }] },
+    { "id": "dimension", "label": "Dimension", "kind": "enum", "sublabel": "7 scoring dimensions", "row": 1, "col": 2,
+      "attributes": [
+        { "name": "topography" }, { "name": "roughness" }, { "name": "environment" },
+        { "name": "thermal" }, { "name": "geology" }, { "name": "dust" }, { "name": "ice" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 3, "end_line": 4 }] },
+    { "id": "mismatch", "label": "Mismatch", "kind": "record", "sublabel": "where the analogy breaks", "row": 2, "col": 0,
+      "attributes": [
+        { "name": "feature", "type": "string" },
+        { "name": "earth", "type": "number | string" },
+        { "name": "target", "type": "number | string" },
+        { "name": "z_diff", "type": "number | null" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 27, "end_line": 32 }] },
+    { "id": "analog", "label": "Analog", "kind": "record", "sublabel": "one Earth patch for a target", "row": 2, "col": 1,
+      "attributes": [
+        { "name": "classification", "type": "NEW_CANDIDATE | KNOWN_ANALOG" },
+        { "name": "sub_scores", "type": "Record<Dimension, number|null>" },
+        { "name": "msi_by_preset", "type": "Record<string, number|null>" },
+        { "name": "earth_missing_dims", "type": "Dimension[]?" },
+        { "name": "mismatches", "type": "Mismatch[]" },
+        { "name": "logistics", "type": "Logistics | null" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 41, "end_line": 61 }] },
+    { "id": "logistics", "label": "Logistics", "kind": "record", "sublabel": "Natural Earth distances", "row": 2, "col": 2,
+      "attributes": [
+        { "name": "dist_road_km", "type": "number | null" },
+        { "name": "dist_airport_km", "type": "number | null" },
+        { "name": "nearest_airport_iata", "type": "string?" }
+      ],
+      "sources": [{ "path": "app/src/lib/types.ts", "line": 34, "end_line": 39 }] }
+  ],
+  "relationships": [
+    { "id": "r-dims", "from": "universe", "to": "dimInfo", "kind": "composition", "label": "metadata.dimensions" },
+    { "id": "r-presets", "from": "universe", "to": "preset", "kind": "composition", "label": "mission_presets" },
+    { "id": "r-limits", "from": "universe", "to": "limit", "kind": "composition", "label": "limits[body]" },
+    { "id": "r-targets", "from": "universe", "to": "target", "kind": "composition", "label": "targets" },
+    { "id": "r-target-dims", "from": "target", "to": "dimension", "kind": "dependency", "label": "available_dims" },
+    { "id": "r-analogs", "from": "target", "to": "analog", "kind": "composition", "label": "analogs" },
+    { "id": "r-mismatch", "from": "analog", "to": "mismatch", "kind": "composition", "label": "mismatches" },
+    { "id": "r-logistics", "from": "analog", "to": "logistics", "kind": "composition", "label": "logistics" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Producer and consumer", "items": [
+      "pipeline/export.py builds this object and serialises it with allow_nan=False (NaN becomes null)",
+      "app/src/lib/types.ts is the TypeScript mirror the web app reads",
+      "Above 20 MB the file would split into analogs_moon.json and analogs_mars.json"
+    ] },
+    { "dot": "amber", "title": "Missing-data fields (T16)", "items": [
+      "preset_status: ok, not_applicable_body or insufficient_target_data, with coverage and missing_dims",
+      "msi_by_preset[preset] is null for presets that are not ok",
+      "metadata.scoring_policy holds earth_missing_score = 0 and min_preset_coverage = 0.6"
+    ] }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "diagram_type": "tree",
+  "meta": {
+    "title": "Repository Layout (v2 code paths)",
+    "locale": "en",
+    "output": ".archify/tree-repository-layout-20261114-122109/repository-layout.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "layout": { "direction": "right" },
+  "nodes": [
+    { "id": "root", "label": "Space_Apps_2026_Analogos_Luna_Marte", "sublabel": "Planetary Analog Finder",
+      "sources": [{ "path": "README.md", "line": 1, "end_line": 5 }] },
+
+    { "id": "pipeline", "label": "pipeline/", "parent": "root", "sublabel": "v2 Python pipeline",
+      "sources": [{ "path": "pipeline/__init__.py", "line": 1, "end_line": 21 }] },
+    { "id": "p_core", "label": "Core geometry", "parent": "pipeline", "sublabel": "config · geo · features",
+      "sources": [
+        { "path": "pipeline/config.py", "line": 5, "end_line": 28 },
+        { "path": "pipeline/geo.py", "line": 194, "end_line": 200 },
+        { "path": "pipeline/features.py", "line": 10, "end_line": 20 }
+      ] },
+    { "id": "p_sweeps", "label": "Sweeps", "parent": "pipeline", "sublabel": "planet_features · earth_features",
+      "sources": [
+        { "path": "pipeline/planet_features.py", "line": 786, "end_line": 807 },
+        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963 }
+      ] },
+    { "id": "p_targets", "label": "Targets", "parent": "pipeline", "sublabel": "targets · iau",
+      "sources": [
+        { "path": "pipeline/targets.py", "line": 798, "end_line": 914 },
+        { "path": "pipeline/iau.py", "line": 105, "end_line": 110 }
+      ] },
+    { "id": "p_layers", "label": "Context layers", "parent": "pipeline", "sublabel": "earth_layers · geology · dust · ice",
+      "sources": [
+        { "path": "pipeline/earth_layers.py", "line": 677, "end_line": 744 },
+        { "path": "pipeline/geology.py", "line": 625, "end_line": 746 },
+        { "path": "pipeline/dust.py", "line": 724, "end_line": 855 }
+      ] },
+    { "id": "p_match", "label": "Scoring + export", "parent": "pipeline", "sublabel": "match · export · geology_rules",
+      "sources": [
+        { "path": "pipeline/match.py", "line": 963, "end_line": 1130 },
+        { "path": "pipeline/export.py", "line": 1859, "end_line": 1943 },
+        { "path": "pipeline/geology_rules.py", "line": 114, "end_line": 120 }
+      ] },
+    { "id": "p_data", "label": "data/", "parent": "pipeline", "sublabel": "targets · limits · hints · overrides",
+      "sources": [{ "path": "pipeline/data/targets.json", "line": 1 }] },
+
+    { "id": "jobs", "label": "jobs/", "parent": "root", "sublabel": "Slurm jobs per task",
+      "sources": [{ "path": "jobs/t7_match.slurm", "line": 1, "end_line": 12 }] },
+    { "id": "j_tasks", "label": "t3 … t14, t7_match", "parent": "jobs", "sublabel": "one .slurm per task",
+      "sources": [{ "path": "jobs/t3_planet_features.slurm", "line": 1, "end_line": 12 }] },
+    { "id": "j_t5", "label": "t5_submit.sh", "parent": "jobs", "sublabel": "prepare → array → merge",
+      "sources": [{ "path": "jobs/t5_submit.sh", "line": 1, "end_line": 14 }] },
+    { "id": "j_dl", "label": "download_*.slurm", "parent": "jobs", "sublabel": "fetch + SHA-256",
+      "sources": [{ "path": "jobs/download_t12_t14.slurm", "line": 44, "end_line": 44 }] },
+
+    { "id": "app", "label": "app/", "parent": "root", "sublabel": "React + Vite + Tailwind + Leaflet",
+      "sources": [{ "path": "app/package.json", "line": 1, "end_line": 10 }] },
+    { "id": "a_app", "label": "src/App.tsx", "parent": "app", "sublabel": "state, fetch, layout",
+      "sources": [{ "path": "app/src/App.tsx", "line": 16, "end_line": 68 }] },
+    { "id": "a_lib", "label": "src/lib/", "parent": "app", "sublabel": "types · msi · content",
+      "sources": [
+        { "path": "app/src/lib/types.ts", "line": 1, "end_line": 4 },
+        { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126 }
+      ] },
+    { "id": "a_comp", "label": "src/components/", "parent": "app", "sublabel": "ScenarioPanel · SiteMap · RankList · Dossier · Radar",
+      "sources": [{ "path": "app/src/components/Dossier.tsx", "line": 48, "end_line": 52 }] },
+    { "id": "a_data", "label": "public/data/", "parent": "app", "sublabel": "analogs_universe.json · sample.json",
+      "sources": [{ "path": "app/src/App.tsx", "line": 11, "end_line": 11 }] },
+
+    { "id": "tests", "label": "tests/", "parent": "root", "sublabel": "synthetic pytest, no raw data",
+      "sources": [{ "path": "tests/test_match.py", "line": 1 }] },
+    { "id": "tools", "label": "tools/", "parent": "root", "sublabel": "dataset explorer · v1→sample · verify_t16",
+      "sources": [{ "path": "tools/explore_datasets.py", "line": 1 }] },
+    { "id": "docs", "label": "docs/", "parent": "root", "sublabel": "plans · pipeline · logbook · history",
+      "sources": [{ "path": "docs/pipeline.md", "line": 1, "end_line": 5 }] },
+    { "id": "v1", "label": "root *.py / *.sh / *.slurm", "parent": "root", "sublabel": "v1 prototype, reference only",
+      "sources": [{ "path": "docs/pipeline.md", "line": 30, "end_line": 47 }] }
+  ],
+  "cards": [
+    { "dot": "slate", "title": "Reading the tree", "items": [
+      "Links show containment, not calls; see the lineage diagram for data flow",
+      "Python modules are grouped by role; each group lists its files"
+    ] }
+  ]
+}

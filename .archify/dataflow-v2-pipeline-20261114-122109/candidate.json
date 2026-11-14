@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "v2 Pipeline Data Lineage (T3 to T16)",
+    "locale": "en",
+    "output": ".archify/dataflow-v2-pipeline-20261114-122109/v2-pipeline-lineage.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "stages": [
+    { "label": "Raw data (Lustre)" },
+    { "label": "Patch sweeps" },
+    { "label": "Context layers" },
+    { "label": "Match + export" },
+    { "label": "Consume" }
+  ],
+  "nodes": [
+    { "id": "dustRaw", "type": "external", "label": "Dust climatology", "sublabel": "CDOD · MOD08 AOD", "stage": 0, "row": 0,
+      "sources": [
+        { "path": "pipeline/dust.py", "line": 339, "end_line": 345, "label": "Mars CDOD" },
+        { "path": "pipeline/dust.py", "line": 475, "end_line": 480, "label": "Earth AOD" }
+      ] },
+    { "id": "planetRaw", "type": "external", "label": "Moon/Mars rasters", "sublabel": "MOLA · LOLA · THEMIS", "stage": 0, "row": 1,
+      "sources": [{ "path": "pipeline/config.py", "line": 35, "end_line": 47, "label": "raw files" }] },
+    { "id": "earthDem", "type": "external", "label": "Copernicus DEM", "sublabel": "GLO-90 tiles", "stage": 0, "row": 2,
+      "sources": [{ "path": "pipeline/earth_features.py", "line": 123, "end_line": 173, "label": "build_vrt" }] },
+    { "id": "modis", "type": "external", "label": "MODIS 2023", "sublabel": "NDVI · LST HDF", "stage": 0, "row": 3,
+      "sources": [{ "path": "pipeline/earth_layers.py", "line": 319, "end_line": 368, "label": "build_ndvi_max / build_lst" }] },
+    { "id": "geoMaps", "type": "external", "label": "Geologic maps", "sublabel": "GLiM · SIM 3292 · USGS", "stage": 0, "row": 4,
+      "sources": [
+        { "path": "pipeline/geology.py", "line": 79, "end_line": 86, "label": "load_glim" },
+        { "path": "pipeline/geology.py", "line": 199, "end_line": 205, "label": "planetary polygons" }
+      ] },
+    { "id": "t4", "type": "backend", "label": "T4 targets", "sublabel": "16 curated + 60 clusters", "tag": "targets.parquet", "stage": 1, "row": 0,
+      "sources": [
+        { "path": "pipeline/targets.py", "line": 118, "end_line": 121, "label": "targets.json" },
+        { "path": "pipeline/targets.py", "line": 798, "end_line": 914, "label": "run" }
+      ] },
+    { "id": "t3", "type": "backend", "label": "T3 planet sweep", "sublabel": "32 km patches", "tag": "features_{mars,moon}", "stage": 1, "row": 1,
+      "sources": [
+        { "path": "pipeline/planet_features.py", "line": 624, "end_line": 703, "label": "run_body_extraction" },
+        { "path": "pipeline/geo.py", "line": 194, "end_line": 200, "label": "extract_patch" },
+        { "path": "pipeline/features.py", "line": 10, "end_line": 20, "label": "compute_features" }
+      ] },
+    { "id": "t5", "type": "backend", "label": "T5 Earth sweep", "sublabel": "bare land only", "tag": "features_earth", "stage": 1, "row": 2,
+      "sources": [
+        { "path": "pipeline/earth_features.py", "line": 192, "end_line": 247, "label": "NDVI prefilter" },
+        { "path": "pipeline/earth_features.py", "line": 432, "end_line": 478, "label": "extract_stripe" },
+        { "path": "pipeline/earth_features.py", "line": 506, "end_line": 568, "label": "merge_earth" }
+      ] },
+    { "id": "t6", "type": "backend", "label": "T6 Earth layers", "sublabel": "MODIS cache + vectors", "tag": "ndvi · lst .tif", "stage": 1, "row": 3,
+      "sources": [
+        { "path": "pipeline/earth_layers.py", "line": 369, "end_line": 400, "label": "ensure_cache" },
+        { "path": "pipeline/earth_layers.py", "line": 677, "end_line": 744, "label": "EarthLayers" }
+      ] },
+    { "id": "t13", "type": "backend", "label": "T13 dust", "sublabel": "level · seasonality", "tag": "dust_*.parquet", "stage": 2, "row": 0,
+      "sources": [{ "path": "pipeline/dust.py", "line": 724, "end_line": 855, "label": "run_dust" }] },
+    { "id": "t14", "type": "backend", "label": "T14 geology", "sublabel": "unit → geo_class", "tag": "geology_*.parquet", "stage": 2, "row": 3,
+      "sources": [
+        { "path": "pipeline/geology.py", "line": 625, "end_line": 746, "label": "run_geology" },
+        { "path": "pipeline/geology_rules.py", "line": 175, "end_line": 196, "label": "classify_unit" }
+      ] },
+    { "id": "t12", "type": "backend", "label": "T12 ice", "sublabel": "cold traps · ice_E", "tag": "ice_*.parquet", "stage": 2, "row": 4,
+      "sources": [{ "path": "pipeline/ice.py", "line": 156, "end_line": 274, "label": "run_ice" }] },
+    { "id": "match", "type": "backend", "label": "T7 match", "sublabel": "7-dim RBF · presets", "tag": "matches.parquet", "stage": 3, "row": 2,
+      "sources": [
+        { "path": "pipeline/match.py", "line": 695, "end_line": 723, "label": "load_layers" },
+        { "path": "pipeline/match.py", "line": 963, "end_line": 1130, "label": "match_all" },
+        { "path": "pipeline/match.py", "line": 1216, "end_line": 1223, "label": "outputs" }
+      ] },
+    { "id": "export", "type": "backend", "label": "T8 export", "sublabel": "checks · report", "tag": "universe JSON", "stage": 3, "row": 3,
+      "sources": [
+        { "path": "pipeline/export.py", "line": 1859, "end_line": 1932, "label": "main" },
+        { "path": "pipeline/export.py", "line": 786, "end_line": 827, "label": "write_universe_json" }
+      ] },
+    { "id": "app", "type": "frontend", "label": "Web app", "sublabel": "client-side MSI", "stage": 4, "row": 3,
+      "sources": [
+        { "path": "app/src/App.tsx", "line": 27, "end_line": 42, "label": "fetch" },
+        { "path": "app/src/lib/msi.ts", "line": 19, "end_line": 57, "label": "msi / msiLog" }
+      ] }
+  ],
+  "flows": [
+    { "id": "f-dust-raw", "from": "dustRaw", "to": "t13", "label": "CDOD · AOD", "route": "top-channel" },
+    { "id": "f-planet-raw", "from": "planetRaw", "to": "t3", "label": "DEM + aux", "variant": "emphasis" },
+    { "id": "f-t3-t4", "from": "t3", "to": "t4", "label": "patch features" },
+    { "id": "f-dem", "from": "earthDem", "to": "t5", "label": "VRT mosaic", "variant": "emphasis" },
+    { "id": "f-modis", "from": "modis", "to": "t6", "label": "monthly HDF" },
+    { "id": "f-t6-t5", "from": "t6", "to": "t5", "label": "NDVI mask · LST" },
+    { "id": "f-geo-raw", "from": "geoMaps", "to": "t14", "label": "map units" },
+    { "id": "f-t14-t12", "from": "t14", "to": "t12", "label": "ice_surface" },
+    { "id": "f-t4-match", "from": "t4", "to": "match", "label": "targets", "variant": "emphasis" },
+    { "id": "f-t5-match", "from": "t5", "to": "match", "label": "Earth patches", "variant": "emphasis" },
+    { "id": "f-t13-match", "from": "t13", "to": "match", "label": "dust ranks" },
+    { "id": "f-t14-match", "from": "t14", "to": "match", "label": "geo_class" },
+    { "id": "f-t12-match", "from": "t12", "to": "match", "label": "cold ranks" },
+    { "id": "f-match-export", "from": "match", "to": "export", "label": "matches + meta", "variant": "emphasis" },
+    { "id": "f-export-app", "from": "export", "to": "app", "label": "manual cp", "classification": "git commit", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "One measurement on three bodies", "items": [
+      "Every patch is 64 × 64 px at 500 m/px (32 km) in a local azimuthal equidistant projection",
+      "One shared compute_features() gives slope, relief, hypsometry, roughness and TRI",
+      "Elevation is never compared, because the datums differ"
+    ] },
+    { "dot": "cyan", "title": "Edges not drawn", "items": [
+      "T12, T13 and T14 also sample at T3, T4 and T5 patch coordinates",
+      "T12 reads full features_earth (LST) and T3 Moon Diviner temperatures",
+      "match.py reads T3 Mars themis_delta; export.py re-reads T4, T5 and the layers"
+    ] },
+    { "dot": "amber", "title": "Hand-written inputs", "items": [
+      "pipeline/data/targets.json → T4 curated targets",
+      "geology_overrides.json → T14; ice_hints.json → T12",
+      "limits.json → export (falls back to sample.json limits)"
+    ] }
+  ]
+}
