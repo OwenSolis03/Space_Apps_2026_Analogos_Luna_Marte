@@ -1,0 +1,30 @@
+{
+  "version": "2026-11-14",
+  "reviewed_by": "Claude, on T14 run 2242482 (geology_mapping_review.md), per plan_t12_t15.md §5.6",
+  "notes": {
+    "Moon terra": "Terra units (Nt, pNt, INt, It) matched the IMPACT rule only because their descriptions mention superposed craters. They are the anorthositic highland crust, which the taxonomy maps to CRYSTALLINE (plan §2.1).",
+    "Moon basin formations": "The Hevelius, Fra Mauro, Montes Rook and Alpes formations (Ioho, Iohs, Iif, Iork, Iia) fell to the default rule. They are basin ejecta and ring materials, so IMPACT. The Maunder Formation (Iom) is Orientale impact melt, so IMPACT.",
+    "Moon terra domes": "Itd (Imbrian Terra, Dome) are non-mare domes such as Gruithuisen, interpreted as silicic volcanism, so VOLCANIC_OTHER.",
+    "Moon light plains": "Ip, Np and INp (light plains) stay IMPACT: they are interpreted mainly as basin ejecta, not volcanic plains.",
+    "Mars polar dunes": "lApd (Late Amazonian polar dunes, e.g. Olympia Undae) is dark basaltic sand, not ice, so SEDIMENTARY.",
+    "Mars Arcadia": "The SWIM Arcadia target falls on lAv (Late Amazonian volcanic plains). That matches the published map and is kept; its shallow ice is handled by pipeline/data/ice_hints.json, not by geology."
+  },
+  "overrides": {
+    "Moon": {
+      "Nt": "CRYSTALLINE",
+      "pNt": "CRYSTALLINE",
+      "INt": "CRYSTALLINE",
+      "It": "CRYSTALLINE",
+      "Ioho": "IMPACT",
+      "Iohs": "IMPACT",
+      "Iif": "IMPACT",
+      "Iork": "IMPACT",
+      "Iia": "IMPACT",
+      "Iom": "IMPACT",
+      "Itd": "VOLCANIC_OTHER"
+    },
+    "Mars": {
+      "lApd": "SEDIMENTARY"
+    }
+  }
+}
