@@ -2,6 +2,19 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T2 — rasgos geomorfométricos del parche (pipeline/features.py)
+
+**Qué se hizo (código escrito por Gemini)**
+
+- Se implementó `compute_features` (alias `extract_features`) en `pipeline/features.py` para parches de `64 × 64` a `500 m/px`, rellenando `NaN` restantes con la mediana del parche y devolviendo los 7 rasgos en `float32`: `mean_slope_deg`, `p90_slope_deg`, `relief_m`, `hypsometric_integral`, `detrended_std_m`, `tri_m` (TRI de Riley sobre 8 vecinos en píxeles interiores) y `mean_elev_m`.
+- Se agregaron pruebas sintéticas en `tests/test_features.py` (plano inclinado de 10°, plano horizontal, cono sintético con integral hipsométrica ≈ 1/3, relleno de `NaN` y tipos `float32`).
+- Suite completa verificada localmente: 9/9 pruebas pasan con `pytest -q tests`.
+
+**Qué falta**
+
+- Instalar `pipeline/requirements.txt` si falta algún paquete en el entorno `spaceapps_2026` de Yuca y correr `pytest -q tests` en Yuca.
+- Siguientes tareas del plan: T3 (`pipeline/planet_features.py` + `jobs/t3_planet_features.slurm`) y T4 (`pipeline/targets.py` + `pipeline/data/targets.json`), además de completar descargas T0.
+
 ## 2026-11-13: T1 — extracción de parches sin distorsión (pipeline/geo.py)
 
 **Qué se hizo (código escrito por Gemini)**
