@@ -2,6 +2,14 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Where the mission-case weights come from, and a sensitivity test
+
+**Question** (Owen): what justifies the weights of the five mission cases? **Answer** ([weights_justification.md](weights_justification.md)): they are team judgment, informed by published criteria, not taken from a standard, and no source gives these numbers.
+
+- Checked through search (titles and summaries, not the full papers): NASA judged the Artemis III regions on slope, communication with Earth and lighting; a 2024 lunar machine-learning study ranks slope as the main safety factor; Mars landing sites are screened on slope, rock abundance and thermal inertia (surface hardness proxy); a GIS study weights resource layers twice the limiting factors; TOPSIS and AHP are the usual ways to rank sites, and one Artemis III study tests its ranking against weight changes. That supports the order of priorities in each case, not the exact figures.
+- New `tools/weight_sensitivity.py` re-ranks every target's exported analogs with perturbed weights. With every non-zero weight changed by about 50%, 68 to 92% of the best ten analogs stay in the best ten (rank correlation 0.87 to 0.97). With random weights only about a third stay (correlation 0.2 to 0.4). So the exact numbers are not critical, but which dimension dominates is, which is what the cases and the sliders are for. The ice case is the least stable (9 targets). Limit: only the exported pool is re-ranked, not the whole Earth.
+- Not claimed: that the weights are optimal, that they come from AHP, or that lighting and communication with Earth are modelled. The document includes suggested wording for the submission and an optional half-hour AHP session with the team.
+
 ## 2026-11-14: T18 complete, EMIT run 2242552 in the app
 
 **Run** (`jobs/t18_minerals.slurm`, job `2242552` on Yuca, `--emit-scale 100`): the GDAL reader cannot open the EMIT file on Yuca (no HDF5 plugin), so the xarray fallback read the ten minerals; the coordinates were detected as upper-left corner values; the units check gave a largest sum of 79.22.
