@@ -20,26 +20,26 @@ from pipeline.geology_rules import (
 
 def test_glim_at_corners_and_coast_fallback(tmp_path: Path) -> None:
     """Verify glim_at corner cells, 3x3 coast fallback from wb/nd/-9999, and load_glim."""
-    # Tiny 4x4 global grid: each row = 45 deg lat, each col = 90 deg lon.
-    # Cell centers: rows [67.5, 22.5, -22.5, -67.5], cols [-135, -45, 45, 135].
-    grid = np.full((4, 4), 11, dtype=np.int16)  # 11 = wb (water bodies)
+    # 6x6 global grid: each row = 30 deg lat, each col = 60 deg lon.
+    # Disjoint 3x3 neighborhoods: [0..2, 0..2] around (1, 1) and [4..5, 0..1] around (5, 0).
+    grid = np.full((6, 6), 11, dtype=np.int16)  # 11 = wb (water bodies)
     grid[0, 0] = 16  # top-left corner: ig (ice and glaciers)
-    grid[3, 3] = 3   # bottom-right corner: ss (siliciclastic sedimentary)
+    grid[5, 5] = 3   # bottom-right corner: ss (siliciclastic sedimentary)
 
-    # Center cell (1, 1) at (lat=22.5, lon=-45.0) is wb, surrounded by 3 vb (2) and 1 su (1).
+    # Center cell (1, 1) at (lat=45.0, lon=-90.0) is wb, surrounded by 3 vb (2) and 1 su (1).
     grid[0, 1] = 2
     grid[1, 0] = 2
     grid[2, 1] = 2
     grid[2, 2] = 1
 
-    # Isolated cell (3, 0) surrounded only by wb and -9999 -> must return None.
-    grid[3, 0] = -9999
-    grid[2, 0] = 15  # nd
+    # Isolated cell (5, 0) at (lat=-75.0, lon=-150.0) surrounded only by wb/nd/-9999 -> None.
+    grid[5, 0] = -9999
+    grid[4, 0] = 15  # nd
 
     codes = glim_at(
         grid,
-        lat=np.array([89.9, -89.9, 22.5, -80.0]),
-        lon=np.array([-179.9, 179.9, -45.0, -170.0]),
+        lat=np.array([89.9, -89.9, 45.0, -75.0]),
+        lon=np.array([-179.9, 179.9, -90.0, -150.0]),
     )
     assert codes.tolist() == ["ig", "ss", "vb", None]
 
@@ -51,23 +51,23 @@ def test_glim_at_corners_and_coast_fallback(tmp_path: Path) -> None:
     # Verify ESRI ASCII load_glim (6 header lines) + sample_earth_geology labels.
     asc_path = tmp_path / "glim_tiny.asc"
     header = (
-        "ncols 4\n"
-        "nrows 4\n"
+        "ncols 6\n"
+        "nrows 6\n"
         "xllcorner -180\n"
         "yllcorner -90\n"
-        "cellsize 45\n"
+        "cellsize 30\n"
         "NODATA_value -9999\n"
     )
     body = "\n".join(" ".join(str(int(v)) for v in row) for row in grid) + "\n"
     asc_path.write_text(header + body, encoding="utf-8")
 
     loaded = load_glim(asc_path)
-    assert loaded.shape == (4, 4)
+    assert loaded.shape == (6, 6)
     assert loaded.dtype == np.int16
     assert np.array_equal(loaded, grid)
 
     df = sample_earth_geology(
-        pd.DataFrame({"lat": [89.9, 22.5, -80.0], "lon": [-179.9, -45.0, -170.0]}),
+        pd.DataFrame({"lat": [89.9, 45.0, -75.0], "lon": [-179.9, -90.0, -150.0]}),
         loaded,
     )
     assert df["geo_class"].iloc[0] == "ICE"
