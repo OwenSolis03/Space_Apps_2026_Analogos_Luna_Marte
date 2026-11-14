@@ -2,6 +2,17 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Experiment B implemented (branch `exp/mars-mineral-dimension`)
+
+**What was done** (implemented per `docs/plan_mineral_dimension.md` §4):
+
+- **Downloads & probe (`pipeline/minerals_download.py` + `jobs/download_minerals.slurm`):** Automated retrieval for TES (public HTTP), OMEGA (curl with `--netrc` checking for COSMOS 401), and EMIT V002 (`earthaccess`), plus `mineral_probe.json` inspection.
+- **Layer processing (`pipeline/mineral.py` + `jobs/t_mineral.slurm`):** Windowed `ferric_box_mean` over OMEGA BD530 raster, percentile ranking `mineral_rank` over Mars T3, target sampling, Earth EMIT hematite+goethite extraction, and `t_mineral_checks.json`.
+- **Wiring in `pipeline/match.py`:** Added `"mineral"` dimension to `DIMENSION_KEYS` and `DIMENSIONS`, 0.00 weight to 5 existing presets, added `geology_and_materials_mineral_exp` preset, optional `--mineral-dir` flag in `load_layers` and CLI, `EarthArrays.mineral_rank`, `TargetVec.mineral_rank`, `mineral_scores()`, `available_dims` inclusion for Mars targets with finite mineral rank, and `mineral_rank` mismatch reporting (|Δ| > 0.30).
+- **Matching Slurm job (`jobs/t7_match.slurm`):** Conditionally passes `--mineral-dir "$MINERAL_DIR"` when defined.
+- **Testing (`tests/test_mineral.py`):** Added 7 synthetic unit tests covering RBF kernel properties, boundary clipping, Case C scoring, non-regression of existing presets, preset coverage when mineral dir is missing, and mismatch reporting. Updated `tests/test_match.py` and `tests/test_export.py` to recognize 8 dimensions and the experimental preset. All 39 test cases pass.
+- **Comparison tool (`tools/compare_mineral.py`):** Computes top-30 Jaccard overlap, Spearman rho, top-10 turnover, and Case C share between `geology_and_materials` and `geology_and_materials_mineral_exp`.
+
 ## 2026-11-14: Experiment B spec, scored Mars-only mineral dimension (branch `exp/mars-mineral-dimension`)
 
 **What was done** (Claude, spec only; code to be written by another model; not for `main` without Owen's OK):

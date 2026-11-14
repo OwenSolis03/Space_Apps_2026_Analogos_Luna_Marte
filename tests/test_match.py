@@ -319,13 +319,15 @@ def test_presets_have_seven_dimensions_and_five_presets() -> None:
         "geology_and_materials",
         "dust_and_seasons",
         "isru_and_ice",
+        "geology_and_materials_mineral_exp",
     )
-    assert DIMENSION_KEYS == ("topography", "roughness", "environment", "thermal", "geology", "dust", "ice")
+    assert DIMENSION_KEYS == ("topography", "roughness", "environment", "thermal", "geology", "dust", "ice", "mineral")
     for pkey in PRESET_KEYS:
         w = PRESETS[pkey]["weights"]
         assert set(w) == set(DIMENSION_KEYS)
         assert sum(w.values()) == pytest.approx(1.0)
     assert PRESETS["dust_and_seasons"]["applies_to"] == ["Mars"]
+    assert PRESETS["geology_and_materials_mineral_exp"]["applies_to"] == ["Mars"]
 
 
 def test_geology_scores_use_similarity_matrix() -> None:
