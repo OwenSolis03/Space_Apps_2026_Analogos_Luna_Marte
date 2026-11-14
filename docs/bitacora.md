@@ -16,7 +16,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 **Pendiente**
 
 - SSH a Yuca está bloqueado desde la red actual; el job está listo pero no se ha corrido.
-- Revisar la cuota de `p089` antes de enviarlo: se estiman ~21 GB de capas planetarias más ~50–60 GB de Copernicus.
+- Cuota de `p089` revisada: 78.9 GB usados de 18.63 TB (15,839 archivos). Sobra espacio para los ~75–80 GB estimados.
 - Después de la descarga, mover a `_to_delete/` el `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` (es ClrShade) y el intento fallido `Mars_ODY_THEMIS_IR_Night_Mosaic_100m.tif` si quedó.
 
 ## 2026-11-13: propuesta de valor
