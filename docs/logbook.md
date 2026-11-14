@@ -2,6 +2,18 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Mineral Dimension Empirical Verdict — Drop Option B; Option A Confirmed for Submission
+
+**Context and Findings:**
+- **Experiment B** was implemented and executed on Yuca (jobs `2242540`, `2242541`, `2242549`, `2242550`, run `2242550`).
+- While OMEGA Fe³⁺ band depth ingestion and Mars sampling succeeded (Check M3: 89.6% global valid coverage), empirical evaluation (`tools/compare_mineral.py`) demonstrated:
+  - **Median Top-30 Jaccard Overlap:** `1.000`
+  - **Median Spearman rho:** `1.000`
+  - **Mean Top-10 Turnover:** `0.0`
+  - **Mean Case C (Missing EMIT) Share:** `94.7%`
+- **Scientific Conclusion:** Continuous mineral scoring across Earth is fundamentally blocked by the spatial coverage of Earth orbital imaging spectroscopy (EMIT covers narrow desert swaths from the ISS, leaving 94.7% of candidate analog terrain unmapped). Under principled missing data handling, scoring minerals simply penalizes unmapped sites rather than differentiating analogs.
+- **Submission Action:** Maintain the 7 core physical dimensions for MSI matching, and adopt **Option A (display-only mineralogy context in the UI)** as the primary deliverable.
+
 ## 2026-11-14: Option A (T18) — Mineralogy context as display-only in UI and pipeline
 
 **What was done** (branch `feat/mineral-context`):
