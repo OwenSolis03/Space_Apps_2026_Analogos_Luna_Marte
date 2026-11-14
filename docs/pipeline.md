@@ -35,6 +35,7 @@ Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
 | Luna | `moon/Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
 | Luna | `moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | USGS Astrogeology | Obsoleto: en realidad es `ClrShade`; ya no se usa |
 | Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Parcial: 6,983 de 26,475 tiles; el resto en `run_download_missing.slurm` |
+| Luna | `moon/diviner/dlre_prp_south.{tab,lbl,xml}` (577 MB, tabla ASCII de malla triangular 80–90°S) | NASA PDS Geosciences (LRO Diviner PRP) | `jobs/download_diviner.slurm` |
 | Tierra | `earth/modis/ndvi/*.hdf` (MOD13C2 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK |
 | Tierra | `earth/modis/lst/*.hdf` (MOD11C3 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK |
 | Tierra | `earth/naturalearth/ne_10m_roads`, `ne_10m_airports` | Natural Earth | OK |

@@ -119,7 +119,7 @@ Comandos en la sección 7. Resumen:
 | --- | --- | --- | --- |
 | T0.1 | THEMIS Night, LROC WAC, hielo lunar, resto de Copernicus | `run_download_missing.slurm` | Corriendo (job 2242198, enviado el 2026-11-13) |
 | T0.2 | Natural Earth (carreteras, aeropuertos) + MODIS NDVI y LST 2023 | `run_download_extra.slurm` | Hecho (job 2242203) |
-| T0.3 | Diviner Polar Resource Product (sur) | Manual | Buscar en PDS Geosciences / ODE el data set `LRO-L-DLRE-5-PRP-V2.0` y bajar `DLRE_PRP_SOUTH.TAB` y su `.LBL` a `data/raw/moon/diviner/`. La URL exacta no se pudo verificar desde la red de la laptop |
+| T0.3 | Diviner Polar Resource Product (sur): `dlre_prp_south.tab` (604800210 bytes) + `.lbl` + `.xml` | `jobs/download_diviner.slurm` | Listo. Fuente: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
 | T0.4 | Mosaico virtual de Copernicus | Dentro de T5 | `gdalbuildvrt copernicus_90m.vrt copernicus_90m/*.tif` (en un job) |
 
 ### T1. `pipeline/geo.py`: extraer un parche sin distorsión

@@ -2,6 +2,11 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: descarga de Diviner
+
+- Se encontró el Diviner Polar Resource Product en el paquete PDS4 `lro_diviner_derived1`, colección `data_derived_prp` (Yuca sí llega a PDS Geosciences; la laptop no).
+- Nuevo `jobs/download_diviner.slurm`: baja `dlre_prp_south.tab` (604800210 bytes), `.lbl` y `.xml` a `data/raw/moon/diviner/`. El polo norte (mismo tamaño) no se baja porque los blancos están en el sur.
+
 ## 2026-11-13: explorador de datasets
 
 - Claude escribió `tools/explore_datasets.py` y `jobs/explore_datasets.slurm`: un reporte HTML autocontenido con miniatura, metadatos (CRS, resolución, nodata, radio del cuerpo), estadísticas, histograma y valores en sitios conocidos de cada raster; cobertura y validación de los tiles de Copernicus (abre cada tile); mapas de NDVI y temperatura de MODIS; carreteras, aeropuertos y países; nomenclatura IAU. También escribe `resumen.md` y `resumen.json`.
