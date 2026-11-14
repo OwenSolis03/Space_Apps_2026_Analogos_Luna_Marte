@@ -254,12 +254,12 @@ def test_json_no_nan_and_schema(tmp_path: Path) -> None:
 
     olympus_stub = {"top10": [{"geo_class": "SEDIMENTARY"}, {"geo_class": "VOLCANIC_BASIC"}]}
     checks = run_t7_checks(matches, targets, universe, written, olympus=olympus_stub)
-    assert checks["summary"]["hard_total"] == 7
-    assert checks["summary"]["hard_passed"] == 7
-    assert [c["id"] for c in checks["checks"]] == list(range(1, 12))
+    assert checks["summary"]["hard_total"] == 10
+    assert checks["summary"]["hard_passed"] == 10
+    assert [c["id"] for c in checks["checks"]] == list(range(1, 18))
 
     no_olympus = run_t7_checks(matches, targets, universe, written, olympus=None)
-    assert no_olympus["summary"]["hard_passed"] == 6
+    assert no_olympus["summary"]["hard_passed"] == 9
     assert not [c for c in no_olympus["checks"] if c["id"] == 7][0]["passed"]
 
 
@@ -333,7 +333,8 @@ def test_olympus_check_and_report(tmp_path: Path) -> None:
     )
     written = write_universe_json(universe, tmp_path / "out")
     checks = run_t7_checks(matches, targets, universe, written, olympus=oly)
-    assert checks["summary"]["hard_passed"] == checks["summary"]["hard_total"] == 7
+    assert checks["summary"]["hard_passed"] == checks["summary"]["hard_total"] == 10
     report = build_t7_report(universe, checks, earth, mars_t3, olympus=oly)
     assert "Olympus Mons" in report and "geology_and_materials" in report
     assert "## 5. T15 Review Tables" in report
+    assert "## 6. T16 Missing Data Policy Review" in report

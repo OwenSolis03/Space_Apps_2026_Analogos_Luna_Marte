@@ -1095,6 +1095,132 @@ def run_t7_checks(
                 lava_tube += 1
     cls_share = {k: round(v / total_analogs, 4) for k, v in sorted(cls_counts.items())} if total_analogs else {}
 
+    # 12. MSI recomputation within 0.002 for all ok presets
+    check12_violations: list[str] = []
+    pol = universe.get("metadata", {}).get("scoring_policy", {})
+    zero_score = float(pol.get("earth_missing_score", EARTH_MISSING_SCORE))
+    for t in universe.get("targets", []):
+        tid = str(t.get("id"))
+        tdims = set(t.get("available_dims", []))
+        pstatus = t.get("preset_status", {})
+        for pkey in PRESET_KEYS:
+            st = pstatus.get(pkey, {}).get("status")
+            if st != "ok":
+                continue
+            weights = PRESETS[pkey]["weights"]
+            for a in t.get("analogs", []):
+                aid = str(a.get("id"))
+                ref_msi = a.get("msi_by_preset", {}).get(pkey)
+                if ref_msi is None:
+                    check12_violations.append(f"{tid}/{aid} {pkey} ref MSI is null but status is ok")
+                    if len(check12_violations) >= 10:
+                        break
+                    continue
+                num = den = 0.0
+                sub_scores = a.get("sub_scores", {})
+                for dim, w in weights.items():
+                    wf = float(w)
+                    if wf <= 0.0 or dim not in tdims:
+                        continue
+                    s = sub_scores.get(dim)
+                    val = zero_score if s is None else float(s)
+                    num += wf * val
+                    den += wf
+                recomputed = (num / den) if den > 0.0 else None
+                if recomputed is None or abs(float(ref_msi) - recomputed) > 0.002:
+                    check12_violations.append(
+                        f"{tid}/{aid} {pkey} ref={ref_msi} recomputed={recomputed} (diff={abs(float(ref_msi) - (recomputed or 0.0)):.4f})"
+                    )
+                    if len(check12_violations) >= 10:
+                        break
+            if len(check12_violations) >= 10:
+                break
+        if len(check12_violations) >= 10:
+            break
+    check12_pass = len(check12_violations) == 0
+
+    # 13. Non-ok presets: no analog in selected_by, and msi_by_preset is null
+    check13_violations: list[str] = []
+    for t in universe.get("targets", []):
+        tid = str(t.get("id"))
+        pstatus = t.get("preset_status", {})
+        for pkey in PRESET_KEYS:
+            st = pstatus.get(pkey, {}).get("status")
+            if st != "ok":
+                for a in t.get("analogs", []):
+                    aid = str(a.get("id"))
+                    if pkey in a.get("selected_by", []):
+                        check13_violations.append(f"{tid}/{aid} selected_by has {pkey} but status={st}")
+                    if a.get("msi_by_preset", {}).get(pkey) is not None:
+                        check13_violations.append(f"{tid}/{aid} msi_by_preset[{pkey}] is not null but status={st}")
+                    if len(check13_violations) >= 10:
+                        break
+            if len(check13_violations) >= 10:
+                break
+        if len(check13_violations) >= 10:
+            break
+    check13_pass = len(check13_violations) == 0
+
+    # 14. No Moon target has status ok for dust_and_seasons
+    check14_violations: list[str] = []
+    for t in universe.get("targets", []):
+        if t.get("body") == "Moon":
+            st = t.get("preset_status", {}).get("dust_and_seasons", {}).get("status")
+            if st == "ok":
+                check14_violations.append(f"Moon target {t.get('id')} has status 'ok' for dust_and_seasons")
+    check14_pass = len(check14_violations) == 0
+
+    # 15. Count targets whose top-1 analog has preset's highest-weight dimension in earth_missing_dims
+    check15_counts: dict[str, int] = {}
+    for pkey in PRESET_KEYS:
+        weights = PRESETS[pkey]["weights"]
+        max_dim = max(weights, key=weights.get)
+        n_missing_key = 0
+        for t in universe.get("targets", []):
+            if t.get("preset_status", {}).get(pkey, {}).get("status") != "ok":
+                continue
+            top1 = _preset_top(t, pkey, 1)
+            if not top1:
+                analogs_ok = [
+                    a for a in t.get("analogs", [])
+                    if a.get("msi_by_preset", {}).get(pkey) is not None
+                ]
+                if analogs_ok:
+                    top1 = [max(analogs_ok, key=lambda a: float(a["msi_by_preset"][pkey]))]
+            if top1:
+                emd = top1[0].get("earth_missing_dims") or []
+                if max_dim in emd:
+                    n_missing_key += 1
+        check15_counts[pkey] = n_missing_key
+
+    # 16. Mars dust_and_seasons: number of targets whose top-1 analog is in Antarctica (expected <= 5)
+    mars_dust_ant_count = 0
+    for t in universe.get("targets", []):
+        if t.get("body") != "Mars":
+            continue
+        if t.get("preset_status", {}).get("dust_and_seasons", {}).get("status") != "ok":
+            continue
+        top1 = _preset_top(t, "dust_and_seasons", 1)
+        if not top1:
+            analogs_ok = [
+                a for a in t.get("analogs", [])
+                if a.get("msi_by_preset", {}).get("dust_and_seasons") is not None
+            ]
+            if analogs_ok:
+                top1 = [max(analogs_ok, key=lambda a: float(a["msi_by_preset"]["dust_and_seasons"]))]
+        if top1 and top1[0].get("country") == "Antarctica":
+            mars_dust_ant_count += 1
+    check16_pass = mars_dust_ant_count <= 5
+
+    # 17. isru_and_ice: targets with status ok per body (expected Mars 1, Moon 8)
+    isru_ok_targets: dict[str, list[str]] = {"Mars": [], "Moon": []}
+    for t in universe.get("targets", []):
+        body = str(t.get("body"))
+        st = t.get("preset_status", {}).get("isru_and_ice", {}).get("status")
+        if st == "ok" and body in isru_ok_targets:
+            isru_ok_targets[body].append(str(t.get("id")))
+    check17_pass = True
+
     checks = [
         {
             "id": 1,
@@ -1212,6 +1338,68 @@ def run_t7_checks(
                 "lava_tube_terrain_pairs": lava_tube,
             },
             "expected": "print: share of exported analogs per geo_class and number with lava_tube_terrain",
+        },
+        {
+            "id": 12,
+            "name": "msi_recomputation",
+            "kind": "hard",
+            "passed": check12_pass,
+            "observed": {
+                "violations_count": len(check12_violations),
+                "sample_violations": check12_violations[:10],
+            },
+            "expected": "recomputed MSI matches msi_by_preset within 0.002 for all ok presets",
+        },
+        {
+            "id": 13,
+            "name": "non_ok_presets_null",
+            "kind": "hard",
+            "passed": check13_pass,
+            "observed": {
+                "violations_count": len(check13_violations),
+                "sample_violations": check13_violations[:10],
+            },
+            "expected": "non-ok presets have null MSI and are not in selected_by",
+        },
+        {
+            "id": 14,
+            "name": "moon_dust_preset_not_ok",
+            "kind": "hard",
+            "passed": check14_pass,
+            "observed": {
+                "violations_count": len(check14_violations),
+                "sample_violations": check14_violations[:10],
+            },
+            "expected": "no Moon target has status ok for dust_and_seasons",
+        },
+        {
+            "id": 15,
+            "name": "top1_missing_key_dimension",
+            "kind": "soft",
+            "passed": True,
+            "observed": check15_counts,
+            "expected": "targets whose top-1 analog has the key dimension in earth_missing_dims (expected 0)",
+        },
+        {
+            "id": 16,
+            "name": "mars_dust_antarctica_count",
+            "kind": "soft",
+            "passed": check16_pass,
+            "observed": {"mars_dust_top1_antarctica": mars_dust_ant_count},
+            "expected": "<= 5 Mars targets have top-1 analog in Antarctica for dust_and_seasons (was 17)",
+        },
+        {
+            "id": 17,
+            "name": "isru_ok_targets_per_body",
+            "kind": "soft",
+            "passed": check17_pass,
+            "observed": {
+                "Mars_count": len(isru_ok_targets.get("Mars", [])),
+                "Mars_ids": isru_ok_targets.get("Mars", []),
+                "Moon_count": len(isru_ok_targets.get("Moon", [])),
+                "Moon_ids": isru_ok_targets.get("Moon", []),
+            },
+            "expected": "report isru_and_ice ok targets per body (expected Mars 1, Moon 8)",
         },
     ]
 
@@ -1634,8 +1822,20 @@ def build_t7_report(
         for k, v in so["count_by_geo_class"].items():
             lines.append(f"| {k} | {v} | {so['share_by_geo_class'][k]:.4f} |")
 
-    # 6. Runtime
-    lines.extend(["", "## 6. Runtime", ""])
+    # 6. T16 Missing Data Review (checks 12-17)
+    lines.extend(["", "## 6. T16 Missing Data Policy Review (checks 12-17)", ""])
+    lines.append(f"- **MSI recomputation violations (check 12):** `{by_name.get('msi_recomputation', {}).get('observed', {}).get('violations_count', 0)}`")
+    lines.append(f"- **Non-ok presets null violations (check 13):** `{by_name.get('non_ok_presets_null', {}).get('observed', {}).get('violations_count', 0)}`")
+    lines.append(f"- **Moon dust preset not-ok violations (check 14):** `{by_name.get('moon_dust_preset_not_ok', {}).get('observed', {}).get('violations_count', 0)}`")
+    c15 = by_name.get("top1_missing_key_dimension", {}).get("observed", {})
+    lines.append(f"- **Top-1 missing key dimension per preset (check 15):** `{json.dumps(c15)}`")
+    c16 = by_name.get("mars_dust_antarctica_count", {}).get("observed", {})
+    lines.append(f"- **Mars dust top-1 in Antarctica (check 16, expected <= 5):** `{c16.get('mars_dust_top1_antarctica', 0)}`")
+    c17 = by_name.get("isru_ok_targets_per_body", {}).get("observed", {})
+    lines.append(f"- **isru_and_ice ok targets (check 17, expected Mars 1, Moon 8):** Mars={c17.get('Mars_count', 0)} ({c17.get('Mars_ids', [])}), Moon={c17.get('Moon_count', 0)} ({c17.get('Moon_ids', [])})")
+
+    # 7. Runtime
+    lines.extend(["", "## 7. Runtime", ""])
     lines.append(f"- **Match (`pipeline.match`):** `{match_runtime_s if match_runtime_s is not None else 'n/a'} s`")
     lines.append(f"- **Export (`pipeline.export`):** `{round(export_runtime_s, 3) if export_runtime_s is not None else 'n/a'} s`")
     lines.append("")

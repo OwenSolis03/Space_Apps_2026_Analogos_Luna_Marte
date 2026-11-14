@@ -2,6 +2,21 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16.3 — hard checks 12-14 and soft checks 15-17
+
+**What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §5):
+
+- Added hard checks 12–14 and soft checks 15–17 to `run_t7_checks()` in `pipeline/export.py`:
+  - **Check 12 (hard):** Recomputed MSI from raw `sub_scores`, preset weights, `available_dims`, and `earth_missing_score = 0.0` matches `msi_by_preset` within 0.002 for all `ok` presets.
+  - **Check 13 (hard):** For every preset with status ≠ `ok`: no analog of that target lists the preset in `selected_by`, and `msi_by_preset[pkey]` is null.
+  - **Check 14 (hard):** No Moon target has status `ok` for `dust_and_seasons`.
+  - **Check 15 (soft):** Counts targets whose 1st-ranked analog has the preset's highest-weight dimension in `earth_missing_dims` (expected 0).
+  - **Check 16 (soft):** Counts Mars targets whose top-1 analog is in Antarctica under `dust_and_seasons` (expected ≤ 5).
+  - **Check 17 (soft):** Reports targets with status `ok` for `isru_and_ice` per body (expected Mars 1, Moon 8).
+- Extended `build_t7_report()` with section 6 detailing T16 missing-data check results.
+- Updated `tests/test_export.py` to assert 10 hard checks passed and 17 total checks evaluated.
+- Verified on local test suite: 79 passed, 2 skipped.
+
 ## 2026-11-14: T16.2 — export available_dims, preset_status and earth_missing_dims
 
 **What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §4):
