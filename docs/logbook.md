@@ -2,6 +2,41 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: UI pass on the Explorer and the Site sheet
+
+**What was done** (Claude, branch `feat/t17-plain-language`, no copy or behaviour changes):
+
+- **Analog chips:** a target has between 34 and 102 Earth analogs and they were wrapped into a wall of chips that pushed the feature table off the screen. They are now one horizontal, scrollable strip under the label "Earth analogs, best first" with the count.
+- **Side rails:** the Scenario panel (from `md` up) and the Target ranking (from `xl` up) stay fixed while the maps scroll, and the panel scrolls inside itself. With all explanations open the page no longer grows to about 7,700 px, and the ranking stays visible next to the maps at 1366 by 768. This closes the open item of the T17 entry below.
+- Left column widened from 16 rem to 19 rem (20 rem at `xl`) so the explanation text has a more comfortable line length; more vertical space between the Explorer, Site sheet and Methodology sections (`py-12`); thin scrollbars from the tokens.
+- Checked: build passes; no emoji, no hard-coded values, no native select; no horizontal scroll at 390 px; hero, Explorer and Site sheet looked at in the browser at 1366 by 768.
+
+**Known, not fixed:** on a phone with "Show explanations" on, the Scenario panel is about 6,000 px tall and pushes the maps and ranking far down. The switch starts off, but it is remembered between visits. A collapsible panel on small screens would fix it.
+
+## 2026-11-14: T17 implemented, plain-language explanations in the Scenario panel
+
+**What was done** (code by Claude on branch `feat/t17-plain-language`, copy used as written in [plan_t17_plain_language.md](plan_t17_plain_language.md) §3):
+
+- New `app/src/lib/explanations.ts` (copy only, typed: intro, seven dimension explanations, weights-share line, Minimum MSI, road, new-candidates, one line per mission case) and `app/src/components/InfoToggle.tsx` (`InfoButton` + `InfoPanel`, exported separately so the panel can place the button next to the label and the text below the slider).
+- `ScenarioPanel.tsx`: intro line under "Mission case", a "Show explanations" switch beside a new visible "Scenario" title, the selected case's one-line explanation under the case buttons, and an info button with an inline four-part explanation for each of the ten controls (seven dimensions, Minimum MSI, road, new candidates). Several can be open at once; the switch opens or closes all of them and is on only when all are open. The new-candidates explanation uses "What the switch does". The λ readout now says "(0 = off)".
+- `content.ts`: the seven `hint` strings replaced with the plain ones of §3.1. `index.css`: one `.info-panel` class (150 ms fade using `--dur-fast`, switched off by the existing reduced-motion rule).
+- Disabled dimensions keep the "not modelled for the Moon" text and their info buttons work, so the explanation note says why (checked for Thermal on the Moon). Dimming moved from the whole row to the label, output and slider so the explanation text keeps full contrast.
+- Optional item done: the switch is remembered in `localStorage` under `paf.explanations`, inside `try/catch`.
+- Small changes beyond the spec, needed by it: a visible "Scenario" title (the spec says "next to the panel title" but the panel had none), and the `title` tooltip with the technical description moved from the whole dimension row to its label so it does not pop up over the explanation text.
+
+**Verified**
+
+- `npx tsc -b` and `npm run build` pass; no console errors; no emoji, no hard-coded values and no en or em dashes in `app/src`.
+- In the browser: 10 info buttons with the accessible names "What does Topography mean?" and so on; `aria-expanded` follows each button; opening one does not close the others; the switch opens and closes all ten and goes back to off when one is closed by hand; moving a slider opens or closes nothing; on the Moon the mission case line changes with the case and Thermal still opens its "Only for Mars" note while staying disabled; tab order is switch, case buttons, then each label, its info button and its slider.
+- Contrast measured with the kit's `contrast.py`: `--fg` and `--muted` on `--surface-2` pass AA in light and dark.
+- Layout: no horizontal scroll at 375 px (info buttons 32 by 32 px) or at 1366 by 768 (three columns, ranking still visible).
+
+**Not done yet**
+
+- **Reading test** (§6): needs a teammate who is not on the code side, or Owen. Pending: write here who tested it and what was unclear, and fix the copy if needed.
+- Not run with a real screen reader or keyboard-only by a person; only the DOM order and attributes were checked.
+- With all explanations open the panel is very tall (about 7,700 px at 1024 px wide) and, below 1280 px, the ranking falls under it. At 1366 by 768 it is fine. A wider left column would help if the projector is smaller.
+
 ## 2026-11-14: T17 specification, plain-language explanations in the Scenario panel
 
 **What was found and decided** (requested by Owen, spec by Claude in [plan_t17_plain_language.md](plan_t17_plain_language.md)):

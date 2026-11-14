@@ -16,7 +16,7 @@ export function RankList({ ranked, unranked, total, selectedId, onSelect }: Prop
   ).map((d) => DIM_LABEL[d]?.label.toLowerCase() ?? d);
 
   return (
-    <section aria-labelledby="rank-h" className="flex min-w-0 flex-col rounded-panel border border-line bg-surface">
+    <section aria-labelledby="rank-h" className="flex min-w-0 flex-col self-start rounded-panel border border-line bg-surface xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)]">
       <header className="flex items-baseline justify-between gap-2 px-4 pt-3 pb-2">
         <h3 id="rank-h" className="text-base font-semibold">Target ranking</h3>
         <span className="eyebrow num">
@@ -26,7 +26,7 @@ export function RankList({ ranked, unranked, total, selectedId, onSelect }: Prop
       {ranked.length === 0 ? (
         <p className="px-4 pb-4 text-sm text-muted">No target reaches that minimum MSI. Lower it to see results.</p>
       ) : (
-        <ol className="max-h-[32rem] overflow-auto border-t border-line">
+        <ol className="max-h-[32rem] overflow-auto border-t border-line xl:max-h-none xl:min-h-0 xl:flex-1">
           {ranked.map((r, i) => {
             const on = r.target.id === selectedId;
             return (

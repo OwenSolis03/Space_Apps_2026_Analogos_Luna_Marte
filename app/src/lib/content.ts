@@ -7,13 +7,13 @@ export const BODY_LABEL: Record<Body, { name: string; adj: string }> = {
 
 /** Short labels for sliders and radar axes; the long description comes from metadata.dimensions. */
 export const DIM_LABEL: Record<Dimension, { label: string; hint: string }> = {
-  topography: { label: "Topography", hint: "slope, relief, hypsometry" },
-  roughness: { label: "Roughness", hint: "elevation σ and TRI" },
-  environment: { label: "Aridity", hint: "bare ground (NDVI)" },
-  thermal: { label: "Thermal", hint: "day-night contrast rank" },
-  geology: { label: "Geology", hint: "regional rock class" },
-  dust: { label: "Dust", hint: "dust level and seasons" },
-  ice: { label: "Ice", hint: "cold traps and ice" },
+  topography: { label: "Topography", hint: "slope and shape of the land" },
+  roughness: { label: "Roughness", hint: "how bumpy the ground is" },
+  environment: { label: "Aridity", hint: "no plants" },
+  thermal: { label: "Thermal", hint: "day vs night temperature swing" },
+  geology: { label: "Geology", hint: "type of rock" },
+  dust: { label: "Dust", hint: "dust in the air and its seasons" },
+  ice: { label: "Ice", hint: "water ice and very cold spots" },
 };
 
 export const FEATURE_LABEL: Record<string, { label: string; unit: string; dim: Dimension | null }> = {
