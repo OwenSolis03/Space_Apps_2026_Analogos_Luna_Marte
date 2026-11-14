@@ -2,6 +2,13 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: verificación de mosaicos descargados (job 2242198)
+
+- THEMIS IR Night 60N-60S: 15179427309 bytes, igual que en S3, sin `.aria2`.
+- LROC WAC 100 m: 5959263751 bytes, igual que en S3, sin `.aria2`.
+- Índice de favorabilidad de hielo, ambos polos: 4003661 bytes cada uno.
+- Copernicus: seguía bajando (17,293 tiles a las 18:06, ahora en la Antártida); falta revisar el final del log y la lista de fallidos.
+
 ## 2026-11-13: T2 — rasgos geomorfométricos del parche (pipeline/features.py)
 
 **Qué se hizo (código escrito por Gemini)**
