@@ -1,69 +1,92 @@
-# Registro de ideas
+# Idea log
 
-Ideas del equipo, discutidas antes del hackathon. Solo contiene las ideas y una evaluación general hecha con Claude, sin datos, herramientas ni sitios. Las evaluaciones son provisionales hasta ver los recursos oficiales del 13 de noviembre. Incluir este registro en la descripción de uso de IA de la entrega.
+The team's ideas, discussed before the hackathon, with a general evaluation made with Claude. There is no data, tooling or site work here. The evaluations were provisional until the official resources came out on 13 November. This log is part of the use-of-AI description in the submission. How the final design came out of these ideas is in [HISTORY.md](HISTORY.md) §1.
 
-## Idea 1: app de sitios análogos con puntaje ajustable
+## Idea 1: analog-site app with an adjustable score
 
-**Propuso:** Owen
+**Proposed by:** Owen
 
-**Idea:** Tomar el mapa planetario completo, con todas las capas de información posibles, y usar modelos de procesamiento de imágenes para identificar sitios análogos a la Tierra. Después contrastar capa por capa, asignando a cada sitio un puntaje que se ajusta conforme se procesan las capas, tomando en cuenta recursos, radiación, accesibilidad, altitud y otros parámetros. Al final habría una lista que se puede reordenar según cuánto importa cada parámetro. El resultado sería una app que muestra el sitio, su análogo terrestre y los parámetros similares, y que podría indicar para qué tipo de misión sirve el sitio.
+**Idea:**
 
-**Evaluación:** factible si se reduce el alcance; dudosa tal como está.
+- Take the full planetary map, with every available information layer, and use image-processing models to identify sites analogous to Earth.
+- Then compare layer by layer, giving each site a score that updates as the layers are processed. It would take into account resources, radiation, accessibility, altitude and other parameters.
+- The result is a list that can be re-ordered by how much each parameter matters.
+- The app would show the site, its terrestrial analog and the similar parameters, and could say what kind of mission the site suits.
 
-| Parte | Evaluación | Razón |
+**Evaluation:** feasible if the scope is reduced; doubtful as stated.
+
+| Part | Evaluation | Reason |
 | --- | --- | --- |
-| Planeta completo con todas las capas | Dudosa | Demasiado alcance para 48 horas |
-| Modelos de procesamiento de imágenes | Dudosa | Entrenarlos y validarlos consume mucho tiempo, y el reto pide ir más allá del parecido visual |
-| Puntaje capa por capa | Factible | La lógica es simple si las capas son comparables |
-| Lista reordenable según prioridades | Factible | Solo recalcula un puntaje con otros pesos |
-| Radiación y otros parámetros sin equivalente terrestre | Dudosa | No se pueden puntuar igual que los que sí son comparables |
-| App que muestra sitio, análogo y parámetros | Factible | Es alcanzable si los resultados ya están calculados |
-| Tipo de misión por sitio | Factible | Es alcanzable como agregado menor |
+| Whole planet with every layer | Doubtful | Too much scope for 48 hours |
+| Image-processing models | Doubtful | Training and validating them takes a long time, and the challenge asks to go beyond visual resemblance |
+| Layer-by-layer score | Feasible | The logic is simple if the layers are comparable |
+| List re-ordered by priorities | Feasible | It only recomputes a score with other weights |
+| Radiation and other parameters with no Earth equivalent | Doubtful | They cannot be scored like the comparable ones |
+| App showing site, analog and parameters | Feasible | Reachable if the results are pre-computed |
+| Mission type per site | Feasible | Reachable as a minor addition |
 
-**Encaje con el reto:** falta mostrar dónde se rompe la analogía, algo que el reto pide de forma explícita.
+**Fit with the challenge:** it does not show where the analogy breaks, which the challenge asks for explicitly.
 
-### Versión 2: recortada
+### Version 2: trimmed
 
-**Envió:** Owen
+**Sent by:** Owen
 
-**Idea:** Quitar el entrenamiento de modelos y el planeta completo. Usar una base de datos precalculada de sitios clave, con pesos para reordenar la lista según la misión. La ficha de cada lugar tendría una sección "Límites del análogo" que explique qué variables sí coinciden, como mineralogía o terreno, y cuáles no tienen punto de comparación en la Tierra, como la atmósfera o la dosis de radiación.
+**Idea:**
 
-**Evaluación:** factible.
+- Drop model training and the whole-planet scope.
+- Use a pre-computed database of key sites, with weights to re-order the list by mission.
+- Each place gets a "Limits of the analog" section. It explains which variables do match, such as mineralogy or terrain, and which have no point of comparison on Earth, such as the atmosphere or the radiation dose.
 
-| Parte | Evaluación | Razón |
+**Evaluation:** feasible.
+
+| Part | Evaluation | Reason |
 | --- | --- | --- |
-| Base precalculada de sitios clave | Factible | El alcance es manejable, siempre que se arme a partir del 14 de noviembre |
-| Pesos para reordenar según la misión | Factible | Solo recalcula un puntaje con otros pesos |
-| Sección "Límites del análogo" | Factible | Responde directamente a lo que pide el reto |
-| Coincidencias sin cálculos | Dudosa | El reto pide justificar la analogía con datos, no solo describirla |
-| Selección de los sitios | Dudosa | Elegirlos a mano puede llevar a repetir análogos conocidos, y el reto busca ir más allá |
+| Pre-computed database of key sites | Feasible | Manageable scope, as long as it is built from 14 November on |
+| Weights to re-order by mission | Feasible | It only recomputes a score with other weights |
+| "Limits of the analog" section | Feasible | It answers the challenge directly |
+| Matches without computation | Doubtful | The challenge asks for the analogy to be justified with data, not only described |
+| Choice of sites | Doubtful | Picking them by hand can repeat known analogs, and the challenge wants to go beyond them |
 
-### Versión 3: con índice numérico y clustering
+### Version 3: numeric index and clustering
 
-**Envió:** Owen
+**Sent by:** Owen
 
-**Idea:** Armar un vector numérico normalizado por sitio, con elevación, pendiente, albedo, abundancia mineralógica y rango térmico, y calcular un índice de similitud, como similitud de coseno o distancia euclidiana normalizada, contra sitios terrestres. Para no elegir los sitios a mano, correr clustering no supervisado, como K-Means o DBSCAN, sobre una muestra más amplia. Procesar la carga pesada en la supercomputadora Yuca y llevar a la app solo los clusters resultantes.
+**Idea:**
 
-**Evaluación:** factible en su núcleo; dudosa si depende de Yuca o de todas las métricas.
+- Build a normalised numeric vector per site (elevation, slope, albedo, mineral abundance and thermal range).
+- Compute a similarity index, such as cosine similarity or normalised Euclidean distance, against terrestrial sites.
+- To avoid picking sites by hand, run unsupervised clustering, such as K-Means or DBSCAN, on a wider sample.
+- Process the heavy part on the Yuca supercomputer, and bring only the resulting clusters into the app.
 
-| Parte | Evaluación | Razón |
+**Evaluation:** feasible at its core; doubtful if it depends on Yuca or on every metric.
+
+| Part | Evaluation | Reason |
 | --- | --- | --- |
-| Índice de similitud con fórmula comprobable | Factible | Es poco código, y da un resultado verificable |
-| Elevación, pendiente y albedo en el vector | Factible | Son comparables si se igualan escala y método de medición |
-| Abundancia mineralógica en el vector | Dudosa | Puede no medirse de forma equivalente entre cuerpos |
-| Rango térmico en el vector | Dudosa | Los rangos de la Luna o Marte pueden quedar fuera de los terrestres y dominar la distancia |
-| Porcentaje de parecido | Dudosa | Depende de las métricas y los pesos elegidos, así que no es una medida absoluta |
-| Clustering sobre una muestra amplia | Factible | Es alcanzable si la muestra es acotada y se revisan los grupos |
-| Obtener clusters "novedosos" | Dudosa | Un cluster agrupa datos, pero no demuestra que un sitio sea novedoso ni buen análogo |
-| Procesar en Yuca | Dudosa | Las colas, la transferencia de datos y el acceso desde la sede pueden fallar en 48 horas; también falta confirmar que el uso esté permitido |
+| Similarity index with a testable formula | Feasible | Little code, verifiable result |
+| Elevation, slope and albedo in the vector | Feasible | Comparable if scale and measurement method are equalised |
+| Mineral abundance in the vector | Doubtful | It may not be measured equivalently across bodies |
+| Thermal range in the vector | Doubtful | Moon or Mars ranges may fall outside Earth's and dominate the distance |
+| Similarity percentage | Doubtful | It depends on the chosen metrics and weights, so it is not an absolute measure |
+| Clustering on a wide sample | Feasible | Reachable if the sample is bounded and the groups are reviewed |
+| Getting "novel" clusters | Doubtful | A cluster groups data; it does not prove a site is novel or a good analog |
+| Processing on Yuca | Doubtful | Queues, data transfer and access from the venue can fail in 48 hours; whether its use is allowed also needed confirming |
 
-## Ideas complementarias para la ficha de cada sitio
+**What the final design kept** (v2, see [HISTORY.md](HISTORY.md)):
 
-**Envió:** Owen
+- the testable index, as a per-dimension RBF;
+- equalised scale, as 32 km patches at 500 m on every body;
+- clustering, as 30 archetypes per body plus curated targets;
+- Yuca, which worked.
 
-| Idea | Descripción | Evaluación | Razón |
+Mineralogy was left out. The thermal comparison is done by rank within each body, not with absolute temperatures.
+
+## Complementary ideas for each site's card
+
+**Sent by:** Owen
+
+| Idea | Description | Evaluation | Reason |
 | --- | --- | --- | --- |
-| Bitácora de misión ficticia | Pestaña tipo diario de un astronauta o geólogo planetario, que contrasta la experiencia en el sitio terrestre y en el sitio objetivo | Factible | Cuesta poco, pero debe marcarse como ficción para no confundirse con los resultados |
-| Protocolo de entrenamiento en la Tierra | Tarjeta que indica para qué le serviría el sitio a una agencia, como pruebas de movilidad de rovers o simulaciones de aislamiento | Factible | Conecta con lo que pide el reto, siempre que cada recomendación se derive de los parámetros del sitio |
-| Impacto logístico y factor humano | Escala cualitativa de hostilidad para una persona: fatiga visual por albedo, complejidad psicológica del paisaje, dificultad de maniobra con traje | Dudosa | Es fácil de mostrar, pero difícil de justificar con datos y podría parecer opinión |
-| Curiosidades históricas y cultura pop | Una línea con datos como misiones que entrenaron en ese análogo u obras inspiradas en el sitio | Factible | Es poco trabajo, pero requiere citar fuentes, y un sitio poco conocido puede no tener historia que contar |
+| Fictional mission log | A tab written as an astronaut's or planetary geologist's diary, contrasting the experience at the Earth site and at the target | Feasible | Cheap, but it must be labelled as fiction so it is not mistaken for results |
+| Earth training protocol | A card saying what an agency could use the site for, such as rover mobility tests or isolation simulations | Feasible | Connects with the challenge, as long as each recommendation follows from the site's parameters |
+| Logistics and human factor | A qualitative hostility scale for a person: visual fatigue from albedo, psychological complexity of the landscape, difficulty of moving in a suit | Doubtful | Easy to show but hard to justify with data; it could look like opinion |
+| History and pop culture | One line with facts such as missions that trained at the analog or works inspired by the site | Feasible | Little work, but it needs cited sources, and a little-known site may have no story |
