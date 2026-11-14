@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Home: the solar system is the navigation. Results is the sun; each planet is one of the other sections.
+// Home: the solar system is the navigation. Results is the sun; each planet opens one of the other sections.
 import RHeadline from "@/components/reticula/RHeadline.vue";
 import RReadout from "@/components/reticula/RReadout.vue";
 import RDotGrid from "@/components/reticula/RDotGrid.vue";

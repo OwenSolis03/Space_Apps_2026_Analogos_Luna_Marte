@@ -59,6 +59,10 @@
   --stroke-bar: 4px;
   --stroke-heavy: 8px;
 
+  // Code blocks (not in the RETÍCULA sheet; sized like the label style so they stay legible)
+  --size-code: 12px;
+  --leading-code: 18px;
+
   // Radius: square by default; circles only where the system allows them
   --radius-0: 0;
   --radius-round: 50%;

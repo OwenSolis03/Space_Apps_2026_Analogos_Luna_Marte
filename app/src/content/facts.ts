@@ -34,3 +34,11 @@ export const HOME_FACTS = [
   { label: "PAIRS SCORED", value: fmt(PAIRS) },
   { label: "RUN", value: RUN_ID },
 ];
+
+/** Earth prefilter funnel stages, for the funnel chart (Algorithm STEP.05, Data). */
+export const FACTS_FUNNEL = [
+  { label: "GRID POINTS", value: GRID },
+  { label: "ON LAND TILES", value: WITH_TILE },
+  { label: "BARE GROUND", value: KEPT },
+  { label: "VALID PATCHES", value: VALID },
+];
