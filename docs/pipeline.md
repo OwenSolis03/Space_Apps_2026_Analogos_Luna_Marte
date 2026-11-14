@@ -29,10 +29,12 @@ Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
 | --- | --- | --- | --- |
 | Marte | `mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif` (2 GB) | USGS Astrogeology | OK |
 | Marte | `mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif` (22 GB) | USGS Astrogeology | OK |
-| Marte | `mars/Mars_ODY_THEMIS_IR_Night_Mosaic_100m.tif` | USGS Astrogeology | Falló: la URL `..._v14.tif` da 404 |
+| Marte | `mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` (15.2 GB) | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
 | Luna | `moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif` (8 GB) | USGS Astrogeology | OK |
-| Luna | `moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | USGS Astrogeology | Ojo: en realidad es `ClrShade` (relieve sombreado a color), no albedo |
-| Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Parcial: 6,983 de 26,475 tiles |
+| Luna | `moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB) | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
+| Luna | `moon/Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
+| Luna | `moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | USGS Astrogeology | Obsoleto: en realidad es `ClrShade`; ya no se usa |
+| Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Parcial: 6,983 de 26,475 tiles; el resto en `run_download_missing.slurm` |
 | Ambos | `nomenclature/MARS*.dbf`, `nomenclature/MOON*.dbf` | Gazetteer IAU/USGS | OK (descarga no registrada en los scripts) |
 
 Los rasters no se suben al repo (ver `.gitignore`).
@@ -81,7 +83,15 @@ bash setup_and_download.sh
 ```
 
 ```bash
-bash download_full_night.sh
+sbatch run_download_missing.slurm
+```
+
+`run_download_missing.slurm` reemplaza a `download_full_night.sh`: corre como job (no en el login) y usa las URLs corregidas.
+
+Para ver espacio y archivos disponibles del proyecto:
+
+```bash
+lfs quota -h -g p089 /lustre
 ```
 
 ```bash

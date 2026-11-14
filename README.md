@@ -8,7 +8,8 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 
 | Ruta | Qué contiene |
 | --- | --- |
-| `setup_and_download.sh`, `download_full_night.sh` | Descarga de datos en Yuca |
+| `setup_and_download.sh`, `download_full_night.sh` | Descarga inicial de datos en Yuca (ya corrida) |
+| `run_download_missing.slurm` | Job que baja lo que faltó, con URLs corregidas |
 | `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |
 | `enrich_nomenclature.py` | Nombres IAU para cada arquetipo |
 | `match_earth_analogs.py`, `run_earth_matching.slurm` | Búsqueda de análogos en Copernicus GLO-90 |

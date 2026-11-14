@@ -129,17 +129,19 @@ def main():
 
     mars_dem = os.path.join(args.project_dir, "data/raw/mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif")
     mars_day = os.path.join(args.project_dir, "data/raw/mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif")
-    mars_night = os.path.join(args.project_dir, "data/raw/mars/Mars_ODY_THEMIS_IR_Night_Mosaic_100m.tif")
+    # THEMIS Night solo existe como mosaico 60N-60S; fuera de esa franja el muestreo da NaN.
+    mars_night = os.path.join(args.project_dir, "data/raw/mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif")
 
     moon_dem = os.path.join(args.project_dir, "data/raw/moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif")
-    moon_alb = os.path.join(args.project_dir, "data/raw/moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif")
+    # Reflectancia real (LROC WAC). El archivo "Albedo" anterior era en realidad LOLA ClrShade.
+    moon_wac = os.path.join(args.project_dir, "data/raw/moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif")
 
     out_json = os.path.join(args.project_dir, "output/planetary_baselines.json")
     results = {"generated_on": "Yuca HPC Cluster", "targets": {}}
 
     configs = [
         ("Mars", mars_dem, {"themis_ir_day": mars_day, "themis_ir_night": mars_night}),
-        ("Moon", moon_dem, {"lola_albedo_shade": moon_alb}),
+        ("Moon", moon_dem, {"wac_reflectance": moon_wac}),
     ]
 
     for body, dem_path, aux_paths in configs:
