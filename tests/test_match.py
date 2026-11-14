@@ -404,7 +404,7 @@ def test_ice_cap_not_applied_to_isru_preset() -> None:
     ea = build_earth_arrays(earth, norm.transform(earth), np.full(len(earth), 0.5))
     tv = _target_vec("Moon", lat=-87.0, geo="ICE", cold_rank=0.97, ice_t=1.0)
     scores = score_target(ea, tv)
-    _, selected = select_by_preset(scores, ea)
+    _, selected, _ = select_by_preset(scores, ea)
     for pkey in PRESET_KEYS:
         n_ice = int(sum(ea.ice_surface[i] for i in selected[pkey]))
         if pkey in ICE_CAP_EXEMPT_PRESETS:
@@ -419,7 +419,7 @@ def test_scoring_without_pool_matches_bruteforce_top1() -> None:
     ea = build_earth_arrays(earth, norm.transform(earth), np.linspace(0.1, 0.9, len(earth)))
     tv = _target_vec("Mars", lat=30.0, geo="SEDIMENTARY")
     scores = score_target(ea, tv)
-    msi_by_preset, selected = select_by_preset(scores, ea)
+    msi_by_preset, selected, _ = select_by_preset(scores, ea)
     for pkey in PRESET_KEYS:
         brute = int(np.nanargmax(msi_by_preset[pkey]))
         assert selected[pkey][0] == brute

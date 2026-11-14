@@ -98,6 +98,10 @@ DIMENSIONS: list[dict[str, object]] = [
     },
 ]
 
+DIMENSION_BODIES: dict[str, tuple[str, ...]] = {d["key"]: tuple(d["bodies"]) for d in DIMENSIONS}
+EARTH_MISSING_SCORE: float = 0.0       # case C
+MIN_PRESET_COVERAGE: float = 0.6       # case B
+
 PRESETS: dict[str, dict[str, object]] = {
     "mobility_and_traction": {
         "label": "Rover mobility and traction",
@@ -449,32 +453,57 @@ def ice_scores(
 def msi(
     scores: dict[str, np.ndarray | float],
     weights: dict[str, float],
+    *,
+    target_dims: frozenset[str] | set[str] | None = None,
+    earth_missing_score: float = EARTH_MISSING_SCORE,
 ) -> np.ndarray | float:
-    """Compute weighted mean similarity over non-null weighted dimensions."""
+    """Compute weighted mean similarity over non-null weighted dimensions.
+
+    Case-C policy: when target_dims is provided, dimensions in target_dims with
+    missing (non-finite) Earth scores count as earth_missing_score (0.0). Dimensions
+    not in target_dims (cases A and B) are ignored. When target_dims is None, legacy
+    behaviour is preserved.
+    """
     raw_arrays = {k: np.asarray(v, dtype=np.float64) for k, v in scores.items()}
     is_scalar = all(arr.ndim == 0 for arr in raw_arrays.values())
     if is_scalar:
         num = 0.0
         den = 0.0
         for dim, w in weights.items():
-            if w <= 0.0 or dim not in raw_arrays:
+            w_f = float(w)
+            if w_f <= 0.0 or dim not in raw_arrays:
+                continue
+            if target_dims is not None and dim not in target_dims:
                 continue
             val = float(raw_arrays[dim])
-            if np.isfinite(val):
-                num += float(w) * val
-                den += float(w)
+            finite = np.isfinite(val)
+            if target_dims is None:
+                if finite:
+                    num += w_f * val
+                    den += w_f
+            else:
+                score_val = val if finite else float(earth_missing_score)
+                num += w_f * score_val
+                den += w_f
         return float(num / den) if den > 0.0 else float("nan")
 
-    length = max(arr.shape[0] for arr in raw_arrays.values() if arr.ndim >= 1)
+    length = max((arr.shape[0] for arr in raw_arrays.values() if arr.ndim >= 1), default=0)
     num_arr = np.zeros(length, dtype=np.float64)
     den_arr = np.zeros(length, dtype=np.float64)
     for dim, w in weights.items():
-        if w <= 0.0 or dim not in raw_arrays:
+        w_f = float(w)
+        if w_f <= 0.0 or dim not in raw_arrays:
+            continue
+        if target_dims is not None and dim not in target_dims:
             continue
         arr = np.broadcast_to(raw_arrays[dim], (length,))
         finite = np.isfinite(arr)
-        num_arr[finite] += float(w) * arr[finite]
-        den_arr[finite] += float(w)
+        if target_dims is None:
+            num_arr[finite] += w_f * arr[finite]
+            den_arr[finite] += w_f
+        else:
+            num_arr += w_f * np.where(finite, arr, float(earth_missing_score))
+            den_arr += w_f
 
     out = np.full(length, np.nan, dtype=np.float64)
     has_weight = den_arr > 0.0
@@ -792,13 +821,41 @@ def select_by_preset(
     scores: dict[str, np.ndarray],
     ea: EarthArrays,
     presets: dict[str, dict[str, object]] | None = None,
-) -> tuple[dict[str, np.ndarray], dict[str, list[int]]]:
-    """MSI per preset over the whole Earth table and the diverse top-N lists (ice cap except ISRU)."""
+    *,
+    body: str | None = None,
+    target_dims: frozenset[str] | None = None,
+) -> tuple[dict[str, np.ndarray], dict[str, list[int]], dict[str, dict[str, object]]]:
+    """MSI per preset over the whole Earth table and diverse top-N lists, respecting preset status."""
     presets = presets or PRESETS
     msi_by_preset: dict[str, np.ndarray] = {}
     selected: dict[str, list[int]] = {}
+    status_by_preset: dict[str, dict[str, object]] = {}
+    n = len(ea.lat) if hasattr(ea, "lat") and ea.lat is not None else max((arr.shape[0] for arr in scores.values() if arr.ndim >= 1), default=0)
+
     for pkey, spec in presets.items():
-        msi_vals = np.asarray(msi(scores, spec["weights"]), dtype=np.float64)
+        weights = spec["weights"]  # type: ignore[assignment]
+        applies = spec.get("applies_to")  # type: ignore[assignment]
+        if body is not None and target_dims is not None:
+            status, coverage, missing = preset_status(weights, body, applies, target_dims)
+            status_by_preset[pkey] = {
+                "status": status,
+                "coverage": coverage,
+                "missing_dims": missing,
+            }
+            if status != "ok":
+                msi_by_preset[pkey] = np.full(n, np.nan, dtype=np.float64)
+                selected[pkey] = []
+                continue
+        else:
+            status_by_preset[pkey] = {
+                "status": "ok",
+                "coverage": 1.0,
+                "missing_dims": [],
+            }
+
+        msi_vals = np.asarray(
+            msi(scores, weights, target_dims=target_dims), dtype=np.float64
+        )
         msi_by_preset[pkey] = msi_vals
         order = np.argsort(-np.where(np.isfinite(msi_vals), msi_vals, -np.inf), kind="mergesort")
         order = order[np.isfinite(msi_vals[order])]
@@ -812,7 +869,7 @@ def select_by_preset(
             min_sep_km=MIN_SEP_KM,
             max_polar=cap,
         )
-    return msi_by_preset, selected
+    return msi_by_preset, selected, status_by_preset
 
 
 def target_vec_from_row(t_row: pd.Series, z_t: np.ndarray, zt_t: float) -> TargetVec:
@@ -829,6 +886,78 @@ def target_vec_from_row(t_row: pd.Series, z_t: np.ndarray, zt_t: float) -> Targe
         cold_rank=_as_float(t_row.get("cold_rank_T")),
         ice_t=_as_float(t_row.get("ice_T")),
     )
+
+
+def available_dims(tv: TargetVec) -> frozenset[str]:
+    """Return the dimensions that apply to the target and have valid target inputs."""
+    dims = {"topography", "roughness", "environment"}
+    body_norm = str(tv.body).strip().capitalize()
+
+    # thermal: body is Mars and tv.zt_t is finite
+    if body_norm == "Mars" and np.isfinite(float(tv.zt_t)):
+        dims.add("thermal")
+
+    # geology: tv.geo_class is not None and is a key of GEO_SIMILARITY
+    t_geo = _as_class(tv.geo_class)
+    if t_geo is not None and t_geo in GEO_SIMILARITY:
+        dims.add("geology")
+
+    # dust: body is Mars and tv.dust_level_rank and tv.dust_season_rank are finite (phase may be NaN)
+    if (
+        body_norm == "Mars"
+        and np.isfinite(float(tv.dust_level_rank))
+        and np.isfinite(float(tv.dust_season_rank))
+    ):
+        dims.add("dust")
+
+    # ice: tv.ice_t is finite and: Moon -> tv.cold_rank finite; Mars -> tv.ice_t > 0
+    t_ice = float(tv.ice_t)
+    if np.isfinite(t_ice):
+        if body_norm == "Moon" and np.isfinite(float(tv.cold_rank)):
+            dims.add("ice")
+        elif body_norm == "Mars" and t_ice > 0.0:
+            dims.add("ice")
+
+    return frozenset(dims)
+
+
+def preset_status(
+    weights: dict[str, float],
+    body: str,
+    applies_to: list[str] | tuple[str, ...] | None,
+    available: frozenset[str] | set[str],
+) -> tuple[str, float, list[str]]:
+    """Evaluate target coverage and eligibility for a mission preset.
+
+    Returns (status, coverage, missing_dims) where missing_dims is the sorted list of
+    dimensions with w > 0 that apply to the body but are not available.
+    """
+    body_norm = str(body).strip().capitalize()
+    if applies_to is not None:
+        norm_applies = {str(b).strip().capitalize() for b in applies_to}
+        if body_norm not in norm_applies:
+            return ("not_applicable_body", 0.0, [])
+
+    applicable_w = 0.0
+    available_w = 0.0
+    missing_dims: list[str] = []
+
+    for d, w in weights.items():
+        w_f = float(w)
+        if w_f <= 0.0:
+            continue
+        bodies = DIMENSION_BODIES.get(d, ())
+        if body_norm in bodies:
+            applicable_w += w_f
+            if d in available:
+                available_w += w_f
+            else:
+                missing_dims.append(d)
+
+    coverage = (available_w / applicable_w) if applicable_w > 0.0 else 1.0
+    status = "ok" if coverage >= MIN_PRESET_COVERAGE else "insufficient_target_data"
+    sorted_missing = [] if coverage >= 1.0 else sorted(missing_dims)
+    return (status, coverage, sorted_missing)
 
 
 def match_all(
@@ -883,6 +1012,7 @@ def match_all(
     n_earth = len(earth_df)
 
     rows: list[dict[str, object]] = []
+    all_preset_status: list[dict[str, object]] = []
     for t_idx, t_row in targets_df.iterrows():
         tid = str(t_row["target_id"])
         z_t = z_t_all[t_idx]
@@ -890,8 +1020,24 @@ def match_all(
             logger.warning("Skipping target %s with non-finite terrain features", tid)
             continue
         tv = target_vec_from_row(t_row, z_t, float(zt_t_all[t_idx]))
+        tdims = available_dims(tv)
         scores = score_target(ea, tv, sigma_scale=sigma_scale)
-        msi_by_preset, selected_global = select_by_preset(scores, ea)
+        msi_by_preset, selected_global, status_by_preset = select_by_preset(
+            scores, ea, body=tv.body, target_dims=tdims
+        )
+
+        for pkey in PRESET_KEYS:
+            st_info = status_by_preset[pkey]
+            all_preset_status.append(
+                {
+                    "target_id": tid,
+                    "preset": pkey,
+                    "status": st_info["status"],
+                    "coverage": round(float(st_info["coverage"]), 3),
+                    "missing_dims": ",".join(st_info["missing_dims"]),
+                    "available_dims": ",".join(sorted(tdims)),
+                }
+            )
 
         preset_ranks: dict[str, dict[int, int]] = {
             pkey: {g_idx: rank_i for rank_i, g_idx in enumerate(g_list, start=1)}
@@ -908,6 +1054,7 @@ def match_all(
         t_phys = {feat: t_row[feat] for feat in MATCH_FEATURES}
         for g_idx in union_ordered:
             sel_presets = [pkey for pkey in PRESET_KEYS if g_idx in preset_ranks[pkey]]
+            earth_missing = [d for d in sorted(tdims) if not np.isfinite(scores[d][g_idx])]
             mm = mismatches(
                 earth_records[g_idx],
                 t_phys,
@@ -933,12 +1080,22 @@ def match_all(
                     tv.cold_rank,
                 )
             )
+            for dim in earth_missing:
+                mm.append(
+                    {
+                        "feature": f"no_earth_data:{dim}",
+                        "earth": None,
+                        "target": None,
+                        "z_diff": None,
+                    }
+                )
             rec: dict[str, object] = {
                 "target_id": tid,
                 "earth_id": str(earth_ids[g_idx]),
                 "lat": float(ea.lat[g_idx]),
                 "lon": float(ea.lon[g_idx]),
                 "selected_by": ",".join(sel_presets),
+                "earth_missing_dims": ",".join(earth_missing),
             }
             for pkey in PRESET_KEYS:
                 rec[f"rank_{pkey}"] = preset_ranks[pkey].get(g_idx, pd.NA)
@@ -967,6 +1124,7 @@ def match_all(
                 "retry_targets": [],
                 "targets_matched": int(len(targets_df)),
                 "candidate_pool": "none (whole Earth scored per target)",
+                "preset_status": all_preset_status,
             }
         )
     return out_df
@@ -1057,7 +1215,10 @@ def main(argv: list[str] | None = None) -> None:
 
     matches_out = args.out_dir / "matches.parquet"
     meta_out_path = args.out_dir / "matches_meta.json"
+    target_presets_out = args.out_dir / "target_presets.csv"
     matches_df.to_parquet(matches_out, index=False)
+    if meta.get("preset_status"):
+        pd.DataFrame(meta["preset_status"]).to_csv(target_presets_out, index=False)
     with open(meta_out_path, "w", encoding="utf-8") as fh:
         json.dump(meta, fh, indent=2, allow_nan=False)
 

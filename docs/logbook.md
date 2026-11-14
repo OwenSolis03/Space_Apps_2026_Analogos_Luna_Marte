@@ -2,6 +2,17 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16.1 — missing-data policy in MSI and preset selection
+
+**What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §3):
+
+- Defined `EARTH_MISSING_SCORE = 0.0`, `MIN_PRESET_COVERAGE = 0.6`, and `DIMENSION_BODIES` in `pipeline/match.py`.
+- Added pure functions `available_dims(tv: TargetVec)` and `preset_status(weights, body, applies_to, available)` to identify applicable/available dimensions per target and evaluate coverage per preset.
+- Updated `msi()` to implement Case C: when `target_dims` is provided, non-finite Earth scores for dimensions in `target_dims` receive `earth_missing_score = 0.0` rather than being dropped; dimensions not in `target_dims` (cases A and B) are skipped. Preserved legacy behaviour when `target_dims is None`.
+- Updated `select_by_preset()` to evaluate `preset_status`: when status is not `"ok"`, the preset's MSI array is filled with NaN and no candidates are selected. Returns `(msi_by_preset, selected, status_by_preset)`.
+- Updated `match_all()` to pass `available_dims` to `select_by_preset()`, attach `earth_missing_dims` and case-C `no_earth_data:<dim>` mismatches to exported analog records, collect `all_preset_status` in `meta_out["preset_status"]`, and write `target_presets.csv` in `main()`.
+- Verified on `tests/test_match.py`: 20/20 passed.
+
 ## 2026-11-14: T16 specification, missing data was a free pass in the MSI
 
 **What was found** (by Owen in the app, diagnosed by Claude on run 2242490):
