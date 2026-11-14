@@ -26,8 +26,8 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 | **T4** targets | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm` | **Done and run** (`115e0c3`) | Job 2242423: 76 targets (16 curated, all ok; 60 clusters) |
 | **T6** Earth layers | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `jobs/t6_earth_layers.slurm` | **Done and run** (`29fbb88`, `84888cd`) | Jobs 2242426 (cache) and 2242430 (checks): 8/8 hard, 5/5 soft |
 | **T5** Earth sweep | `pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh` | **Done and run** (`52bf3d7`) | Jobs 2242438 (prepare), 2242439 (array 0–31), 2242440 (merge): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard checks, 4/5 soft checks (`runs/2242438/features_earth.parquet`, kit `t5_2242438.tar.gz`) |
-| **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Plan ready** ([plan_t7_t8.md](plan_t7_t8.md)) | Input ready: `runs/2242438/features_earth.parquet` (or offline `kit/t5_2242438.tar.gz`) |
-| **T9** tests | `tests/` | Ongoing | 49 synthetic tests pass (job 2242431) |
+| **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Done and run; report pending review** (`997a0c0`) | Jobs `2242473` (smoke) and `2242474` (full): 3,908 pairs, `5/5` hard checks, `/lustre/proyectos/p089/runs/2242474/analogs_universe.json` (3.18 MB) + `t7_report.md` (not yet copied to `app/`) |
+| **T9** tests | `tests/` | Ongoing | 61 synthetic tests pass (job `2242472`) |
 | **T10** app | `app/`, `tools/v1_to_sample.py` | **Skeleton on `main`** (`9325dea`, PR #2) | Runs on `app/public/data/sample.json` (v1 converted) |
 | **T11** limits and content | `pipeline/data/limits.json` | Pending (team) | Format in `plan_t7_t8.md` §4.2; provisional fallback from `sample.json` |
 
@@ -90,6 +90,12 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 - **Three stages:** prepare (prefilter and Earth layers), a 32-stripe array, and merge with checks.
 - **Prefilter:** NDVI > 0.25 is dropped; NaN NDVI passes only if LST exists.
 
+**`pipeline/match.py` and `pipeline/export.py`**
+
+- **Normalization & scores:** Earth-only `log1p` + median/`1.4826 * MAD` normalization, Mars-only percentile thermal ranks (`themis_delta` vs `lst_amplitude_c`), RBF kernels per dimension (`σ_scale = 1.0`), and three weighted mission presets.
+- **Selection:** `NearestNeighbors` pool (`k = 2000`, retry `k = 8000`) -> greedy top-30 per preset with `>= 150 km` separation and `<= 3` `polar_cold` (`lst_day_c < -10 °C`) analogs, plus physical (`|z_diff| > 1.5`) and thermal (`> 0.30`) mismatches.
+- **Export & checks:** writes `analogs_universe.json` matching `types.ts` (falling back to provisional `sample.json` limits while `pipeline/data/limits.json` is absent), runs 5 hard checks (`t7_checks.json`), and emits `t7_report.md` (with Olympus Mons sanity check).
+
 ---
 
 ## 3. Verified outputs on Yuca
@@ -101,6 +107,8 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 | T6, `runs/2242430/` | `t6_checks.json` and the control maps; cache in `data/derived/` |
 | T5 smoke, `runs/2242432/` | `candidates.parquet` (500), `prefilter_stats.json` (44,375 candidates worldwide), `features_earth.parquet` (445), `t5_checks.json`, maps |
 | T5 full, `runs/2242438/` | `features_earth.parquet` (40,244 valid patches of 44,375 candidates, 3.3 MB), `prefilter_stats.json`, `t5_checks.json` (6/6 hard, 4/5 soft), `map_earth_*.png`; kit `kit/t5_2242438.tar.gz` (3.7 MB) |
+| T7/T8 smoke, `runs/2242473/` | `matches.parquet` (3,342 rows), `analogs_universe.json` (2.99 MB), `t7_checks.json` (5/5 hard), `t7_report.md` |
+| T7/T8 full, `runs/2242474/` | `matches.parquet` (3,908 rows across 76 targets), `analogs_universe.json` (3.18 MB), `t7_checks.json` (5/5 hard), `t7_report.md` |
 
 **Raster scales** (checked with rasterio on the real files; more in [pipeline.md](pipeline.md)):
 
@@ -128,8 +136,8 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 
 ## 5. Next steps
 
-1. **T7/T8:** implement [plan_t7_t8.md](plan_t7_t8.md). Smoke-test it on `runs/2242432`, then run against `runs/2242438/features_earth.parquet`.
-2. **App:** publish `analogs_universe.json` to `app/public/data/`, switch `DATA_URL` in the app, and deploy.
+1. **Review `runs/2242474/t7_report.md`:** confirm score distribution (`σ_scale = 1.0`) and Olympus Mons sanity check before copying `runs/2242474/analogs_universe.json` into `app/public/data/`.
+2. **App:** publish `analogs_universe.json` to `app/public/data/`, switch `DATA_URL` in `app/src/App.tsx`, and deploy.
 3. **T11 content and the submission items** in [submission.md](submission.md).
 
 ---
@@ -146,5 +154,5 @@ Commands waiting to be run on Yuca, in order. Whoever works without SSH (MODE B)
 | 4 | ~~T6: `sbatch jobs/t6_earth_layers.slurm`~~ (jobs 2242426, 2242430) | 8/8 hard checks |
 | 5 | ~~T5 smoke: `bash jobs/t5_submit.sh --limit 500`~~ (jobs 2242432–2242434) | 5/5 hard checks |
 | 6 | ~~T5 full: `bash jobs/t5_submit.sh`~~ (jobs 2242438–2242440) | 40,244 valid patches, 6/6 hard checks |
-| 7 | T7/T8 smoke: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slurm` (once the code exists) | `plan_t7_t8.md` §5 |
-| 8 | T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm` | `plan_t7_t8.md` §5 |
+| 7 | ~~T7/T8 smoke: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slurm`~~ (job 2242473) | 3,342 pairs, 5/5 hard checks |
+| 8 | ~~T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm`~~ (job 2242474) | 3,908 pairs, 5/5 hard checks |

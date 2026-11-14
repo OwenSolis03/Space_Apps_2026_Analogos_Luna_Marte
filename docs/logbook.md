@@ -2,6 +2,43 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-13 (night): T7/T8 — RBF matching, MSI presets and universe JSON export
+
+**What was done and why** (code written by Gemini from Claude's [`docs/plan_t7_t8.md`](plan_t7_t8.md))
+
+- **Matching (`pipeline/match.py`):** implemented `Normalizer` (Earth-only median and `1.4826 * MAD` after `log1p` on `relief_m`, `detrended_std_m` and `tri_m`), Mars/Earth percentile `thermal_ranks`, vectorized RBF `dimension_scores` (`σ_scale = 1.0`), `msi` across the three mission presets (`mobility_and_traction`, `construction_and_base`, `dust_and_thermal`), `NearestNeighbors` candidate pooling (`k = 2000`, retry `k = 8000` if `< 30` accepted), greedy `select_diverse` enforcing `>= 150 km` separation and `<= 3` `polar_cold` (`lst_day_c < -10 °C`) analogs per preset, and `mismatches` (`|z_diff| > 1.5` or `|zt_e - zt_m| > 0.30`). Kept Antarctica (`Dry Valleys`) reachable while preventing Antarctic ice sheets from dominating flat Mars rankings.
+- **Export, checks and report (`pipeline/export.py`, `jobs/t7_match.slurm`):** assembled `analogs_universe.json` matching `app/src/lib/types.ts` (NaNs serialized as `null`, rounding 4/3/2, verified URLs only or `null` with `TODO(verify)`), used provisional `limits` from `app/public/data/sample.json` with warning log (since `pipeline/data/limits.json` does not exist yet), added the 5 hard checks (`t7_checks.json`) and generated `t7_report.md` including the Olympus Mons sanity check.
+- **Unit tests (`tests/test_match.py`, `tests/test_export.py`):** 12 synthetic tests covering Earth-only normalization, `log1p`, NDVI/NaN environment scoring, Moon null thermal, `msi` null-skipping, 150 km & polar-cap greedy diversity, mismatch threshold, `earth_id` format, strict JSON schema (`allow_nan=False`), and provisional `sample.json` limits fallback.
+
+**Verification on Yuca** (via Slurm, env `spaceapps_2026`)
+
+- **Unit test suite** (`job 2242472`, commit `997a0c0`, `pytest -q tests`): **`61 passed, 73 warnings in 4.24s`** (0 skipped, 0 warnings in T7/T8).
+- **Smoke test against T5 smoke run** (`T5_DIR=runs/2242432`, `job 2242473`, commit `c8c080f`, runtime `0.29 s` match): `3,342` union pairs across `76` targets, `analogs_universe.json` `2.99 MB`, **`5/5` hard checks PASS** (`coverage` 0 below 20, `min_pair_km=150.305`, `max_polar_per_preset=3`, `scores` ok, `json_contract` ok).
+- **Full run against T5 global run** (`T5_DIR=runs/2242438`, `job 2242474`, commit `c8c080f`, output `/lustre/proyectos/p089/runs/2242474/`):
+  - Runtime: `match = 0.511 s`, `export = 0.854 s`; `0` targets required the `8000` retry.
+  - Exported **`3,908` pairs across `76` targets** (`KNOWN_ANALOG=213`, `NEW_CANDIDATE=3,695`; `polar_cold=286`, `ndvi_missing=185`) into `/lustre/proyectos/p089/runs/2242474/analogs_universe.json` (`3.18 MB`).
+
+| # | Check | Status | Observed | Expected |
+| --- | --- | --- | --- | --- |
+| 1 | `coverage` | PASS | `76` targets checked, `below_20_no_retry=0`, `below_20_with_retry=0` | `>= 20` per preset (or `8000` retry) |
+| 2 | `diversity` | PASS | `min_pair_km = 150.238`, `violations = []` | `>= 150.0 km` within `(target, preset)` |
+| 3 | `polar_cap` | PASS | `max_polar_per_preset = 3`, `violations = []` | `<= 3 polar_cold` per `(target, preset)` |
+| 4 | `scores` | PASS | `error_count = 0` | All `S_k`, `MSI` in `[0, 1]`; `S_thermal` null for Moon |
+| 5 | `json_contract` | PASS | `analogs_universe.json` (`3.183 MB`), `76` targets parsed, `errors = []` | Valid JSON (`allow_nan=False`), `< 20 MB`, `types.ts` keys |
+
+- **Curated score distribution (`mobility_and_traction`, `σ_scale=1.0`):**
+
+| Body | Curated targets | 1st MSI median | 1st MSI p90 | 30th MSI median | 30th MSI p90 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Moon | 8 | `0.932` | `0.965` | `0.778` | `0.861` |
+| Mars | 8 | `0.998` | `0.999` | `0.986` | `0.993` |
+
+- **Olympus Mons sanity check (`18.3523°N, -133.6437°E`):** top 10 analogs at `0.803–0.957` MSI across steep relief massifs (Antarctica, China/Tian Shan–Kunlun, Afghanistan, Baja California/Mexico at `0.807`, Iran); island shield volcanoes (`Hawaii`, `Lanzarote`) remain filtered by coastal sea pixels in the Copernicus VRT mask as anticipated.
+
+**What is left**
+
+- Review of [`runs/2242474/t7_report.md`](file:///lustre/proyectos/p089/runs/2242474/t7_report.md) (score distribution and Olympus Mons check) by Claude/Owen before copying `analogs_universe.json` to `app/public/data/`, completing T11 (`pipeline/data/limits.json`), and switching `DATA_URL` in T10.
+
 ## 2026-11-13 (night): T5 — Earth global sweep (Copernicus GLO-90 + T6 layers)
 
 **What was done and why** (code written by Gemini from Claude's [`docs/plan_t5.md`](plan_t5.md))

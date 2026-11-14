@@ -188,12 +188,22 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
   - Checklist and timeline: [submission.md](submission.md).
 - **Language:** from this point on, commit messages, new documentation and new code comments are in **English**.
 
+## 13. T7/T8: RBF matching, MSI presets and export
+
+**Commits:** `f3d0685` (plan), `997a0c0`. **Jobs:** `2242472` (61 tests), `2242473` (smoke test on `runs/2242432`), `2242474` (full run on `runs/2242438`).
+
+- **Normalisation in "Earth units":** after applying `log1p` to long-tailed metrics (`relief_m`, `detrended_std_m`, `tri_m`), features are normalised using only Earth candidates' median and `1.4826 * MAD` (`floor = 1e-6`), so distances read directly as deviations relative to arid/barren Earth terrain.
+- **Dimension-wise RBF and `σ = 1.0` honesty:** topography (4 features), roughness (2 features) and NDVI environment use RBF kernels with default `σ_scale = 1.0`. Missing NDVI (Antarctica) receives `S_environment = 1.0` with `ndvi_missing = true` so cold, unvegetated dry valleys remain valid.
+- **Mars-only percentile thermal score:** Earth `lst_amplitude_c` and Mars `themis_delta` use incompatible physical units, so both are converted to percentile ranks within Earth candidates and within the T3 Mars sweep (`themis_delta`), divided by `0.15` percentile units. Moon targets set `S_thermal = null` and renormalise MSI weights automatically.
+- **Candidate search, 150 km diversity and polar cap:** `NearestNeighbors` finds `k = 2000` topographic+roughness candidates per target (retrying with `k = 8000` if any preset yields `< 30`), then each of the three presets greedily accepts top-30 patches spaced `>= 150 km` apart while capping `polar_cold` (`lst_day_c < -10 °C`) at `<= 3` per preset so Antarctic ice sheets do not swamp flat Mars targets.
+- **Explainability and provisional limits:** pairs record per-feature physical mismatches (`|z_diff| > 1.5`) and thermal rank differences (`> 0.30`). Until T11 creates `pipeline/data/limits.json`, `export.py` falls back with a warning to the provisional limits in `app/public/data/sample.json`.
+- **Full run outcome (`2242474`):** `5/5` hard checks, `3,908` pairs (`213 KNOWN_ANALOG`, `3,695 NEW_CANDIDATE`) exported in `analogs_universe.json` (`3.18 MB`), pending review of `t7_report.md` before publishing into the app.
+
 ---
 
 ## Next
 
-- **T7:** RBF matching, MSI presets, diversity selection and mismatches.
-- **T8:** export of `analogs_universe.json` for the app.
-- **T11:** physical limits per body.
-- **Full T5 run.**
-- **App:** connect the app to the real data and deploy it.
+- **Review `runs/2242474/t7_report.md`** (score distribution and Olympus Mons check) and publish `analogs_universe.json` to `app/public/data/`.
+- **T11:** physical limits per body (`pipeline/data/limits.json`) and verified dataset URLs.
+- **App (T10):** connect `app/` (`DATA_URL`) to `analogs_universe.json` and deploy.
+- **Code in English:** finish translating older Spanish docstrings/comments in `pipeline/` (T1–T6).
