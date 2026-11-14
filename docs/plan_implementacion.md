@@ -419,7 +419,7 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 
 ## 7. Comandos de descarga (Owen, en Yuca)
 
-Todo se corre **ya dentro de Yuca** (en `login-01`). El código llega clonando el repo en `/lustre/proyectos/p089/code`. El repo es privado: cuando `git` pida contraseña, pegar un token de GitHub (fine-grained, solo lectura de "Contents" de este repo), no la contraseña de la cuenta.
+Todo se corre **ya dentro de Yuca** (en `login-01`). El código llega clonando el repo (público) en `/lustre/proyectos/p089/code`; no hace falta token.
 
 Primera vez:
 
