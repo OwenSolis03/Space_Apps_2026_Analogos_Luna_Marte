@@ -2,6 +2,23 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16.4 — tests for the missing-data policy
+
+**What was done and why** (tests written by Gemini per `docs/plan_t16_missing_data.md` §6):
+
+- Added 8 unit tests in `tests/test_match.py`:
+  1. `test_msi_case_c_counts_zero`: Verifies Case C scores 0.0 for Earth-missing dimensions.
+  2. `test_msi_case_b_skips_target_missing`: Verifies Case B drops dimensions missing on target.
+  3. `test_msi_legacy_when_target_dims_none`: Verifies legacy behavior when `target_dims=None`.
+  4. `test_msi_scalar_branch_matches_vector_branch`: Verifies scalar and vector branches match for cases B and C.
+  5. `test_available_dims_rules`: Tests target dimensions across bodies, thermal, dust, geology, and ice rules.
+  6. `test_preset_status`: Tests status evaluation (`ok`, `not_applicable_body`, `insufficient_target_data`).
+  7. `test_select_by_preset_skips_not_ok`: Verifies non-ok presets yield all-NaN MSI and empty selection.
+  8. `test_dust_preset_does_not_reward_missing_earth_dust`: Reproduces the dust bug and documents the fix.
+- Added 1 unit test in `tests/test_export.py`:
+  9. `test_export_preset_status_and_missing_dims`: Verifies preset status dictionary, Moon dust applicability, and analog `earth_missing_dims`.
+- Verified on local test suite: **88 passed, 2 skipped** in 4.86s.
+
 ## 2026-11-14: T16.3 — hard checks 12-14 and soft checks 15-17
 
 **What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §5):

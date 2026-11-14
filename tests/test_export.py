@@ -18,7 +18,7 @@ from pipeline.export import (
     write_universe_json,
 )
 from pipeline.export import _olympus_mons_sanity_check, build_t7_report
-from pipeline.match import EARTH_RADIUS_KM, match_all
+from pipeline.match import EARTH_RADIUS_KM, PRESET_KEYS, match_all
 
 
 def _synthetic_earth_40() -> pd.DataFrame:
@@ -338,3 +338,34 @@ def test_olympus_check_and_report(tmp_path: Path) -> None:
     assert "Olympus Mons" in report and "geology_and_materials" in report
     assert "## 5. T15 Review Tables" in report
     assert "## 6. T16 Missing Data Policy Review" in report
+
+
+def test_export_preset_status_and_missing_dims(tmp_path: Path) -> None:
+    earth = _synthetic_earth_40()
+    targets = _synthetic_targets()
+    meta: dict[str, object] = {}
+    matches = match_all(earth, targets, pd.DataFrame({"themis_delta": [20.0, 40.0, 60.0]}), meta_out=meta)
+    sample_path = _write_synthetic_sample(tmp_path / "sample.json")
+    universe = build_universe_dict(
+        matches_df=matches,
+        targets_df=targets,
+        earth_df=earth,
+        matches_meta=meta,
+        limits_path=tmp_path / "missing.json",
+        sample_json_path=sample_path,
+    )
+    written = write_universe_json(universe, tmp_path / "out")
+    parsed = json.loads(written[0].read_text(encoding="utf-8"))
+
+    for t in parsed["targets"]:
+        ps = t["preset_status"]
+        assert set(ps.keys()) == set(PRESET_KEYS)
+        if t["body"] == "Moon":
+            assert ps["dust_and_seasons"]["status"] == "not_applicable_body"
+            assert ps["dust_and_seasons"]["coverage"] == 0.0
+        for a in t["analogs"]:
+            assert isinstance(a["earth_missing_dims"], list)
+            for pkey, st_info in ps.items():
+                if st_info["status"] != "ok":
+                    assert a["msi_by_preset"][pkey] is None
+                    assert pkey not in a["selected_by"]

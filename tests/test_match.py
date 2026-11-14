@@ -10,14 +10,17 @@ import pytest
 
 from pipeline.match import (
     DIMENSION_KEYS,
+    EARTH_MISSING_SCORE,
     EARTH_RADIUS_KM,
     ICE_CAP_EXEMPT_PRESETS,
     MATCH_FEATURES,
     MAX_ICE_SURFACE_PER_PRESET,
+    MIN_PRESET_COVERAGE,
     PRESET_KEYS,
     PRESETS,
     Normalizer,
     TargetVec,
+    available_dims,
     build_earth_arrays,
     dimension_scores,
     dust_scores,
@@ -30,6 +33,7 @@ from pipeline.match import (
     mismatches,
     msi,
     preprocess_feature,
+    preset_status,
     score_target,
     select_by_preset,
     select_diverse,
@@ -529,3 +533,176 @@ def test_load_layers_aligned_and_misaligned(tmp_path) -> None:
     shifted["lat"] = shifted["lat"] + 1.0
     with pytest.raises(ValueError):
         load_layers(shifted, targets, t12, t13, t14)
+
+
+def test_msi_case_c_counts_zero() -> None:
+    scores = {
+        "topography": np.array([1.0, 1.0]),
+        "dust": np.array([1.0, np.nan]),
+    }
+    weights = {"topography": 0.6, "dust": 0.4}
+    target_dims = frozenset(["topography", "dust"])
+    res = msi(scores, weights, target_dims=target_dims)
+    assert np.allclose(res, [1.0, 0.6])
+
+
+def test_msi_case_b_skips_target_missing() -> None:
+    scores = {
+        "topography": np.array([1.0, 1.0]),
+        "dust": np.array([1.0, np.nan]),
+    }
+    weights = {"topography": 0.6, "dust": 0.4}
+    target_dims = frozenset(["topography"])
+    res = msi(scores, weights, target_dims=target_dims)
+    assert np.allclose(res, [1.0, 1.0])
+
+
+def test_msi_legacy_when_target_dims_none() -> None:
+    scores = {
+        "topography": np.array([1.0, 1.0]),
+        "dust": np.array([1.0, np.nan]),
+    }
+    weights = {"topography": 0.6, "dust": 0.4}
+    res = msi(scores, weights, target_dims=None)
+    assert np.allclose(res, [1.0, 1.0])
+
+
+def test_msi_scalar_branch_matches_vector_branch() -> None:
+    weights = {"topography": 0.5, "dust": 0.3, "ice": 0.2}
+    tdims_b = frozenset(["topography", "dust"])
+    tdims_c = frozenset(["topography", "dust", "ice"])
+
+    s_vec = {
+        "topography": np.array([0.8, 0.9, 0.7]),
+        "dust": np.array([0.6, 0.5, np.nan]),
+        "ice": np.array([0.4, np.nan, np.nan]),
+    }
+    for tdims in (tdims_b, tdims_c, None):
+        vec_res = msi(s_vec, weights, target_dims=tdims)
+        for i in range(3):
+            s_scalar = {k: float(v[i]) for k, v in s_vec.items()}
+            scalar_res = msi(s_scalar, weights, target_dims=tdims)
+            assert np.isclose(vec_res[i], scalar_res)
+
+
+def test_available_dims_rules() -> None:
+    # 1. Mars with thermal, dust, geo, no ice
+    tv1 = TargetVec(
+        body="Mars", z_t=np.zeros(6), zt_t=0.5, lat=0.0,
+        geo_class="VOLCANIC_BASIC", dust_level_rank=0.5, dust_season_rank=0.5, dust_phase=0.0,
+        cold_rank=np.nan, ice_t=0.0,
+    )
+    assert available_dims(tv1) == frozenset(["topography", "roughness", "environment", "thermal", "geology", "dust"])
+
+    # 2. Mars without thermal, with ice (ice_t > 0)
+    tv2 = TargetVec(
+        body="Mars", z_t=np.zeros(6), zt_t=np.nan, lat=40.0,
+        geo_class="SEDIMENTARY", dust_level_rank=0.5, dust_season_rank=0.5, dust_phase=0.0,
+        cold_rank=np.nan, ice_t=1.0,
+    )
+    assert available_dims(tv2) == frozenset(["topography", "roughness", "environment", "geology", "dust", "ice"])
+
+    # 3. Moon with Diviner (ice_t finite & cold_rank finite), even if thermal/dust floats are passed
+    tv3 = TargetVec(
+        body="Moon", z_t=np.zeros(6), zt_t=0.5, lat=-85.0,
+        geo_class="IMPACT", dust_level_rank=0.5, dust_season_rank=0.5, dust_phase=0.0,
+        cold_rank=0.95, ice_t=1.0,
+    )
+    assert available_dims(tv3) == frozenset(["topography", "roughness", "environment", "geology", "ice"])
+
+    # 4. Moon without Diviner
+    tv4 = TargetVec(
+        body="Moon", z_t=np.zeros(6), zt_t=np.nan, lat=0.0,
+        geo_class="IMPACT", dust_level_rank=np.nan, dust_season_rank=np.nan, dust_phase=np.nan,
+        cold_rank=np.nan, ice_t=np.nan,
+    )
+    assert available_dims(tv4) == frozenset(["topography", "roughness", "environment", "geology"])
+
+    # 5. Unknown geology class
+    tv5 = TargetVec(
+        body="Mars", z_t=np.zeros(6), zt_t=np.nan, lat=0.0,
+        geo_class="UNKNOWN_OR_NONE", dust_level_rank=np.nan, dust_season_rank=np.nan, dust_phase=np.nan,
+        cold_rank=np.nan, ice_t=0.0,
+    )
+    assert available_dims(tv5) == frozenset(["topography", "roughness", "environment"])
+
+
+def test_preset_status() -> None:
+    isru_weights = PRESETS["isru_and_ice"]["weights"]
+    isru_applies = PRESETS["isru_and_ice"]["applies_to"]
+    dust_weights = PRESETS["dust_and_seasons"]["weights"]
+    dust_applies = PRESETS["dust_and_seasons"]["applies_to"]
+
+    # Mars isru_and_ice without ice
+    status, cov, missing = preset_status(
+        isru_weights, "Mars", isru_applies,
+        frozenset(["topography", "roughness", "environment", "geology", "dust", "thermal"]),
+    )
+    assert (status, cov, missing) == ("insufficient_target_data", 0.5, ["ice"])
+
+    # Mars isru_and_ice with ice
+    status, cov, missing = preset_status(
+        isru_weights, "Mars", isru_applies,
+        frozenset(["topography", "roughness", "environment", "geology", "dust", "thermal", "ice"]),
+    )
+    assert (status, cov, missing) == ("ok", 1.0, [])
+
+    # Moon dust_and_seasons
+    status, cov, missing = preset_status(
+        dust_weights, "Moon", dust_applies,
+        frozenset(["topography", "roughness", "environment", "geology"]),
+    )
+    assert (status, cov, missing) == ("not_applicable_body", 0.0, [])
+
+    # Mars dust_and_seasons without thermal
+    status, cov, missing = preset_status(
+        dust_weights, "Mars", dust_applies,
+        frozenset(["topography", "roughness", "environment", "geology", "dust"]),
+    )
+    assert (status, pytest.approx(cov, 0.01), missing) == ("ok", 0.8, ["thermal"])
+
+
+def test_select_by_preset_skips_not_ok() -> None:
+    earth = _spread_earth(25)
+    norm = Normalizer.fit_earth(earth)
+    ea = build_earth_arrays(earth, norm.transform(earth), np.full(len(earth), 0.5))
+    scores = {
+        "topography": np.full(len(earth), 0.9),
+        "roughness": np.full(len(earth), 0.9),
+        "environment": np.full(len(earth), 0.9),
+        "geology": np.full(len(earth), 0.9),
+        "thermal": np.full(len(earth), 0.9),
+        "dust": np.full(len(earth), 0.9),
+        "ice": np.full(len(earth), np.nan),
+    }
+    # Mars target lacking ice -> isru_and_ice status will be insufficient_target_data
+    tdims = frozenset(["topography", "roughness", "environment", "geology", "thermal", "dust"])
+    msi_by_p, sel, status_by_p = select_by_preset(scores, ea, body="Mars", target_dims=tdims)
+    assert status_by_p["isru_and_ice"]["status"] == "insufficient_target_data"
+    assert np.isnan(msi_by_p["isru_and_ice"]).all()
+    assert sel["isru_and_ice"] == []
+
+
+def test_dust_preset_does_not_reward_missing_earth_dust() -> None:
+    weights = PRESETS["dust_and_seasons"]["weights"]
+    target_dims = frozenset(["topography", "roughness", "environment", "thermal", "geology", "dust"])
+    scores = {
+        "topography": np.array([1.0, 1.0, 1.0]),
+        "roughness": np.array([1.0, 1.0, 1.0]),
+        "environment": np.array([1.0, 1.0, 1.0]),
+        "thermal": np.array([1.0, 1.0, 1.0]),
+        "geology": np.array([1.0, 1.0, 1.0]),
+        "dust": np.array([0.9, 0.2, np.nan]),
+    }
+    # With T16 case C:
+    msi_fixed = msi(scores, weights, target_dims=target_dims)
+    assert np.allclose(msi_fixed, [0.96, 0.68, 0.60], atol=0.001)
+    order_fixed = np.argsort(-msi_fixed).tolist()
+    assert order_fixed == [0, 1, 2]
+
+    # Without target_dims (legacy bug: row 2 gets 1.00 and wins):
+    msi_legacy = msi(scores, weights, target_dims=None)
+    assert np.allclose(msi_legacy, [0.96, 0.68, 1.00], atol=0.001)
+    order_legacy = np.argsort(-msi_legacy).tolist()
+    assert order_legacy == [2, 0, 1]
+
