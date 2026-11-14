@@ -23,8 +23,8 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 | **T9** | `tests/` (31 pruebas unitarias sintéticas) | **Parcial (T1–T4 cubiertos)** | Yuca (job `2242421`, env `spaceapps_2026`): **`31 passed` in 3.76s** |
 | **T10** | `app/`, `tools/v1_to_sample.py` | En curso en paralelo (`9325dea`, PR #2) | Primer esqueleto React + Vite + Tailwind en `main` con `app/public/data/sample.json` |
 | **T4** | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, `tests/test_targets.py`, `tests/test_iau.py` | **Hecho y ejecutado en Yuca** | Job `2242423` (`/lustre/proyectos/p089/runs/2242423/`): `76` blancos (`16` curados `8/8` Luna + `8/8` Marte y `60` clusters), soporte polar T4.0 en `geo.py` y `PointSampler` en `planet_features.py` |
-| **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json` | **Pendiente (siguiente tarea)** | Por implementar tras T4 (MODIS y Natural Earth completos) |
-| **T5** | `pipeline/earth_features.py`, `jobs/t5_earth_features.slurm` | Pendiente | Por implementar tras T6 |
+| **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `jobs/t6_earth_layers.slurm`, `tests/test_earth_layers.py` | **Hecho y ejecutado en Yuca** | Jobs `2242426` / `2242430` (`84888cd`): cachés `/lustre/proyectos/p089/data/derived/ndvi_max_2023.tif` (18 MB) y `lst_2023.tif` (56 MB), **`8/8` duros y `5/5` blandos** en `/lustre/proyectos/p089/runs/2242430/t6_checks.json`, `1,650,450` vértices de vías, 11 tests sintéticos (`42 passed` en `2242425`) |
+| **T5** | `pipeline/earth_features.py`, `jobs/t5_earth_features.slurm` | **Pendiente (siguiente tarea)** | Por implementar tras T6 según `docs/plan_t5.md` |
 | **T7 / T8 / T11** | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json` | Pendiente | Integración final hacia `app/public/data/analogs_universe.json` |
 
 ---
@@ -104,8 +104,8 @@ Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuc
 
 1. ~~Inspeccionar descargas T0 y los PNG de T3~~: hecho el 2026-11-13 (ver tabla).
 2. ~~**T4 (`pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, tests)**~~: hecho el 2026-11-13 (job `2242423`, `/lustre/proyectos/p089/runs/2242423/`).
-3. **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `tests/test_earth_layers.py`):** caché de `ndvi_max_2023.tif` (MOD13C2) y `lst_2023.tif` (MOD11C3), distancias a `ne_10m_roads`/`ne_10m_airports` y bboxes verificados de las 12 regiones conocidas.
-4. **T5 (`pipeline/earth_features.py`, `jobs/t5_earth_features.slurm`):** VRT `copernicus_90m.vrt`, prefiltro `ndvi_max <= 0.25`, prueba `--limit 500` y array `--array=0-31%30`.
+3. ~~**T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `tests/test_earth_layers.py`)**~~: hecho el 2026-11-13 (jobs `2242426` / `2242430`, `/lustre/proyectos/p089/data/derived/{ndvi_max_2023,lst_2023}.tif`, `/lustre/proyectos/p089/runs/2242430/`).
+4. **T5 (`pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh`):** VRT `copernicus_90m.vrt`, prefiltro `ndvi_max <= 0.25` (NaN pasa solo si LST finito), prueba `--limit 500` y array `--array=0-31%30`.
 5. **T7 + T8 + T11 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json`, `tests/test_match.py`):** matching RBF + MSI + diversidad (> 150 km) + `mismatches` + `country` (`ne_10m_admin_0_countries`) sobre `runs/2242423/targets.parquet` y generación de `app/public/data/analogs_universe.json`.
 
 ---

@@ -27,6 +27,8 @@ download_full_night.sh ─┴─> /lustre/proyectos/p089/data/raw/{moon,mars,ear
 T3: pipeline/planet_features.py  ─► runs/2242278/features_{mars,moon}.parquet
                                            │
 T4: pipeline/targets.py + targets.json  ───┴─► runs/2242423/targets.parquet (16 curados + 60 clusters)
+
+T6: pipeline/earth_layers.py + known_analogs.json ─► data/derived/{ndvi_max_2023,lst_2023}.tif (runs/2242430/)
 ```
 
 ## Datos
@@ -42,12 +44,14 @@ Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
 | Luna | `moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB) | USGS Astrogeology | OK (verificado en job `2242231`) |
 | Luna | `moon/Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` | USGS Astrogeology | OK (verificado en job `2242231`) |
 | Luna | `moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | USGS Astrogeology | Obsoleto: en realidad es `ClrShade`; ya no se usa |
-| Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Parcial: 6,983 de 26,475 tiles; el resto en `run_download_missing.slurm` |
+| Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Completo: 26,475 tiles (verificado 2026-11-13) |
 | Luna | `moon/diviner/dlre_prp_south.{tab,lbl,xml}` (577 MB, tabla ASCII de malla triangular 80–90°S) | NASA PDS Geosciences (LRO Diviner PRP) | `jobs/download_diviner.slurm` |
-| Tierra | `earth/modis/ndvi/*.hdf` (MOD13C2 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK |
-| Tierra | `earth/modis/lst/*.hdf` (MOD11C3 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK |
-| Tierra | `earth/naturalearth/ne_10m_roads`, `ne_10m_airports` | Natural Earth | OK |
+| Tierra | `earth/modis/ndvi/*.hdf` (MOD13C2 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK (caché en `data/derived/ndvi_max_2023.tif`) |
+| Tierra | `earth/modis/lst/*.hdf` (MOD11C3 v061, 12 meses de 2023) | NASA Earthdata (LP DAAC) | OK (caché en `data/derived/lst_2023.tif`) |
+| Tierra | `earth/naturalearth/ne_10m_{roads,airports,admin_0_countries}` | Natural Earth | OK (`1,650,450` vértices de caminos al densificar a `0.02°`) |
 | Ambos | `nomenclature/MARS*.dbf`, `nomenclature/MOON*.dbf` | Gazetteer IAU/USGS | OK (descarga no registrada en los scripts) |
+
+**Derivados en `/lustre/proyectos/p089/data/derived/`:** `diviner_prp_south.parquet` (61 MB), `ndvi_max_2023.tif` (18 MB, 2 bandas `float32`: `ndvi_max`, `n_months`) y `lst_2023.tif` (56 MB, 3 bandas `float32`: `lst_day_c`, `lst_night_c`, `lst_amplitude_c`). **GDAL sin HDF4 en `spaceapps_2026`: usar `pyhdf`** para leer los `.hdf` originales de MODIS.
 
 Los rasters no se suben al repo (ver `.gitignore`).
 
@@ -64,6 +68,8 @@ Revisado en Yuca el 2026-11-13 con rasterio. **Siempre aplicar `valor = crudo ·
 | `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` | uint8 | 1.00395 | −0.00395 | 0 | Brillo relativo (≈ 1–256), no reflectancia absoluta; compararlo por rango dentro de la Luna |
 | `Moon_IceFavorabilityIndex_{90N,90S}000E_591mp.tif` | float32 | 1.0 | 0.0 | −3.4e38 | Filtrar el nodata gigante |
 | `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | uint8 × 3 | 1.0 | 0.0 | 0 | Obsoleto (ClrShade RGB); mover a `_to_delete/` |
+| `MOD13C2.A2023*.hdf` (`CMG 0.05 Deg Monthly NDVI`) | int16 | **÷ 10000.0** | 0.0 | −3000 | **Convención MODIS VI opuesta a LST:** se **divide** entre `10000.0`, no se multiplica. `valid_range=[-2000, 10000]`; `< -0.3 -> NaN`. Sin datos al sur de `−59.45°S` (Antártida omitida); leer con `pyhdf` |
+| `MOD11C3.A2023*.hdf` (`LST_Day_CMG`, `LST_Night_CMG`) | uint16 | **× 0.02** | −273.15 | 0 | **Aquí sí se multiplica:** `°C = crudo * 0.02 - 273.15` (`valid_range=[7500, 65535]`, `min_months=3`); sí cubre la Antártida; leer con `pyhdf` |
 
 ## Scripts
 
@@ -104,6 +110,9 @@ Logs en `logs/slurm/`.
 | 2242421 | `pytest -q tests` | Suite unitaria v2 (T1–T4): **`31 passed` in 3.76s** |
 | 2242422 | `jobs/t4_targets.slurm --k 5 --body Moon` | Prueba de humo T4 lunar: `8/8` curados `ok` (incluido Shackleton) + 5 clusters |
 | 2242423 | `jobs/t4_targets.slurm` | Corrida completa T4: **`76` blancos** (`16` curados `8/8` Luna + `8/8` Marte, y `60` clusters) en `/lustre/proyectos/p089/runs/2242423/` |
+| 2242425 | `pytest -q tests` | Suite unitaria v2 (T1–T4, T6): **`42 passed` in 3.79s** |
+| 2242426 | `jobs/t6_earth_layers.slurm` | Construcción de cachés T6 (`ndvi_max_2023.tif`, `lst_2023.tif`); 6/8 duros, 5/5 blandos antes de ajustar #2 y #8 en `plan_t6.md` §6.2.1 |
+| 2242430 | `jobs/t6_earth_layers.slurm` | Verificación T6 (commit `84888cd`): **`8/8` duros, `5/5` blandos** + 3 PNGs en `/lustre/proyectos/p089/runs/2242430/` (sample 10k puntos = `1.216 s`) |
 
 ## Explorar los datos
 

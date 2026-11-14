@@ -2,6 +2,47 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13 (noche): T6 — capas terrestres (NDVI, LST, logística, país y análogos conocidos)
+
+**Qué se hizo (código escrito por Gemini a partir de `docs/plan_t6.md` de Claude)**
+
+- **Configuración y dependencias (`pipeline/config.py`, `pipeline/requirements.txt`):** se agregaron `EARTH_RAW_FILES`, `EARTH_DERIVED_FILES` (`ndvi_max_2023.tif`, `lst_2023.tif`) y `MODIS_CMG_RES_DEG = 0.05`, más `pyhdf>=0.10` solo para la construcción de cachés en Yuca.
+- **Regiones conocidas (`pipeline/data/known_analogs.json`):** 12 bboxes aproximados curados (`atacama`, `mcmurdo-dry-valleys`, `iceland`, `hawaii-big-island`, `devon-island`, `utah-mdrs`, `rio-tinto`, `svalbard`, `pilbara`, `meteor-crater`, `lanzarote`, `mojave`) validados al cargar (`id` único, bboxes válidos, `source_url` no vacío).
+- **Módulo `pipeline/earth_layers.py` + `jobs/t6_earth_layers.slurm`:**
+  - Funciones puras CMG 0.05° (`ndvi_from_raw` con `/ 10000.0`, fill `-3000`; `lst_c_from_raw` con `* 0.02 - 273.15`, fill `0`, `< 7500 -> NaN`), acumuladores anuales (`running_nanmax`, `running_sum_count`, `finalize_mean(..., min_count=3)`) y ventana de parche equiareal (`cell_index`, `patch_window_stat` con envoltura del antimeridiano).
+  - Constructores de caché en Yuca (`build_ndvi_max`, `build_lst`, `ensure_cache`) usando `pyhdf` importado de forma diferida y escritura atómica (`.tmp.tif` + `os.replace`, sin sobrescribir archivos existentes).
+  - Índices espaciales `Logistics` (`BallTree` haversine sobre `ne_10m_roads` densificada cada `0.02°` excluyendo `Ferry` = `1,650,450` vértices, y aeropuertos civiles excluyendo militares/spaceports), `Countries` (`within` + `sjoin_nearest` en `EPSG:4087` a `<= 25 km`), `KnownRegions` y fachada `EarthLayers` (~420 MB pensada para crearse una vez antes de `fork` en T5).
+- **Pruebas unitarias (`tests/test_earth_layers.py`):** 11 pruebas sintéticas sin `pyhdf`.
+
+**Verificación en Yuca (vía SLURM)**
+
+- **Suite unitaria (`job 2242425`, `pytest -q tests`):** **`42 passed` in 3.79s** (31 previas + 11 de T6, 0 warnings del módulo T6).
+- **Construcción de cachés y primera verificación (`job 2242426`, commit `29fbb88`):**
+  - Generó `/lustre/proyectos/p089/data/derived/ndvi_max_2023.tif` (18 MB, 2 bandas `float32`, `3600×7200`, `EPSG:4326`) y `/lustre/proyectos/p089/data/derived/lst_2023.tif` (56 MB, 3 bandas `float32`, `3600×7200`, `EPSG:4326`).
+  - Pasó `5/5` blandos y `6/8` duros; fallaron #2 (Egipto `(24.0, 28.0)` dio `0.1028` con confiabilidad `0` en los 12 meses) y #8 (fracción finita sin ponderar `0.2438`, porque MOD13C2 no trae datos al sur de `-59.45°S` y omite la Antártida).
+  - Claude aprobó en `plan_t6.md` §6.2.1 ajustar `#2 < 0.12` y `#8` ponderado por `cos(lat) > 0.25`.
+- **Re-verificación tras ajuste (`job 2242430`, commit `84888cd`, reutilizando las cachés existentes en `/lustre/proyectos/p089/runs/2242430/`):** **`8/8` duros, `5/5` blandos (PASS)** y 3 PNGs revisados visualmente (`map_ndvi_max.png`, `map_lst_amplitude.png`, `map_known_analogs.png` con los 12 bbox sobre sus regiones):
+
+| # | Tipo | Verificación | Observado | Esperado | Estado |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Duro | `cache_metadata` | `ndvi` 2 bandas, `lst` 3 bandas, `3600×7200`, `EPSG:4326` | `3600×7200 EPSG:4326` | PASS |
+| 2 | Duro | `ndvi_sahara` | `dz=0.0919`, `eg=0.1028` | `< 0.12` en ambos | PASS |
+| 3 | Duro | `ndvi_atacama` | `0.0760` | `< 0.10` | PASS |
+| 4 | Duro | `ndvi_tropical_forests` | `amazonia=0.8684`, `congo=0.8650` | `> 0.70` en ambos | PASS |
+| 5 | Duro | `dist_road_hermosillo` | `0.596 km` | `< 5 km` | PASS |
+| 6 | Duro | `countries_lookup` | `Mexico` / `Chile` / `Algeria` | `Mexico` / `Chile` / `Algeria` | PASS |
+| 7 | Duro | `known_region_lookup` | `utah-mdrs` / `None` | `utah-mdrs` / `None` | PASS |
+| 8 | Duro | `ndvi_finite_land_frac` | `cos_weighted=0.2696` (`unweighted=0.2438`) | `> 0.25 (ponderado por cos(lat))` | PASS |
+| 9 | Blando | `lst_day_dry_valleys` | `-28.18 °C` | `< 0 °C` | PASS |
+| 10 | Blando | `lst_amp_sahara_vs_amazonia` | Sahara `21.30 °C` vs Amazonía `4.16 °C` | Sahara `> 15 °C` y `>` Amazonía | PASS |
+| 11 | Blando | `dist_road_dry_valleys` | `3447.74 km` | `> 1000 km` | PASS |
+| 12 | Blando | `ndvi_prefilter_pass_frac` | `grid=0.0543` (`land=0.2228`) | Informativo | PASS |
+| 13 | Blando | `sample_10k_runtime_s` | `1.216 s` | `< 30 s` | PASS |
+
+**Qué falta**
+
+- **T5 (`pipeline/earth_features.py`)**, **T7 (`pipeline/match.py`)**, **T8 (`pipeline/export.py`)** y **T11 (`pipeline/data/limits.json`)**.
+
 ## 2026-11-13 (noche): sede real y reglas de entrega
 
 - El equipo está inscrito en **NASA Space Apps Sonora 2026** (Tec de Monterrey, Campus Sonora Norte), no en la sede de la UTH que aparecía en el README.
