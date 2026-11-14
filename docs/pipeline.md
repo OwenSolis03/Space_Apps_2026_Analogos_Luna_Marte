@@ -21,6 +21,14 @@ download_full_night.sh ─┴─> /lustre/proyectos/p089/data/raw/{moon,mars,ear
                     output/analogs.json               (top-5 análogos terrestres por arquetipo)
 ```
 
+### Flujo v2 (en desarrollo en `pipeline/`)
+
+```text
+T3: pipeline/planet_features.py  ─► runs/2242278/features_{mars,moon}.parquet
+                                           │
+T4: pipeline/targets.py + targets.json  ───┴─► runs/2242423/targets.parquet (16 curados + 60 clusters)
+```
+
 ## Datos
 
 Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
@@ -93,6 +101,9 @@ Logs en `logs/slurm/`.
 | 2241783 | matching | 6,983 tiles, 21,906 sitios (versión actual, con filtros de mar y planicie) |
 | 2242231 | `jobs/t3_planet_features.slurm --limit 500` | Prueba v2 con `scale=0.5` en LOLA y WAC `uint8`: Marte `498/500`, Luna `494/500` |
 | 2242278 / 2242279 | `jobs/t3_planet_features.slurm` (`0-15` + `--merge`) | Barrido global T3 v2: `140,916` parches de Marte y `36,741` de la Luna (`/lustre/proyectos/p089/runs/2242278/`) |
+| 2242421 | `pytest -q tests` | Suite unitaria v2 (T1–T4): **`31 passed` in 3.76s** |
+| 2242422 | `jobs/t4_targets.slurm --k 5 --body Moon` | Prueba de humo T4 lunar: `8/8` curados `ok` (incluido Shackleton) + 5 clusters |
+| 2242423 | `jobs/t4_targets.slurm` | Corrida completa T4: **`76` blancos** (`16` curados `8/8` Luna + `8/8` Marte, y `60` clusters) en `/lustre/proyectos/p089/runs/2242423/` |
 
 ## Explorar los datos
 

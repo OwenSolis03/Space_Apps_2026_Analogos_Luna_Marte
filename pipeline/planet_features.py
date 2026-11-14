@@ -501,6 +501,126 @@ def merge_body_stripes(out_dir: Path, body: str) -> Path | None:
     return merged_path
 
 
+def _log_raster_meta(body_norm: str, layer_name: str, raster_path: Path) -> None:
+    with rasterio.open(raster_path) as meta_src:
+        print(
+            f"[META] {body_norm} {layer_name}: dtype={meta_src.dtypes[0]} nodata={meta_src.nodata} "
+            f"scales={meta_src.scales} offsets={meta_src.offsets} res={meta_src.res}"
+        )
+
+
+def resolve_body_paths(
+    body: str,
+    raw_dir: Path,
+    derived_dir: Path | None,
+    need_diviner: bool,
+    file_overrides: dict[str, Path] | None = None,
+) -> tuple[Path, dict[str, str], str | None, str | None]:
+    """Devuelve (dem_path, aux_paths, diviner_tab_path, diviner_parquet_path).
+
+    Las capas auxiliares ausentes se omiten con [WARN] y Diviner solo se prepara si
+    `need_diviner` es True y `body == 'Moon'`.
+    """
+    body_norm = body.strip().capitalize()
+    if body_norm == "Mars":
+        raw_spec = MARS_RAW_FILES
+    elif body_norm == "Moon":
+        raw_spec = MOON_RAW_FILES
+    else:
+        raise ValueError(f"Cuerpo planetario no soportado: {body!r}")
+
+    resolved: dict[str, Path] = {k: raw_dir / rel for k, rel in raw_spec.items()}
+    if file_overrides:
+        resolved.update(file_overrides)
+
+    dem_path = resolved["dem"]
+    if not dem_path.exists():
+        raise FileNotFoundError(f"No se encontró el DEM de {body_norm}: {dem_path}")
+    _log_raster_meta(body_norm, "DEM", dem_path)
+
+    aux_paths: dict[str, str] = {}
+    for k, p in resolved.items():
+        if k in ("dem", "diviner_prp"):
+            continue
+        if p.exists():
+            _log_raster_meta(body_norm, k, p)
+            aux_paths[k] = str(p)
+        else:
+            print(f"[WARN] Capa auxiliar opcional ausente para {body_norm} ({k}): {p}")
+
+    diviner_tab_path: str | None = None
+    diviner_parquet_path: str | None = None
+    if body_norm == "Moon" and need_diviner and "diviner_prp" in resolved:
+        target_derived = derived_dir if derived_dir is not None else (raw_dir.parent / "derived")
+        diviner_pq = target_derived / DIVINER_PARQUET_REL
+        prepared = prepare_diviner_parquet(resolved["diviner_prp"], diviner_pq)
+        if prepared is not None:
+            diviner_tab_path = str(resolved["diviner_prp"])
+            diviner_parquet_path = str(prepared)
+        else:
+            print(f"[WARN] Tabla Diviner PRP no encontrada en {resolved['diviner_prp']}")
+
+    return dem_path, aux_paths, diviner_tab_path, diviner_parquet_path
+
+
+class PointSampler:
+    """Abre el DEM y las capas auxiliares de un cuerpo una vez y calcula la fila T3 de un punto.
+
+    Nota: `_WORKER_STATE` es global por proceso, por lo que solo puede haber un `PointSampler`
+    abierto a la vez en cada proceso. Abrir un segundo sin cerrar el primero lanza `RuntimeError`.
+    """
+
+    def __init__(
+        self,
+        body: str,
+        raw_dir: Path,
+        derived_dir: Path | None = None,
+        size_km: float = PATCH_SIZE_KM,
+        res_m: float = PATCH_RES_M,
+        file_overrides: dict[str, Path] | None = None,
+    ) -> None:
+        if _WORKER_STATE:
+            raise RuntimeError(
+                "Ya existe un PointSampler o worker activo en este proceso; ciérralo antes de abrir otro."
+            )
+        body_norm = body.strip().capitalize()
+        dem_path, aux_paths, diviner_tab_path, diviner_parquet_path = resolve_body_paths(
+            body=body_norm,
+            raw_dir=raw_dir,
+            derived_dir=derived_dir,
+            need_diviner=True,
+            file_overrides=file_overrides,
+        )
+        self._closed = False
+        _init_worker(
+            body_norm,
+            str(dem_path),
+            aux_paths,
+            diviner_tab_path,
+            diviner_parquet_path,
+            size_km,
+            res_m,
+        )
+
+    def sample(self, lat: float, lon: float) -> dict[str, object] | None:
+        """Extrae el parche y calcula los rasgos y auxiliares T3 para (lat, lon)."""
+        if self._closed:
+            raise RuntimeError("El PointSampler ya está cerrado.")
+        return _process_point((float(lat), float(lon)))
+
+    def close(self) -> None:
+        """Cierra los datasets abiertos y limpia el estado global del proceso."""
+        if not self._closed:
+            _close_worker()
+            self._closed = True
+
+    def __enter__(self) -> PointSampler:
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        self.close()
+
+
 def run_body_extraction(
     body: str,
     raw_dir: Path,
@@ -516,35 +636,6 @@ def run_body_extraction(
 ) -> Path:
     """Ejecuta la extracción para una franja de `body` y escribe su parquet."""
     body_norm = body.strip().capitalize()
-    raw_spec = MARS_RAW_FILES if body_norm == "Mars" else MOON_RAW_FILES
-
-    resolved: dict[str, Path] = {
-        k: raw_dir / rel for k, rel in raw_spec.items()
-    }
-    if file_overrides:
-        resolved.update(file_overrides)
-
-    def _log_raster_meta(layer_name: str, raster_path: Path) -> None:
-        with rasterio.open(raster_path) as meta_src:
-            print(
-                f"[META] {body_norm} {layer_name}: dtype={meta_src.dtypes[0]} nodata={meta_src.nodata} "
-                f"scales={meta_src.scales} offsets={meta_src.offsets} res={meta_src.res}"
-            )
-
-    dem_path = resolved["dem"]
-    if not dem_path.exists():
-        raise FileNotFoundError(f"No se encontró el DEM de {body_norm}: {dem_path}")
-    _log_raster_meta("DEM", dem_path)
-
-    aux_paths: dict[str, str] = {}
-    for k, p in resolved.items():
-        if k in ("dem", "diviner_prp"):
-            continue
-        if p.exists():
-            _log_raster_meta(k, p)
-            aux_paths[k] = str(p)
-        else:
-            print(f"[WARN] Capa auxiliar opcional ausente para {body_norm} ({k}): {p}")
 
     full_grid = generate_grid(body_norm, size_km=size_km)
     if limit is not None and limit > 0:
@@ -553,22 +644,15 @@ def run_body_extraction(
         all_candidates = full_grid
 
     stripe_points = select_stripe(all_candidates, stripe_idx=stripe_idx, num_stripes=num_stripes)
+    need_diviner = body_norm == "Moon" and any(pt[0] <= -75.0 for pt in stripe_points)
 
-    diviner_tab_path: str | None = None
-    diviner_parquet_path: str | None = None
-    if (
-        body_norm == "Moon"
-        and "diviner_prp" in resolved
-        and any(pt[0] <= -75.0 for pt in stripe_points)
-    ):
-        target_derived = derived_dir if derived_dir is not None else (raw_dir.parent / "derived")
-        diviner_pq = target_derived / DIVINER_PARQUET_REL
-        prepared = prepare_diviner_parquet(resolved["diviner_prp"], diviner_pq)
-        if prepared is not None:
-            diviner_tab_path = str(resolved["diviner_prp"])
-            diviner_parquet_path = str(prepared)
-        else:
-            print(f"[WARN] Tabla Diviner PRP no encontrada en {resolved['diviner_prp']}")
+    dem_path, aux_paths, diviner_tab_path, diviner_parquet_path = resolve_body_paths(
+        body=body_norm,
+        raw_dir=raw_dir,
+        derived_dir=derived_dir,
+        need_diviner=need_diviner,
+        file_overrides=file_overrides,
+    )
 
     reset_antimeridian_skipped_count()
     out_dir.mkdir(parents=True, exist_ok=True)

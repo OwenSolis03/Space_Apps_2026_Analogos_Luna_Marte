@@ -405,3 +405,86 @@ def test_uint8_wac_scale_offset_and_giant_float32_nodata(tmp_path: Path) -> None
     assert np.isnan(wac_cleaned[0, 0])
     assert np.isclose(float(wac_cleaned[0, 1]), 1.0, atol=1e-4)
     assert np.isclose(float(wac_cleaned[0, 2]), 255.0 * 1.00395 - 0.00395, atol=1e-2)
+
+
+def _create_polar_eqc_moon_raster(
+    path: Path, data_fn, lat_min: float = -90.0, lat_max: float = -80.0, step_deg: float = 0.05
+) -> None:
+    radius_m = 1737400.0
+    res_m = math.radians(step_deg) * radius_m
+    width = int(round(360.0 / step_deg))
+    height = int(round((lat_max - lat_min) / step_deg))
+    x_min = -math.pi * radius_m
+    y_max = math.radians(lat_max) * radius_m
+    transform = from_origin(x_min, y_max, res_m, res_m)
+    eqc_crs = f"+proj=eqc +R={radius_m} +units=m +no_defs"
+
+    ys = y_max - (np.arange(height, dtype=np.float64) + 0.5) * res_m
+    data = data_fn(height, width, ys).astype(np.float32)
+
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype="float32",
+        crs=eqc_crs,
+        transform=transform,
+        nodata=-9999.0,
+    ) as dst:
+        dst.write(data, 1)
+
+
+def test_polar_patch_constant(tmp_path: Path) -> None:
+    """Un parche lunar que contiene el polo sur lee banda completa y devuelve 64x64 constante."""
+    path = tmp_path / "moon_south_const.tif"
+    _create_polar_eqc_moon_raster(
+        path,
+        lambda h, w, ys: np.full((h, w), 100.0, dtype=np.float32),
+    )
+
+    with rasterio.open(path) as src:
+        patch = extract_patch(src, lat=-89.67, lon=129.78, body="Moon")
+
+    assert patch is not None
+    assert patch.shape == (64, 64)
+    assert np.all(np.isfinite(patch))
+    assert np.allclose(patch, 100.0, atol=0.01)
+
+
+def test_polar_patch_plane(tmp_path: Path) -> None:
+    """Un parche polar sobre un plano en coordenadas EQC devuelve >=90% píxeles finitos."""
+    path = tmp_path / "moon_south_plane.tif"
+    tan5 = math.tan(math.radians(5.0))
+    _create_polar_eqc_moon_raster(
+        path,
+        lambda h, w, ys: np.repeat(((ys - ys[-1]) * tan5)[:, None], w, axis=1),
+    )
+
+    with rasterio.open(path) as src:
+        patch = extract_patch(src, lat=-89.67, lon=129.78, body="Moon")
+
+    assert patch is not None
+    assert patch.shape == (64, 64)
+    assert float(np.isfinite(patch).mean()) >= 0.90
+
+
+def test_antimeridian_count_unchanged(tmp_path: Path) -> None:
+    """El cruce del antimeridiano fuera de los polos sigue devolviendo None y sumando 1."""
+    reset_antimeridian_skipped_count()
+    path = tmp_path / "moon_lat60.tif"
+    _create_polar_eqc_moon_raster(
+        path,
+        lambda h, w, ys: np.full((h, w), 50.0, dtype=np.float32),
+        lat_min=-62.0,
+        lat_max=-58.0,
+        step_deg=0.1,
+    )
+
+    with rasterio.open(path) as src:
+        patch = extract_patch(src, lat=-60.0, lon=179.9, body="Moon")
+
+    assert patch is None
+    assert get_antimeridian_skipped_count() == 1

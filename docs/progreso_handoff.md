@@ -19,10 +19,10 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 | **T1** | `pipeline/config.py`, `pipeline/geo.py`, `tests/test_geo.py` | **Hecho** (`ac743ce`, ajustes en `920f812`, `bcf10de`) | `extract_patch()` AEQD 64×64 a 500 m/px con `scales`/`offsets` aplicados en `_clean_nodata` antes de reproyectar; 7 tests en `tests/test_geo.py` |
 | **T2** | `pipeline/features.py`, `tests/test_features.py` | **Hecho** (`a661bb7`, ajuste `np.gradient` en `920f812`) | `compute_features()` (alias `extract_features`) calcula los 7 rasgos en `float32`; 4 tests en `tests/test_features.py` |
 | **T3** | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm`, `tests/test_planet_features.py` | **Hecho y ejecutado en Yuca** (`19e3899` .. `57f4f36`) | Barrido global `0-15` + `--merge` (jobs `2242278` / `2242279`): Marte `140,916` parches y Luna `36,741` parches; 6 tests en `tests/test_planet_features.py`. Criterio visual cumplido (revisado por Claude): Valles Marineris, Olympus Mons y Tharsis, Hellas y Argyre en Marte; mares lisos frente a tierras altas, Crisium y Orientale en la Luna |
-| **T9** | `tests/` (17 pruebas unitarias sintéticas) | **Parcial (T1–T3 cubiertos)** | Yuca (`tests_v2`, env `spaceapps_2026`): **`17 passed` in 3.30s** |
+| **T9** | `tests/` (31 pruebas unitarias sintéticas) | **Parcial (T1–T4 cubiertos)** | Yuca (job `2242421`, env `spaceapps_2026`): **`31 passed` in 3.76s** |
 | **T10** | `app/`, `tools/v1_to_sample.py` | En curso en paralelo (`9325dea`, PR #2) | Primer esqueleto React + Vite + Tailwind en `main` con `app/public/data/sample.json` |
-| **T4** | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, tests | **Plan listo, código pendiente (siguiente tarea)** | Seguir [plan_t4.md](plan_t4.md): T4.0 (parches polares, Shackleton) y luego curados + 30 clusters por cuerpo sobre `runs/2242278/` |
-| **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json` | Pendiente | Por implementar tras T4 |
+| **T4** | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, `tests/test_targets.py`, `tests/test_iau.py` | **Hecho y ejecutado en Yuca** | Job `2242423` (`/lustre/proyectos/p089/runs/2242423/`): `76` blancos (`16` curados `8/8` Luna + `8/8` Marte y `60` clusters), soporte polar T4.0 en `geo.py` y `PointSampler` en `planet_features.py` |
+| **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json` | **Pendiente (siguiente tarea)** | Por implementar tras T4 (MODIS y Natural Earth completos) |
 | **T5** | `pipeline/earth_features.py`, `jobs/t5_earth_features.slurm` | Pendiente | Por implementar tras T6 |
 | **T7 / T8 / T11** | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json` | Pendiente | Integración final hacia `app/public/data/analogs_universe.json` |
 
@@ -53,10 +53,21 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 - Grilla global casi equiareal (`generate_grid`, `-88°` a `88°`), partición en franjas (`select_stripe`), submuestreo (`apply_limit`), carga/caché única de Diviner PRP (`prepare_diviner_parquet`, `load_diviner_prp`) y consulta polar por parche con `cKDTree` en estereográfica sur (`-999` en `ice_depth` se convierte a `NaN`).
 - Imprime al inicio `[META]` (`dtype`, `nodata`, `scales`, `offsets`, `res`) de cada raster usado (`DEM` y capas auxiliares).
 - Provee `compute_lunar_wac_percentile(values, reference=None)` para transformar el brillo relativo de LROC WAC (`uint8`, `scale=1.00395, offset=-0.00395, nodata=0`) a percentil `[0, 1]` dentro de la distribución lunar.
+- Refactorizado en T4 con `resolve_body_paths()` y `PointSampler` para muestrear parches puntuales con exactamente `_process_point` de T3.
+
+### `pipeline/iau.py`, `pipeline/targets.py`, `pipeline/data/targets.json` y `jobs/t4_targets.slurm`
+- `geo.py` incorpora soporte polar T4.0 (`_patch_contains_pole`) para parches que contienen un polo (usado por Shackleton a `-89.67°`).
+- `iau.py`: lee el gacetero IAU con `geopandas`, convierte `center_lon` `0–360 -> -180..180` y `http -> https`, y expone `haversine_km`, `iau_label` y `find_feature`.
+- `targets.json` + `targets.py`: 16 blancos curados (`8` Luna Artemis III + Shackleton, `8` Marte sitios de aterrizaje + Arcadia SWIM), muestreados promediando `point` (`5` parches, min `3`) o `rim` (`8` parches, min `5`) con `wac_percentile` e `ice_stable_frac`, más 30 clusters k-means por cuerpo (`log1p` + `StandardScaler`).
 
 ---
 
 ## 3. Salidas y hallazgos verificados en Yuca
+
+### Corrida global T4 completada (`/lustre/proyectos/p089/runs/2242423/`)
+Job `2242423` (32 s sobre `runs/2242278/`):
+- **`/lustre/proyectos/p089/runs/2242423/targets.parquet`** y **`targets.json`**: **`76` blancos** (`16` curados `8/8 ok` en Luna y `8/8 ok` en Marte + `60` clusters que suman `140,916` en Marte y `36,741` en la Luna).
+- **`/lustre/proyectos/p089/runs/2242423/targets_patches.parquet`**, **`clusters_mars.parquet`**, **`clusters_moon.parquet`**, **`map_targets_mars.png`** y **`map_targets_moon.png`**.
 
 ### Corrida global T3 completada (`/lustre/proyectos/p089/runs/2242278/`)
 Jobs `2242278_0..15` (`--array=0-15`, 8 CPUs c/u) + `2242279` (`--merge`):
@@ -91,14 +102,10 @@ Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuc
 ## 5. Siguientes pasos inmediatos al conectar la nueva sesión
 
 1. ~~Inspeccionar descargas T0 y los PNG de T3~~: hecho el 2026-11-13 (ver tabla).
-2. **T4 — seguir [plan_t4.md](plan_t4.md), que reemplaza el resumen de abajo:**
-   **T4 (`pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py`):**
-   - Reunir coordenadas y URLs oficiales verificadas (`CURATED`: regiones candidatas Artemis III + borde de Shackleton en la Luna; Jezero, Gale, Gusev, Meridiani, Utopia, Elysium, Oxia Planum y Arcadia Planitia SWIM en Marte; `null` + `TODO(verificar)` si alguna no se verifica).
-   - Extraer rasgos de curados con T1 + T2 (promedio de parche central + 4 vecinos a 16 km) y capas auxiliares (incluyendo percentil lunar de WAC).
-   - Calcular 30 blancos `CLUSTER` por cuerpo (k-means sobre rasgos de topografía y rugosidad estandarizados de `/lustre/proyectos/p089/runs/2242278/features_{mars,moon}.parquet`) y asignarles nombre IAU reutilizando la lógica de `enrich_nomenclature.py` con `/lustre/proyectos/p089/data/raw/nomenclature/{MARS,MOON}*.dbf`.
+2. ~~**T4 (`pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, tests)**~~: hecho el 2026-11-13 (job `2242423`, `/lustre/proyectos/p089/runs/2242423/`).
 3. **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `tests/test_earth_layers.py`):** caché de `ndvi_max_2023.tif` (MOD13C2) y `lst_2023.tif` (MOD11C3), distancias a `ne_10m_roads`/`ne_10m_airports` y bboxes verificados de las 12 regiones conocidas.
 4. **T5 (`pipeline/earth_features.py`, `jobs/t5_earth_features.slurm`):** VRT `copernicus_90m.vrt`, prefiltro `ndvi_max <= 0.25`, prueba `--limit 500` y array `--array=0-31%30`.
-5. **T7 + T8 + T11 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json`, `tests/test_match.py`):** matching RBF + MSI + diversidad (> 150 km) + `mismatches` + `country` (`ne_10m_admin_0_countries`) y generación de `app/public/data/analogs_universe.json`.
+5. **T7 + T8 + T11 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json`, `tests/test_match.py`):** matching RBF + MSI + diversidad (> 150 km) + `mismatches` + `country` (`ne_10m_admin_0_countries`) sobre `runs/2242423/targets.parquet` y generación de `app/public/data/analogs_universe.json`.
 
 ---
 
@@ -122,6 +129,6 @@ Comandos de Yuca pendientes, en orden. Quien trabaje sin SSH (MODO B) agrega aqu
 
 | # | Comando (desde `/lustre/proyectos/p089/code`, tras `git pull`) | Revisar en el log |
 | --- | --- | --- |
-| 1 | Pruebas: `sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/tests_%j.log --wrap 'bash -c "source /apps/miniconda3/etc/profile.d/conda.sh && conda activate spaceapps_2026 && cd /lustre/proyectos/p089/code && pytest -q tests"'` | Todas pasan |
-| 2 | Humo T4 (cuando exista el código): `sbatch jobs/t4_targets.slurm --k 5 --body Moon` | Termina sin errores; los curados lunares tienen `iau_nearest` igual a su `iau_feature` |
-| 3 | T4 completo: `sbatch jobs/t4_targets.slurm` | Criterios de `plan_t4.md` §10 |
+| 1 | ~~Pruebas: `sbatch ... pytest -q tests`~~ (job `2242421`) | `31 passed in 3.76s` |
+| 2 | ~~Humo T4: `sbatch jobs/t4_targets.slurm --k 5 --body Moon`~~ (job `2242422`) | `8/8` lunares `ok`, `iau_nearest == iau_feature` |
+| 3 | ~~T4 completo: `sbatch jobs/t4_targets.slurm`~~ (job `2242423`) | `76` blancos (`16` curados `ok` + `60` clusters) en `/lustre/proyectos/p089/runs/2242423/` |

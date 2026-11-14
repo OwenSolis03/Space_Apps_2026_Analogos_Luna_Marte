@@ -2,6 +2,35 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T4 — blancos curados, soporte polar T4.0 y clusters globales
+
+**Qué se hizo (código escrito por Gemini a partir de `docs/plan_t4.md` de Claude)**
+
+- **T4.0 (`pipeline/geo.py`, `tests/test_geo.py`):** se agregó `_patch_contains_pole()` y la rama polar en `extract_patch()` para leer una banda de latitud completa cuando un parche contiene el polo (`lat = -89.67°` en Shackleton), sin tocar el flujo fuera de los polos ni el conteo del antimeridiano (`|lat| <= 88°` en T3 no cambia).
+- **Refactor de muestreo (`pipeline/planet_features.py`):** se extrajo `resolve_body_paths()` y se creó `PointSampler` para muestrear parches puntuales reutilizando exactamente `_process_point()` de T3.
+- **Nomenclatura IAU (`pipeline/iau.py`, `tests/test_iau.py`):** módulo limpio sin efectos secundarios al importar; carga `MARS_nomenclature_center_pts.shp` / `MOON_nomenclature_center_pts.shp` con `geopandas`, normaliza `center_lon` (`0–360 -> -180..180`) y enlaces `https://`, e implementa `haversine_km`, `iau_label` y `find_feature`.
+- **Blancos curados y clusters (`pipeline/data/targets.json`, `pipeline/targets.py`, `jobs/t4_targets.slurm`, `tests/test_targets.py`):**
+  - `targets.json` con **16 blancos curados**: 8 lunares (7 regiones Artemis III ancladas a sus rasgos IAU por no existir centros oficiales publicados + borde de Shackleton, usando anclas `point` de 5 parches y `rim` de 8 parches) y 8 marcianos (Jezero, Gale, Gusev, Meridiani Planum, Utopia Planitia, Elysium/InSight, Oxia Planum y Arcadia Planitia SWIM).
+  - Cálculo de `wac_percentile` por parche frente a `runs/2242278/features_moon.parquet` y `ice_stable_frac` en Diviner antes de promediar.
+  - Clustering k-means (`k = 30`, `seed = 42`, `log1p` en `relief_m`, `detrended_std_m`, `tri_m` + `StandardScaler` por cuerpo) sobre `runs/2242278/features_{mars,moon}.parquet`, tomando el parche real más cercano a cada centroide y nombrándolo con `iau_label`.
+
+**Verificación en Yuca (vía SLURM)**
+
+- **Suite unitaria (job `2242421`, `pytest -q tests`):** **`31 passed` in 3.76s** (17 previas + 3 en `test_geo.py` + 3 en `test_iau.py` + 8 en `test_targets.py`).
+- **Prueba de humo lunar (job `2242422`, `jobs/t4_targets.slurm --k 5 --body Moon`, 17 s):** `8/8` curados lunares `ok` (incluido Shackleton) y 5 clusters.
+- **Corrida completa T4 (job `2242423`, `jobs/t4_targets.slurm`, 32 s, salidas en `/lustre/proyectos/p089/runs/2242423/`):**
+  - Total: **`76` blancos** (`16` curados + `60` clusters) en `targets.parquet` y `targets.json`, más `targets_patches.parquet`, `clusters_{mars,moon}.parquet`, `map_targets_mars.png` y `map_targets_moon.png`. Ningún curado quedó fuera (`0 insufficient_coverage`).
+  - **Luna (`8/8 ok`):** todos los anclas coinciden exactamente con su `anchor.iau_feature` (`d = 0.0 km`), tienen `diviner_tavg_k` (`64.9–133.3 K`), `ice_favorability`, `ice_depth_m` (`ice_stable_frac = 1.0`) y `wac_percentile` finitos; `moon-shackleton-rim` completó `8/8` parches (`mean_slope = 14.27°`, `relief = 3616 m`). Los 30 clusters suman `36,741` parches (`min/mediana/max = 518/1040/2332`).
+  - **Marte (`8/8 ok`):** todos con `5/5` parches y `themis_day`, `themis_night`, `themis_delta` finitos. Los 30 clusters suman `140,916` parches (`min/mediana/max = 494/4715/8933`).
+- **Revisión de sentido común (`plan_t4.md` §10):**
+  - En **Marte** (mediana global `mean_slope_deg = 1.16°`), las 5 planicies de aterrizaje quedan muy por debajo de la mediana global: InSight es el #1 más plano (`0.25°`, `relief = 71.6 m`), seguido de Arcadia SWIM (`0.30°`, `39.1 m`), Zhurong/Utopia (`0.42°`, `126.9 m`), Spirit/Gusev (`0.49°`, `80.4 m`) y Opportunity/Meridiani (`0.54°`, `132.5 m`; top-3 absoluto es InSight, Arcadia SWIM, Zhurong, con Opportunity #5 dentro del bloque plano `< 0.55°` porque sus vecinos a 16 km tocan bordes de cráteres cercanos como Victoria). Gale tiene `relief_m = 2793.1 m` frente a `71.6 m` de InSight (`~39×`).
+  - En la **Luna** (mediana global `mean_slope_deg = 6.78°`), los 8 curados polares están entre `8.09°` (Mons Mouton) y `14.27°` (Shackleton rim), todos por encima de la mediana global lunar.
+  - En los PNG (`map_targets_mars.png`, `map_targets_moon.png`), los curados caen en sus regiones esperadas y Tharsis/Valles Marineris se separan de las llanuras del norte.
+
+**Qué falta**
+
+- **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`)**, **T5 (`pipeline/earth_features.py`)**, **T7 (`pipeline/match.py`)**, **T8 (`pipeline/export.py`)** y **T11 (`pipeline/data/limits.json`)**.
+
 ## 2026-11-13 (noche): plan de T4, prompt para Gemini 4 y operación sin SSH
 
 **Qué se hizo (documentos escritos por Claude, en sesión directa en Yuca)**
