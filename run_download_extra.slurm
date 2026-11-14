@@ -18,7 +18,8 @@
 set -euo pipefail
 
 PROJECT_DIR="/lustre/proyectos/p089"
-CODE_DIR="${CODE_DIR:-$PROJECT_DIR}"   # donde está download_earthdata.py
+# Carpeta donde está download_earthdata.py: la carpeta desde la que se hizo sbatch (el clon del repo).
+CODE_DIR="${CODE_DIR:-${SLURM_SUBMIT_DIR:-$PROJECT_DIR/code}}"
 RAW_EARTH="$PROJECT_DIR/data/raw/earth"
 mkdir -p "$RAW_EARTH/naturalearth" "$RAW_EARTH/modis"
 

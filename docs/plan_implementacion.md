@@ -419,20 +419,28 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 
 ## 7. Comandos de descarga (Owen, en Yuca)
 
-Desde la carpeta del repo en la laptop, cuando haya SSH:
+Todo se corre **ya dentro de Yuca** (en `login-01`). El código llega clonando el repo en `/lustre/proyectos/p089/code`. El repo es privado: cuando `git` pida contraseña, pegar un token de GitHub (fine-grained, solo lectura de "Contents" de este repo), no la contraseña de la cuenta.
+
+Primera vez:
 
 ```bash
-scp run_download_missing.slurm run_download_extra.slurm download_earthdata.py process_analogs.py yuca:/lustre/proyectos/p089/
+git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git /lustre/proyectos/p089/code
 ```
 
-En Yuca, probar sin encolar y luego enviar:
+Las siguientes veces, para traer cambios:
 
 ```bash
-cd /lustre/proyectos/p089 && sbatch --test-only run_download_missing.slurm && sbatch --test-only run_download_extra.slurm
+cd /lustre/proyectos/p089/code && git pull
+```
+
+Probar sin encolar y luego enviar (siempre desde `code/`):
+
+```bash
+cd /lustre/proyectos/p089/code && sbatch --test-only run_download_missing.slurm && sbatch --test-only run_download_extra.slurm
 ```
 
 ```bash
-cd /lustre/proyectos/p089 && sbatch run_download_missing.slurm && sbatch run_download_extra.slurm
+cd /lustre/proyectos/p089/code && sbatch run_download_missing.slurm && sbatch run_download_extra.slurm
 ```
 
 Para MODIS hace falta una cuenta gratuita en https://urs.earthdata.nasa.gov y crear `~/.netrc` en Yuca **a mano** (la contraseña no debe pasar por ningún agente):
