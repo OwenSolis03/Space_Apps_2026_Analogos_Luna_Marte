@@ -7,12 +7,13 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 **What was done** (requested by Owen, drawn by Claude with the Archify skill from the code at commit `b9cfa1f`):
 
 - Six standalone HTML diagrams under `.archify/`, each with its JSON source (`candidate.json`) and clickable source links to the cited lines:
-  - `architecture-system-overview-*/system-overview.html`: open data → download jobs → Lustre → T3–T16 jobs → `runs/<jobid>/` → manual copy → `app/public/data` → web app.
+  - `architecture-system-overview-*/system-overview.html`: open data → download → raw data store → batch stages → run outputs → reviewed copy → published dataset → static web app.
   - `dataflow-v2-pipeline-*/v2-pipeline-lineage.html`: which raw datasets and run outputs feed T3, T4, T5, T6, T12, T13, T14, T7 and T8.
-  - `workflow-slurm-runbook-*/slurm-runbook.html`: job order on Yuca, the `*_DIR` wiring, the T5 `afterok` chain and the hard-check failure path.
+  - `workflow-pipeline-stages-*/pipeline-stages.html`: stage order (measure terrain, add context, score), parallel Earth sweep and the hard-check quality gate.
   - `sequence-app-ranking-*/app-ranking-sequence.html`: app load, re-weighting and site inspection, with the missing-data policy.
   - `class-data-contract-*/universe-data-contract.html`: the `analogs_universe.json` contract (`types.ts` mirror of `export.py`).
   - `tree-repository-layout-*/repository-layout.html`: repository layout of the v2 code paths.
+- On review the diagrams were made infrastructure-neutral: no cluster, scheduler, storage paths or job ids in the labels (the Slurm runbook was replaced by the generic stage workflow); source links still point to the real files.
 - Abstraction choices: the v1 prototype, tests and tools appear only in the repository tree; secondary edges (layers sampling at T3/T4/T5 coordinates, `export.py` re-reading inputs) are listed in cards instead of drawn.
 - Automated Archify checks (schema, source evidence, browser render) passed for all six; not reviewed visually by a person yet. Documentation only: no code, data or run changed.
 

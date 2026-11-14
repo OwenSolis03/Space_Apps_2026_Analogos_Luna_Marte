@@ -1,0 +1,92 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Pipeline Stages and Quality Gate",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": ".archify/workflow-pipeline-stages-20261114-130500/pipeline-stages.html",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "lanes": [
+    { "id": "io", "label": "Data in / out" },
+    { "id": "planet", "label": "Moon & Mars" },
+    { "id": "earth", "label": "Earth" },
+    { "id": "context", "label": "Context layers" },
+    { "id": "scoring", "label": "Scoring" },
+    { "id": "fail", "label": "Failure path", "variant": "exception" }
+  ],
+  "phases": [
+    { "id": "measure", "label": "Measure terrain", "fromCol": 1, "toCol": 2, "variant": "emphasis" },
+    { "id": "enrich", "label": "Add context", "fromCol": 3, "toCol": 4 },
+    { "id": "score", "label": "Score + publish", "fromCol": 5, "toCol": 5, "variant": "dashed" }
+  ],
+  "mainPath": ["download", "envLayers", "earthSweep", "geology", "ice", "match", "publish"],
+  "nodes": [
+    { "id": "download", "lane": "io", "col": 0, "type": "external", "label": "Get open data", "sublabel": "DEMs · satellite · maps",
+      "sources": [{ "path": "docs/pipeline.md", "line": 49, "end_line": 72, "label": "data inventory" }] },
+    { "id": "publish", "lane": "io", "col": 5, "type": "frontend", "label": "Publish dataset", "sublabel": "reviewed copy to app",
+      "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374 }] },
+    { "id": "planetSweep", "lane": "planet", "col": 1, "type": "backend", "label": "Patch sweep", "sublabel": "global 32 km grid",
+      "sources": [
+        { "path": "pipeline/planet_features.py", "line": 624, "end_line": 703, "label": "extraction" },
+        { "path": "pipeline/features.py", "line": 10, "end_line": 20, "label": "shared features" }
+      ] },
+    { "id": "targets", "lane": "planet", "col": 2, "type": "backend", "label": "Pick targets", "sublabel": "curated sites + clusters",
+      "sources": [{ "path": "pipeline/targets.py", "line": 798, "end_line": 914 }] },
+    { "id": "envLayers", "lane": "earth", "col": 1, "type": "backend", "label": "Environment layers", "sublabel": "vegetation · temperature",
+      "sources": [{ "path": "pipeline/earth_layers.py", "line": 369, "end_line": 400 }] },
+    { "id": "earthSweep", "lane": "earth", "col": 2, "type": "messagebus", "label": "Patch sweep", "sublabel": "bare land only", "tag": "parallel chunks, merged",
+      "sources": [
+        { "path": "pipeline/earth_features.py", "line": 192, "end_line": 247, "label": "vegetation filter" },
+        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963, "label": "prepare / extract / merge" }
+      ] },
+    { "id": "dust", "lane": "earth", "col": 3, "type": "backend", "label": "Dust seasons", "sublabel": "Mars + Earth",
+      "sources": [{ "path": "pipeline/dust.py", "line": 724, "end_line": 855 }] },
+    { "id": "geology", "lane": "context", "col": 3, "type": "backend", "label": "Geology", "sublabel": "map unit → rock class",
+      "sources": [{ "path": "pipeline/geology.py", "line": 625, "end_line": 746 }] },
+    { "id": "ice", "lane": "context", "col": 4, "type": "backend", "label": "Cold traps + ice", "sublabel": "uses geology",
+      "sources": [{ "path": "pipeline/ice.py", "line": 156, "end_line": 274 }] },
+    { "id": "match", "lane": "scoring", "col": 5, "type": "backend", "label": "Match + export", "sublabel": "7 dimensions · presets", "tag": "hard + soft checks",
+      "sources": [
+        { "path": "pipeline/match.py", "line": 963, "end_line": 1130, "label": "match_all" },
+        { "path": "pipeline/export.py", "line": 1909, "end_line": 1932, "label": "checks + report" }
+      ] },
+    { "id": "failed", "lane": "fail", "col": 5, "type": "security", "label": "Run rejected", "sublabel": "nothing published",
+      "sources": [{ "path": "pipeline/export.py", "line": 1942, "end_line": 1943, "label": "hard checks" }] }
+  ],
+  "edges": [
+    { "id": "e-dl-planet", "from": "download", "to": "planetSweep", "label": "Moon/Mars DEMs", "role": "branch" },
+    { "id": "e-dl-env", "from": "download", "to": "envLayers", "label": "satellite data", "variant": "emphasis" },
+    { "id": "e-planet-targets", "from": "planetSweep", "to": "targets", "label": "patch features" },
+    { "id": "e-env-earth", "from": "envLayers", "to": "earthSweep", "label": "vegetation mask", "variant": "emphasis" },
+    { "id": "e-earth-dust", "from": "earthSweep", "to": "dust", "label": "patch sites" },
+    { "id": "e-earth-geo", "from": "earthSweep", "to": "geology", "label": "patch sites", "variant": "emphasis" },
+    { "id": "e-geo-ice", "from": "geology", "to": "ice", "label": "ice surfaces", "variant": "emphasis" },
+    { "id": "e-ice-match", "from": "ice", "to": "match", "label": "ice ranks", "variant": "emphasis" },
+    { "id": "e-dust-match", "from": "dust", "to": "match", "label": "dust ranks", "role": "branch" },
+    { "id": "e-targets-match", "from": "targets", "to": "match", "label": "targets", "role": "branch" },
+    { "id": "e-match-publish", "from": "match", "to": "publish", "label": "all hard checks pass", "variant": "emphasis" },
+    { "id": "e-match-fail", "from": "match", "to": "failed", "label": "a hard check fails", "variant": "security", "role": "error" }
+  ],
+  "cards": [
+    { "dot": "emerald", "title": "Same measurement everywhere", "items": [
+      "Moon, Mars and Earth are cut into the same 32 km patches at 500 m per pixel",
+      "One shared feature function makes slope and roughness comparable across bodies"
+    ] },
+    { "dot": "cyan", "title": "How stages connect", "items": [
+      "Each stage saves its results; later stages read the accepted earlier results",
+      "The Earth sweep runs in parallel chunks and merges them before checks",
+      "Context layers are sampled at the same patch and target locations"
+    ] },
+    { "dot": "rose", "title": "Quality gate", "items": [
+      "Export runs hard and soft checks and writes a report",
+      "Any failed hard check rejects the run, so the dataset is not published"
+    ] }
+  ]
+}

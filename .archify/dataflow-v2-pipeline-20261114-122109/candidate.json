@@ -14,7 +14,7 @@
     }
   },
   "stages": [
-    { "label": "Raw data (Lustre)" },
+    { "label": "Raw data" },
     { "label": "Patch sweeps" },
     { "label": "Context layers" },
     { "label": "Match + export" },
@@ -100,7 +100,7 @@
     { "id": "f-t14-match", "from": "t14", "to": "match", "label": "geo_class" },
     { "id": "f-t12-match", "from": "t12", "to": "match", "label": "cold ranks" },
     { "id": "f-match-export", "from": "match", "to": "export", "label": "matches + meta", "variant": "emphasis" },
-    { "id": "f-export-app", "from": "export", "to": "app", "label": "manual cp", "classification": "git commit", "variant": "dashed" }
+    { "id": "f-export-app", "from": "export", "to": "app", "label": "reviewed copy", "variant": "dashed" }
   ],
   "cards": [
     { "dot": "emerald", "title": "One measurement on three bodies", "items": [

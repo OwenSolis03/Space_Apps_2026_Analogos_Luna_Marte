@@ -14,87 +14,86 @@
     }
   },
   "components": [
-    { "id": "opendata", "type": "external", "label": "Open datasets", "sublabel": "USGS · NASA · ESA · NE", "pos": [40, 40], "size": [160, 60],
+    { "id": "opendata", "type": "external", "label": "Open datasets", "sublabel": "NASA · USGS · ESA", "pos": [40, 40], "size": [160, 60],
       "sources": [{ "path": "docs/pipeline.md", "line": 49, "end_line": 72, "label": "data inventory" }] },
-    { "id": "downloads", "type": "backend", "label": "Download jobs", "sublabel": "curl · earthaccess · aws", "pos": [290, 40], "size": [160, 60],
+    { "id": "downloads", "type": "backend", "label": "Data download", "sublabel": "fetch + checksum", "pos": [290, 40], "size": [160, 60],
       "sources": [
-        { "path": "jobs/download_t12_t14.slurm", "line": 44, "end_line": 44, "label": "curl fetch" },
+        { "path": "jobs/download_t12_t14.slurm", "line": 44, "end_line": 44, "label": "fetch" },
         { "path": "jobs/download_t12_t14.slurm", "line": 96, "end_line": 96, "label": "MODIS AOD" }
       ] },
-    { "id": "lustre", "type": "database", "label": "data/raw + derived", "sublabel": "Lustre /proyectos/p089", "pos": [540, 40], "size": [160, 60],
+    { "id": "lustre", "type": "database", "label": "Raw data store", "sublabel": "rasters · vectors · caches", "pos": [540, 40], "size": [160, 60],
       "sources": [{ "path": "pipeline/config.py", "line": 30, "end_line": 58, "label": "paths" }] },
-    { "id": "planets", "type": "backend", "label": "T3 + T4 Moon/Mars", "sublabel": "planet_features · targets", "pos": [290, 200], "size": [160, 64],
+    { "id": "planets", "type": "backend", "label": "Moon/Mars sweep", "sublabel": "patches + targets", "pos": [290, 200], "size": [160, 64],
       "sources": [
-        { "path": "pipeline/planet_features.py", "line": 786, "end_line": 807, "label": "T3 main" },
-        { "path": "pipeline/targets.py", "line": 798, "end_line": 914, "label": "T4 run" }
+        { "path": "pipeline/planet_features.py", "line": 786, "end_line": 807, "label": "patch sweep" },
+        { "path": "pipeline/targets.py", "line": 798, "end_line": 914, "label": "targets" }
       ] },
-    { "id": "earth", "type": "backend", "label": "T6 + T5 Earth", "sublabel": "earth_layers · features", "pos": [540, 200], "size": [160, 64],
+    { "id": "earth", "type": "backend", "label": "Earth sweep", "sublabel": "bare-land patches", "pos": [540, 200], "size": [160, 64],
       "sources": [
-        { "path": "pipeline/earth_layers.py", "line": 369, "end_line": 400, "label": "T6 MODIS cache" },
-        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963, "label": "T5 prepare/extract/merge" }
+        { "path": "pipeline/earth_layers.py", "line": 369, "end_line": 400, "label": "MODIS cache" },
+        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963, "label": "Earth patches" }
       ] },
-    { "id": "layers", "type": "backend", "label": "T12–T14 layers", "sublabel": "ice · dust · geology", "pos": [790, 200], "size": [160, 64],
+    { "id": "layers", "type": "backend", "label": "Context layers", "sublabel": "ice · dust · geology", "pos": [790, 200], "size": [160, 64],
       "sources": [
-        { "path": "pipeline/geology.py", "line": 625, "end_line": 746, "label": "T14 geology" },
-        { "path": "pipeline/dust.py", "line": 724, "end_line": 855, "label": "T13 dust" },
-        { "path": "pipeline/ice.py", "line": 156, "end_line": 274, "label": "T12 ice" }
+        { "path": "pipeline/geology.py", "line": 625, "end_line": 746, "label": "geology" },
+        { "path": "pipeline/dust.py", "line": 724, "end_line": 855, "label": "dust" },
+        { "path": "pipeline/ice.py", "line": 156, "end_line": 274, "label": "ice" }
       ] },
-    { "id": "curated", "type": "database", "label": "pipeline/data", "sublabel": "targets · limits · hints", "pos": [1040, 200], "size": [160, 64],
+    { "id": "curated", "type": "database", "label": "Curated inputs", "sublabel": "targets · limits · hints", "pos": [1040, 200], "size": [160, 64],
       "sources": [
         { "path": "pipeline/targets.py", "line": 118, "end_line": 121, "label": "targets.json" },
         { "path": "pipeline/export.py", "line": 66, "end_line": 66, "label": "limits.json" },
         { "path": "pipeline/ice.py", "line": 119, "end_line": 124, "label": "ice_hints.json" }
       ] },
-    { "id": "runs", "type": "database", "label": "runs/<jobid>/", "sublabel": "parquet · checks JSON · PNG maps", "pos": [290, 360], "size": [660, 60],
-      "sources": [{ "path": "jobs/t3_planet_features.slurm", "line": 18, "end_line": 21, "label": "one dir per job" }] },
-    { "id": "match", "type": "backend", "label": "T7–T16 match+export", "sublabel": "match.py · export.py", "pos": [1040, 358], "size": [160, 64],
+    { "id": "runs", "type": "database", "label": "Run outputs", "sublabel": "one folder per run · tables · checks · maps", "pos": [290, 360], "size": [660, 60],
+      "sources": [{ "path": "jobs/t3_planet_features.slurm", "line": 18, "end_line": 21, "label": "one dir per run" }] },
+    { "id": "match", "type": "backend", "label": "Matching + export", "sublabel": "score · rank · check", "pos": [1040, 358], "size": [160, 64],
       "sources": [
-        { "path": "jobs/t7_match.slurm", "line": 35, "end_line": 52, "label": "job" },
-        { "path": "pipeline/match.py", "line": 1161, "end_line": 1223, "label": "match main" },
-        { "path": "pipeline/export.py", "line": 1859, "end_line": 1943, "label": "export main" }
+        { "path": "pipeline/match.py", "line": 1161, "end_line": 1223, "label": "matching" },
+        { "path": "pipeline/export.py", "line": 1859, "end_line": 1943, "label": "export" }
       ] },
-    { "id": "published", "type": "database", "label": "app/public/data", "sublabel": "analogs_universe.json", "pos": [290, 520], "size": [160, 60],
-      "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374, "label": "manual cp + commit" }] },
+    { "id": "published", "type": "database", "label": "Published dataset", "sublabel": "analogs_universe.json", "pos": [290, 520], "size": [160, 60],
+      "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374, "label": "publish step" }] },
     { "id": "user", "type": "external", "label": "Reader", "sublabel": "browser", "pos": [40, 680], "size": [160, 60] },
-    { "id": "webapp", "type": "frontend", "label": "Web app", "sublabel": "React · Vite · Leaflet", "pos": [290, 680], "size": [160, 60],
+    { "id": "webapp", "type": "frontend", "label": "Web app", "sublabel": "static site", "pos": [290, 680], "size": [160, 60],
       "sources": [
-        { "path": "app/src/App.tsx", "line": 11, "end_line": 42, "label": "fetch universe" },
-        { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126, "label": "rankTargets" }
+        { "path": "app/src/App.tsx", "line": 11, "end_line": 42, "label": "load dataset" },
+        { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126, "label": "ranking" }
       ] }
   ],
   "boundaries": [
-    { "kind": "region", "label": "Yuca HPC (ACARUS) · Slurm account p089", "wraps": ["downloads", "lustre", "planets", "earth", "layers", "curated", "runs", "match"] }
+    { "kind": "region", "label": "Batch processing (compute cluster)", "wraps": ["downloads", "lustre", "planets", "earth", "layers", "curated", "runs", "match"] }
   ],
   "connections": [
     { "id": "fetch-raw", "from": "opendata", "to": "downloads", "label": "HTTPS", "variant": "emphasis" },
     { "id": "store-raw", "from": "downloads", "to": "lustre", "label": "writes", "variant": "emphasis" },
     { "id": "raw-to-planets", "from": "lustre", "to": "planets", "label": "DEMs" },
-    { "id": "raw-to-earth", "from": "lustre", "to": "earth", "label": "GLO-90 · MODIS" },
-    { "id": "raw-to-layers", "from": "lustre", "to": "layers", "label": "maps · CDOD" },
+    { "id": "raw-to-earth", "from": "lustre", "to": "earth", "label": "DEM · satellite" },
+    { "id": "raw-to-layers", "from": "lustre", "to": "layers", "label": "maps · climate" },
     { "id": "curated-to-layers", "from": "curated", "to": "layers", "label": "hints" },
     { "id": "planets-to-runs", "from": "planets", "to": "runs", "label": "features · targets" },
-    { "id": "earth-to-runs", "from": "earth", "to": "runs", "label": "features_earth" },
-    { "id": "layers-to-runs", "from": "layers", "to": "runs", "label": "layer parquets" },
+    { "id": "earth-to-runs", "from": "earth", "to": "runs", "label": "Earth features" },
+    { "id": "layers-to-runs", "from": "layers", "to": "runs", "label": "layer tables" },
     { "id": "curated-to-match", "from": "curated", "to": "match", "label": "limits" },
     { "id": "runs-to-match", "from": "runs", "to": "match", "label": "inputs" },
-    { "id": "publish", "from": "runs", "to": "published", "label": "manual cp + git commit", "variant": "dashed" },
+    { "id": "publish", "from": "runs", "to": "published", "label": "reviewed copy", "variant": "dashed" },
     { "id": "serve-json", "from": "published", "to": "webapp", "label": "fetch JSON", "variant": "emphasis" },
     { "id": "reader-opens", "from": "user", "to": "webapp", "label": "opens" }
   ],
   "cards": [
-    { "dot": "cyan", "title": "Batch side (Yuca)", "items": [
-      "Every heavy step is a Slurm job; nothing heavy runs on the login node",
-      "Each job writes a fresh runs/<jobid>/ and later jobs are pointed at earlier run dirs",
-      "match.py and export.py run back to back in one job and write analogs_universe.json into the same run dir"
+    { "dot": "cyan", "title": "Batch side", "items": [
+      "Heavy processing runs offline as batch jobs on a compute cluster",
+      "Each run writes its own output folder; later stages read the accepted earlier runs",
+      "Matching and export run together and produce one dataset file"
     ] },
-    { "dot": "emerald", "title": "Static side (browser)", "items": [
-      "The app has no backend: it fetches one JSON file relative to Vite base ./",
-      "MSI is recomputed client-side when the reader changes presets, weights or the logistics λ",
-      "Publishing is a deliberate manual copy, so a job never edits the git working tree"
+    { "dot": "emerald", "title": "Static side", "items": [
+      "The web app has no backend: it loads one JSON file",
+      "Scores are recomputed in the browser when the reader changes weights",
+      "Publishing is a deliberate, reviewed copy, so a run never edits the app by itself"
     ] },
     { "dot": "slate", "title": "Out of scope", "items": [
-      "v1 prototype scripts at the repo root (kept as reference)",
-      "Synthetic pytest suite under tests/ and dataset explorer under tools/"
+      "v1 prototype scripts (kept as reference)",
+      "Unit tests and dataset tools"
     ] }
   ]
 }

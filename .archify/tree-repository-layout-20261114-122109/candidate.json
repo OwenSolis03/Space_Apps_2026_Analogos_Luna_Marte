@@ -51,13 +51,13 @@
     { "id": "p_data", "label": "data/", "parent": "pipeline", "sublabel": "targets · limits · hints · overrides",
       "sources": [{ "path": "pipeline/data/targets.json", "line": 1 }] },
 
-    { "id": "jobs", "label": "jobs/", "parent": "root", "sublabel": "Slurm jobs per task",
+    { "id": "jobs", "label": "jobs/", "parent": "root", "sublabel": "batch job scripts",
       "sources": [{ "path": "jobs/t7_match.slurm", "line": 1, "end_line": 12 }] },
-    { "id": "j_tasks", "label": "t3 … t14, t7_match", "parent": "jobs", "sublabel": "one .slurm per task",
+    { "id": "j_tasks", "label": "stage jobs", "parent": "jobs", "sublabel": "one script per stage",
       "sources": [{ "path": "jobs/t3_planet_features.slurm", "line": 1, "end_line": 12 }] },
     { "id": "j_t5", "label": "t5_submit.sh", "parent": "jobs", "sublabel": "prepare → array → merge",
       "sources": [{ "path": "jobs/t5_submit.sh", "line": 1, "end_line": 14 }] },
-    { "id": "j_dl", "label": "download_*.slurm", "parent": "jobs", "sublabel": "fetch + SHA-256",
+    { "id": "j_dl", "label": "download jobs", "parent": "jobs", "sublabel": "fetch + SHA-256",
       "sources": [{ "path": "jobs/download_t12_t14.slurm", "line": 44, "end_line": 44 }] },
 
     { "id": "app", "label": "app/", "parent": "root", "sublabel": "React + Vite + Tailwind + Leaflet",
@@ -80,7 +80,7 @@
       "sources": [{ "path": "tools/explore_datasets.py", "line": 1 }] },
     { "id": "docs", "label": "docs/", "parent": "root", "sublabel": "plans · pipeline · logbook · history",
       "sources": [{ "path": "docs/pipeline.md", "line": 1, "end_line": 5 }] },
-    { "id": "v1", "label": "root *.py / *.sh / *.slurm", "parent": "root", "sublabel": "v1 prototype, reference only",
+    { "id": "v1", "label": "root scripts", "parent": "root", "sublabel": "v1 prototype, reference only",
       "sources": [{ "path": "docs/pipeline.md", "line": 30, "end_line": 47 }] }
   ],
   "cards": [
