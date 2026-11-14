@@ -10,6 +10,8 @@ const routes: RouteRecordRaw[] = [
   { path: "/algorithm", name: "algorithm", component: () => import("@/views/AlgorithmView.vue") },
   { path: "/data", name: "data", component: () => import("@/views/DataView.vue") },
   { path: "/about", name: "about", component: () => import("@/views/AboutView.vue") },
+  // TEMPORARY (phase 2): component gallery. Remove in phase 9.
+  { path: "/kit", name: "kit", component: () => import("@/views/KitView.vue") },
   { path: "/:pathMatch(.*)*", name: "not-found", component: () => import("@/views/NotFoundView.vue") },
 ];
 
