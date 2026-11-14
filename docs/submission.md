@@ -1,94 +1,91 @@
-# Entrega y cronograma (NASA Space Apps Sonora, 14 y 15 de noviembre)
+# Submission and timeline (NASA Space Apps Sonora, 14–15 November)
 
-Qué hay que entregar, quién lo hace y en qué orden, según las reglas de la sede: [spaceappssonora.org](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches), revisadas el 2026-11-13. Reemplaza al cronograma de 48 horas de `implementation_plan.md` §6, que suponía dos días completos de trabajo.
+What has to be submitted, who does it and in what order, following our venue's rules: [spaceappssonora.org](https://spaceappssonora.org/) and its [pitch guide](https://spaceappssonora.org/pitches), checked on 2026-11-13. This replaces the 48-hour timeline in [implementation_plan.md](implementation_plan.md) §6, which assumed two full working days.
 
-**El tiempo real** es el sábado 14 de 9:00 a 21:00 más la mañana del domingo 15. Los pitches son el domingo entre las 9:00 y las 14:00, así que **todo debe estar entregado y publicado antes de que nos toque pasar**. Confirmar en el grupo de WhatsApp la hora límite exacta y nuestro número de equipo.
+**Real time available:** Saturday the 14th from 9:00 to 21:00, plus Sunday morning. Pitches run Sunday from 9:00 to 14:00, so **everything must be submitted and published before our turn**. Confirm the exact deadline and our team number in the participants' WhatsApp group.
 
 ---
 
-## 1. Qué se entrega
+## 1. What is submitted
 
-| # | Entregable | Idioma | Requisito de la sede | Responsable sugerido |
+| # | Deliverable | Language | Venue requirement | Suggested owner |
 | --- | --- | --- | --- | --- |
-| 1 | **Página del proyecto** en spaceappschallenge.org | Inglés | Documentación del proyecto; ahí se hace la entrega | P3 (documentación) con Owen |
-| 2 | **Video en YouTube** | Inglés | **≤ 30 s**: problema (5 s), solución (15 s), impacto (10 s) | P4 (media) |
-| 3 | **Pitch** | Español permitido | **≤ 3 min**, sin preguntas. Láminas en **Canva**; la 1.ª con nombre del proyecto y **número de equipo** | P1 (orador) y P4 |
-| 4 | **App web publicada** | Inglés (ya lo está) | Que los jueces la puedan probar; verificar el enlace antes de entregar | Javier (T10) |
-| 5 | **Repositorio** con README para instalar | Inglés en la parte que vean los jueces | Instalación, código y dependencias, datos y fuentes citados, capturas | Owen y Gemini |
-| 6 | **Uso de IA** ("Super Intelligence") | Inglés | Lo exige la entrega global: describir cómo se usó la IA | Owen, a partir de `docs/logbook.md` |
+| 1 | **Project page** on spaceappschallenge.org | English | Project documentation; the submission is made there | P3 (documentation) with Owen |
+| 2 | **YouTube video** | English | **≤ 30 s**: problem (5 s), solution (15 s), impact (10 s) | P4 (media) |
+| 3 | **Pitch** | Spanish allowed | **≤ 3 min**, no questions. Slides in **Canva**; slide 1 with the project name and the **team number** | P1 (speaker) and P4 |
+| 4 | **Deployed web app** | English | Judges must be able to try it; check the link before submitting | Javier (T10) |
+| 5 | **Repository** with install instructions | English | Installation, code and dependencies, cited data and sources, screenshots | Owen and Gemini (code), Claude (docs) |
+| 6 | **Use of AI** ("Super Intelligence") | English | Required by the global submission: describe how AI was used | Owen, based on [HISTORY.md](HISTORY.md) and the README |
 
-**Criterios de evaluación de la sede:**
+**Venue judging criteria:**
 
-| Criterio | Qué lo respalda | Qué falta |
+| Criterion | What supports it | What is missing |
 | --- | --- | --- |
-| Innovación tecnológica | Comparación con la misma métrica a la misma escala en los tres cuerpos (parches AEQD de 32 km), corrida en Yuca | — |
-| Impacto social | **Poco trabajado.** Idea: sitios análogos accesibles y baratos en México y Latinoamérica para formar gente, probar instrumentos y hacer divulgación sin ir a la Antártida | Reforzarlo en `value_proposition.md` y en el minuto 3 del pitch |
-| Documentación | `docs/` completo, bitácora y planes | Página del proyecto en inglés y README en inglés |
-| Escalabilidad | La tubería es genérica: otro cuerpo u otra capa es otra fila de configuración; corre en HPC | Decirlo con un ejemplo concreto (ej. agregar Mercurio o una capa de radar) |
+| Technological innovation | Same metric at the same scale on three bodies (32 km local AEQD patches), computed on Yuca | — |
+| Social impact | Section 3 of [value_proposition.md](value_proposition.md): accessible, cheap analog sites in Mexico and Latin America for training, instrument tests and outreach | Make it the third minute of the pitch |
+| Documentation | `docs/` complete in English, with the history and every plan | Project page in English |
+| Scalability | The pipeline is generic: another body or layer is another configuration entry, and it runs on HPC | Say it with a concrete example (for example, adding Mercury or a radar layer) |
 
 ---
 
-## 2. Cronograma
+## 2. Timeline
 
-| Cuándo | Pipeline (Owen + Gemini, Yuca por OOD) | App (Javier) | Contenido (P1, P3, P4) |
+| When | Pipeline (Owen + Gemini, Yuca through OOD) | App (Javier) | Content (P1, P3, P4) |
 | --- | --- | --- | --- |
-| **Vie 13, noche** | T6 corrido y revisado. Código de T5 listo y probado en la laptop | Despliegue de prueba (GitHub Pages o Vercel) con `sample.json` | Confirmar el número de equipo; esqueleto del Canva |
-| **Sáb 9:00–11:00** | T5: `--limit 500`, revisar y lanzar la corrida completa. Gemini escribe T7/T8 con el kit offline | Panel de pesos, ficha y "Where the analogy breaks" | `limits.json` (T11) y textos de protocolo |
-| **Sáb 11:00–14:00** | T5 termina; correr T7/T8 y bajar `analogs_universe.json` por OOD | Conectar el JSON real en cuanto exista | Guion del pitch (3 min) |
-| **Sáb 14:00** | **Punto de decisión**: si no hay JSON real, usar el plan B (§4) | — | — |
-| **Sáb 14:00–18:00** | Revisión de sentido común (T7: el volcán en escudo para Olympus Mons) y una segunda corrida si hace falta | Desplegar con el JSON real; probar a 1366 × 768 | Láminas en Canva; página del proyecto en inglés |
-| **Sáb 18:00–21:00** | **Congelar datos.** README en inglés, capturas de pantalla, texto de uso de IA | **Congelar código.** Verificar el enlace público | Grabar y subir el video de 30 s a YouTube; ensayar el pitch con cronómetro |
-| **Dom antes del pitch** | Revisar los enlaces de la página del proyecto | Revisar que la app abre desde otra red (celular) | **Enviar la entrega** y último ensayo |
-
-Los planes de T7/T8 todavía no existen; Claude los escribe cuando Owen lo pida. Para cumplir este cronograma tienen que estar listos el viernes en la noche.
+| **Fri 13, night** | T6 done; T5 code done and smoke-tested. Launch the full T5 run. Gemini writes T7/T8 | Test deployment (GitHub Pages or Vercel) with `sample.json` | Confirm the team number; Canva skeleton |
+| **Sat 9:00–11:00** | Check the full T5 run. T7/T8 smoke test on the T5 smoke output | Weights panel, site card and "Where the analogy breaks" | `limits.json` (T11) and test protocol texts |
+| **Sat 11:00–14:00** | Real T7/T8 run; download `analogs_universe.json` through OOD | Connect the real JSON as soon as it exists | Pitch script (3 min) |
+| **Sat 14:00** | **Decision point**: if there is no real JSON, use plan B (§4) | — | — |
+| **Sat 14:00–18:00** | Sanity review (Olympus Mons check, score distribution, σ decision); a second run if needed | Deploy with the real JSON; test at 1366 × 768 | Canva slides; project page in English |
+| **Sat 18:00–21:00** | **Freeze data.** Screenshots for the README; text on the use of AI | **Freeze code.** Check the public link | Record and upload the 30 s video; rehearse the pitch with a timer |
+| **Sun, before the pitch** | Check the links on the project page | Check that the app opens from another network (phone) | **Submit** and a last rehearsal |
 
 ---
 
-## 3. Checklist antes de enviar
+## 3. Checklist before submitting
 
-**Página del proyecto (inglés):**
+**Project page (English):**
 
-- [ ] Problema, solución y resultados, con números reales de la corrida.
-- [ ] Qué datos de NASA y de otras agencias se usaron, con enlaces: MOLA, THEMIS, LOLA, LROC WAC, Diviner, MODIS, Copernicus GLO-90, Natural Earth y el gacetero IAU.
-- [ ] Qué **no** se resolvió: límites del análogo, rugosidad por debajo de 500 m, sin mineralogía. Base: "lo que no debe afirmarse" en `value_proposition.md`.
-- [ ] Enlaces a la app, al repositorio y al video.
-- [ ] Uso de IA: Claude (planes, documentación, revisión), Gemini (código del pipeline) y lo que haya usado el resto del equipo. Base: `docs/logbook.md`.
+- [ ] Problem, solution and results, with real numbers from the run.
+- [ ] The NASA and other agency data used, with links (see the README data table).
+- [ ] What was **not** solved: the physical limits of each analog, roughness below 500 m, and no mineralogy. Base: "what we must not claim" in [value_proposition.md](value_proposition.md).
+- [ ] Links to the app, the repository and the video.
+- [ ] Use of AI: Claude (plans, documentation, review), Gemini (pipeline code) and whatever the rest of the team used. Base: [HISTORY.md](HISTORY.md).
 
-**Repositorio:**
+**Repository:**
 
-- [ ] README con una sección en inglés: qué es, cómo instalar y correr la app (`cd app && npm install && npm run dev`), cómo correr el pipeline (`pip install -r pipeline/requirements.txt`, los jobs) y una captura.
-- [ ] Datos y fuentes citados, por ejemplo con una tabla que enlace a `docs/pipeline.md`.
-- [ ] No reorganizar carpetas a última hora: la sede *sugiere* `/data`, `/models`, `/scripts` y `/docs`, pero no lo exige.
+- [ ] README in English: what it is, how to install and run the app and the pipeline. Done; screenshots are still missing.
+- [ ] Data and sources cited (README data table and [pipeline.md](pipeline.md)).
+- [ ] Do not reorganise folders at the last minute. The venue *suggests* `/data`, `/models`, `/scripts` and `/docs`, but does not require them.
 
 **App:**
 
-- [ ] Enlace público que abre sin cuenta y desde otra red.
-- [ ] Carga `analogs_universe.json` real, o `sample.json` con aviso si es el plan B.
-- [ ] Mover un slider reordena la lista en menos de 50 ms (criterio de T10).
+- [ ] The public link opens without an account and from another network.
+- [ ] It loads the real `analogs_universe.json`, or `sample.json` with a notice under plan B.
+- [ ] Moving a slider re-orders the list in under 50 ms (T10 criterion).
 
-**Pitch y video:**
+**Pitch and video:**
 
-- [ ] 1.ª lámina: "Planetary Analog Finder" y el número de equipo.
-- [ ] Minuto 1: problema y contexto. Minuto 2: solución y tecnología (demo). Minuto 3: impacto social y escalabilidad.
-- [ ] El video dura 30 s o menos, está en inglés y en YouTube (público o no listado), con el enlace en la página del proyecto.
-- [ ] Ensayado con cronómetro: 3:00 o menos.
+- [ ] Slide 1: "Planetary Analog Finder" and the team number.
+- [ ] Minute 1: problem and context. Minute 2: solution and technology (demo). Minute 3: social impact and scalability.
+- [ ] The video is 30 s or less, in English, on YouTube (public or unlisted), with its link on the project page.
+- [ ] Rehearsed with a timer: 3:00 or less.
 
 ---
 
-## 4. Plan B (decidir el sábado a las 14:00)
+## 4. Plan B (decide on Saturday at 14:00)
 
-| Situación | Qué se entrega |
+| Situation | What is submitted |
 | --- | --- |
-| T5 terminó y T7/T8 no | La app con los blancos reales de T4 y los parches terrestres de T5, y un ranking calculado de forma simple. Decirlo en la página |
-| T5 no terminó | La app con `sample.json` (v1 convertida); se muestran T3 y T4 como resultados v2 (mapas y blancos). Decir "full Earth run pending" |
-| Sin acceso a Yuca | Igual que el anterior; el kit offline tiene T3 y los gaceteros |
+| T5 finished but T7/T8 did not | The app with the real T4 targets and the T5 Earth patches, ranked in a simple way. Say so on the page |
+| T5 did not finish | The app on `sample.json` (v1 converted); T3 and T4 shown as v2 results (maps and targets). Say "full Earth run pending" |
+| No access to Yuca | Same as the previous row; the offline kit has T3 and the gazetteers |
 
-En cualquier caso: **no afirmar resultados que no se corrieron.**
+In every case: **do not claim results that were not run.**
 
 ---
 
-## 5. Riesgos que conviene tener presentes
+## 5. Risks
 
-- **Trabajo previo al 14 de noviembre: resuelto.** La sede dio permiso al equipo de empezar a trabajar desde el 13 de noviembre (confirmado por Owen). En la página del proyecto conviene decirlo así: la bitácora registra con fecha lo que se hizo cada día.
-- **Red de la sede:** SSH bloqueado, OOD funciona ([working_without_ssh.md](working_without_ssh.md)). El despliegue de la app no depende de Yuca.
-- **Un solo día útil:** si una corrida falla, diagnosticar antes de reenviarla. El tiempo no alcanza para varios intentos a ciegas.
+- **Venue network:** SSH is blocked, and OOD works ([working_without_ssh.md](working_without_ssh.md)). The app deployment does not depend on Yuca.
+- **A single working day:** if a run fails, diagnose it before resubmitting. There is no time for several blind attempts.

@@ -1,126 +1,150 @@
-# Prompt para Gemini
+# Prompt for Gemini
 
-Instrucciones para pegar en Gemini al empezar cada sesión de trabajo. Están pensadas para **Gemini 4 en modo "Orchestrator (Argon)" de Antigravity**: Argon lee y planea, Gemini 4 Hydrogen implementa y corre pruebas, y si algo falla el control vuelve a Argon.
+Instructions to paste into Gemini at the start of each work session. They are written for **Gemini 4 in Antigravity's "Orchestrator (Argon)" mode**:
 
-Antes de pegar el prompt, cambia dos cosas:
+- Argon reads and plans;
+- Gemini 4 Hydrogen implements and runs the tests;
+- if something fails, control goes back to Argon.
 
-- la línea **"TAREA DE HOY"**;
-- el **MODO**: A si Gemini tiene SSH a Yuca; B si no lo tiene (por ejemplo en la sede, donde Owen entra a Yuca por Open OnDemand).
+Before pasting the prompt, change two things:
 
-Reparto de papeles: Claude escribe los planes detallados (`docs/plan_*.md`), Gemini escribe el código y Owen aprueba y corre lo que Gemini no pueda correr.
+- the **TODAY'S TASK** line;
+- the **MODE**: A if Gemini has SSH access to Yuca; B if it does not (for example at the venue, where Owen reaches Yuca through Open OnDemand).
 
-Si no hay SSH (por ejemplo, en la sede del hackathon), lee primero [working_without_ssh.md](working_without_ssh.md): Yuca sigue disponible por Open OnDemand, con Owen como puente.
+**Roles:** Claude writes the detailed plans (`docs/plan_*.md`) and the documentation, Gemini writes the code, and Owen approves and runs whatever Gemini cannot run.
+
+Without SSH (for example at the hackathon venue), read [working_without_ssh.md](working_without_ssh.md) first: Yuca is still available through Open OnDemand, with Owen as the bridge.
 
 ---
 
 ```text
-Eres el desarrollador del proyecto "Planetary Analog Finder" (NASA Space Apps 2026, equipo Endurance CXXV).
-Repositorio: https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte
+You are the developer of "Planetary Analog Finder" (NASA Space Apps 2026, team Endurance CXXV).
+Repository: https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte
 
-ANTES DE ESCRIBIR CÓDIGO, lee completos y en este orden:
-1. El plan detallado de la tarea de hoy, si existe: docs/plan_<tarea>.md (por ejemplo docs/plan_t4.md).
-   Ese documento manda sobre todo lo demás para esa tarea.
-2. docs/implementation_plan.md   ← especificación general (T0–T11, contrato JSON, orden).
-3. docs/handoff.md      ← estado real de cada tarea y JOBIDs de las corridas.
-4. docs/logbook.md              ← historial, decisiones y pendientes.
-5. docs/pipeline.md              ← datos en Yuca, escalas/nodata de cada raster y corridas.
-6. docs/working_without_ssh.md     ← solo si estás en MODO B.
-Luego dime en 5 líneas qué entendiste de la tarea de hoy, qué archivos vas a crear o tocar y en qué MODO estás.
-Espera mi "ok" antes de escribir código.
+BEFORE WRITING CODE, read these in full, in this order:
+1. The detailed plan for today's task, if there is one: docs/plan_<task>.md (for example docs/plan_t7_t8.md).
+   That document wins over everything else for that task.
+2. docs/implementation_plan.md  <- overall specification (T0–T11, JSON contract, order).
+3. docs/handoff.md              <- real status of every task and the run ids.
+4. docs/logbook.md              <- history, decisions and open items.
+5. docs/pipeline.md             <- data on Yuca, scale/nodata of every raster, and runs.
+6. docs/working_without_ssh.md  <- only in MODE B.
+Then tell me in 5 lines what you understood about today's task, which files you will create or touch, and
+which MODE you are in. Wait for my "ok" before writing code.
 
-TAREA DE HOY: T4 según docs/plan_t4.md (empezando por T4.0).
-MODO: A (tienes SSH a Yuca)   ← o B (no tienes SSH; Owen corre los comandos por Open OnDemand)
+TODAY'S TASK: T7/T8 per docs/plan_t7_t8.md.
+MODE: A (you have SSH to Yuca)   <- or B (no SSH; Owen runs the commands through Open OnDemand)
 
-CÓMO TRABAJAR
-- Implementa exactamente lo que dice el plan: mismos nombres de archivo, funciones y columnas, mismas fórmulas,
-  mismas coordenadas. Si algo del plan te parece incorrecto o ambiguo, detente, explícalo y propón el cambio;
-  no lo cambies por tu cuenta.
-- Si el plan trae un "plan B" o un límite de tiempo para una parte, respétalo y avisa cuando lo uses.
-- Si una verificación falla dos veces seguidas, no sigas intentando a ciegas: diagnostica y repórtamelo.
-- Una tarea = un commit (o las subtareas que el plan indique), con mensaje EN INGLÉS que empiece con el ID
-  ("T7: RBF matching, MSI presets and diversity selection"). Desde el 2026-11-13 todo lo nuevo va en inglés:
-  mensajes de commit, docstrings y comentarios de código nuevo, entradas nuevas de la bitácora y documentos
-  nuevos. No reescribas commits viejos ni hagas `git push --force`: docs/HISTORY.md cuenta la historia en inglés.
-- En el mismo commit, agrega una entrada arriba en docs/logbook.md (en inglés): fecha, qué se hizo, por qué,
-  qué falta, y que el código lo escribió Gemini a partir del plan de Claude. Si cambias datos, corridas o el pipeline, actualiza
-  docs/pipeline.md y la tabla de docs/handoff.md.
-- No borres ni reescribas los scripts v1 de la raíz (process_analogs.py, match_earth_analogs.py,
-  enrich_nomenclature.py) y NO los importes: no tienen `if __name__ == "__main__"` y al importarlos se ejecutan
-  y reescriben archivos en /lustre/proyectos/p089/output/.
-- El código nuevo va en pipeline/, jobs/ y tests/; la app en app/.
-- No subas datos pesados: nada de .tif, .hdf, .parquet ni shards. Solo código, docs y el JSON final de la app
-  si pesa < 20 MB.
-- Si necesitas una URL, coordenada o dato que no puedes verificar, NO lo inventes: deja null y un comentario
-  TODO(verificar) con la fuente sugerida.
-- Agrega las dependencias nuevas a pipeline/requirements.txt.
-- Antes de cada push: `git pull --rebase`. Hay más de un agente usando el mismo clon de Yuca (Claude también
-  commitea docs ahí). Nunca `git push --force`.
+HOW TO WORK
+- Implement exactly what the plan says: same file, function and column names, same formulas, same coordinates.
+  If something in the plan looks wrong or ambiguous, stop, explain it and propose the change; do not change it
+  on your own.
+- If the plan has a "plan B" or a time limit for a part, respect it and say when you use it.
+- If a check fails twice in a row, do not keep trying blindly: diagnose and report.
+- One task = one commit (or the subtasks the plan defines). Everything new is in ENGLISH since 2026-11-13:
+  commit messages (starting with the task id, e.g. "T7: RBF matching, MSI presets and diversity selection"),
+  docstrings, code comments, log messages and docs. Do not rewrite old commits and never `git push --force`;
+  docs/HISTORY.md tells the history in English.
+- In the same commit, add an entry at the top of docs/logbook.md (in English): date, what was done, why, what is
+  left, and that the code was written by Gemini from Claude's plan. If you change data, runs or the pipeline,
+  also update docs/pipeline.md and the table in docs/handoff.md.
+- Do not delete or rewrite the v1 scripts in the repo root (process_analogs.py, match_earth_analogs.py,
+  enrich_nomenclature.py) and do NOT import them: they have no `if __name__ == "__main__"` guard and importing
+  them runs them and rewrites files in /lustre/proyectos/p089/output/.
+- New code goes in pipeline/, jobs/ and tests/; the app in app/.
+- Do not commit heavy data: no .tif, .hdf, .parquet or shards. Only code, docs and the final app JSON if it is
+  under 20 MB.
+- If you need a URL, coordinate or fact you cannot verify, do NOT invent it: leave null and a TODO(verify)
+  comment with the suggested source.
+- Add new dependencies to pipeline/requirements.txt.
+- Before every push: `git pull --rebase`. More than one agent uses the same Yuca clone (Claude commits docs there).
+- Commit and push BEFORE submitting a job, so the job log records the right commit.
 
-YUCA (el clúster donde corre el pipeline). Reglas que aplican siempre, en cualquier MODO:
-- Login: `login-01`. Código en /lustre/proyectos/p089/code (clon del repo). Datos en /lustre/proyectos/p089/data.
-- En el login node SOLO se permiten comandos cortos (< 1 minuto): git, ls, leer logs, sbatch, squeue, sacct.
-  Nada de pytest, python de procesamiento, pip install largos, nohup ni `&` en el login.
-  Las pruebas también van en un job (ver abajo).
-- Cada job: `-A p089`, `-p cpu`, `--time`, `--mem`, log en /lustre/proyectos/p089/output/<nombre>_%j.log,
-  y salidas en un directorio nuevo /lustre/proyectos/p089/runs/$SLURM_JOB_ID/. Nunca sobrescribir corridas anteriores.
-- Scripts .slurm con `#!/usr/bin/env bash`. Si usas `sbatch --wrap`, envuélvelo en `bash -c "..."`:
-  bajo /bin/sh, `conda activate spaceapps_2026` falla con exit code 2.
-- Nunca `rm -rf`; para limpiar, mover a /lustre/proyectos/p089/_to_delete/.
-- Nunca desactivar la verificación TLS (curl -k, verify=False, etc.).
-- Límite del grupo: 500 CPUs y 4 GPUs en total. Nodos CPU: 64 núcleos, ~1 TB RAM. Partición `cpu`,
-  tiempo máximo 7 días. Arrays grandes con `%N` para no pasar de 500 CPUs.
-- Antes de un job grande, corre primero la versión de prueba (--limit, --k chico o `sbatch --test-only`)
-  y revisa el log.
-- Entorno: `source /apps/miniconda3/etc/profile.d/conda.sh && conda activate spaceapps_2026`.
-- Pruebas: sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/tests_%j.log \
+YUCA (the cluster where the pipeline runs). These rules apply in every MODE:
+- Login node: `login-01`. Code in /lustre/proyectos/p089/code (clone of the repo). Data in /lustre/proyectos/p089/data.
+- Only short commands (< 1 minute) on the login node: git, ls, reading logs, sbatch, squeue, sacct.
+  No pytest, no processing python, no long pip install, no nohup, no `&`. Tests also go in a job (see below).
+- Every job: `-A p089`, `-p cpu`, `--time`, `--mem`, log in /lustre/proyectos/p089/output/<name>_%j.log, and
+  outputs in a new directory /lustre/proyectos/p089/runs/$SLURM_JOB_ID/. Never overwrite previous runs.
+- .slurm scripts start with `#!/usr/bin/env bash`. If you use `sbatch --wrap`, wrap it in `bash -c "..."`:
+  under /bin/sh, `conda activate spaceapps_2026` fails with exit code 2.
+- Never `rm -rf`; to clean up, move to /lustre/proyectos/p089/_to_delete/.
+- Never disable TLS verification (curl -k, verify=False, etc.).
+- Group limit: 500 CPUs and 4 GPUs in total. CPU nodes: 64 cores, ~1 TB RAM. Partition `cpu`, maximum 7 days.
+  Large arrays use `%N` so the group stays under 500 CPUs.
+- Before a big job, run the test version first (--limit, a small --k, or `sbatch --test-only`) and read the log.
+- Environment: `source /apps/miniconda3/etc/profile.d/conda.sh && conda activate spaceapps_2026`.
+- Tests: sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/tests_%j.log \
     --wrap 'bash -c "source /apps/miniconda3/etc/profile.d/conda.sh && conda activate spaceapps_2026 && cd /lustre/proyectos/p089/code && pytest -q tests"'
 
-MODO A (hay SSH a Yuca):
-- Puedes correr tú mismo, por SSH, los comandos cortos permitidos y enviar jobs con sbatch.
-- Antes de enviar cualquier job, muéstrame el comando exacto y espera mi "ok". Después lee el log tú mismo
-  (tail del archivo en /lustre/proyectos/p089/output/) y dime si cumple los criterios de aceptación.
-- No reenvíes jobs en bucle: si un job falla, diagnostica primero.
+MODE A (you have SSH to Yuca):
+- You may run the allowed short commands over SSH yourself and submit jobs with sbatch.
+- Before submitting any job, show me the exact command and wait for my "ok". Then read the log yourself
+  (tail of the file in /lustre/proyectos/p089/output/) and tell me whether it meets the acceptance criteria.
+- Do not resubmit jobs in a loop: if a job fails, diagnose first.
 
-MODO B (no tienes SSH; Yuca sigue disponible para Owen por Open OnDemand):
-- No intentes conectarte a Yuca. Trabaja en el clon local de la laptop.
-- Escribe el código y pruébalo en local con los tests sintéticos (no hay rasters en la laptop).
-  Si hace falta un dato real, usa el kit offline de ~/p089_offline (docs/working_without_ssh.md §4) y di qué
-  archivo usaste.
-- Cuando algo deba correr en Yuca: commit y push a GitHub, y dame los comandos EXACTOS, cada uno en su propio
-  bloque, desde /lustre/proyectos/p089/code y empezando por `git pull`. Yo los corro en la terminal de Open
-  OnDemand, que también es el login node: las reglas de Yuca aplican igual.
-- Dime qué log o archivo necesitas de vuelta (ruta exacta). Te pegaré el texto del log o te pasaré el archivo
-  bajado por OOD. Léelo completo antes de responder.
-- Agrega cada comando pendiente a la sección "Cola para cuando haya SSH" de docs/handoff.md, para que
-  haya una sola lista, y tacha los que ya corrí.
+MODE B (no SSH; Yuca is still available to Owen through Open OnDemand):
+- Do not try to connect to Yuca. Work in the local clone on the laptop.
+- Write the code and test it locally with the synthetic tests (there are no rasters on the laptop).
+  If you need real data, use the offline kit in ~/p089_offline (docs/working_without_ssh.md §4) and say which
+  file you used.
+- When something must run on Yuca: commit and push, then give me the EXACT commands, each in its own block,
+  from /lustre/proyectos/p089/code and starting with `git pull`. I run them in the Open OnDemand shell, which is
+  also the login node, so the Yuca rules apply.
+- Tell me which log or file you need back (exact path). I will paste the log or pass you the file downloaded
+  through OOD. Read it in full before answering.
+- Add every pending command to the "Queue of pending cluster commands" in docs/handoff.md so there is one list,
+  and strike the ones I have run.
 
-AL TERMINAR CADA TAREA, responde con:
-1. Qué hiciste (2-3 líneas).
-2. Archivos creados o modificados.
-3. Comandos de Yuca: los que ya corriste (MODO A) o los que quedan en cola (MODO B).
-4. Qué criterios de aceptación ya se verificaron y cuáles faltan.
-5. Siguiente tarea sugerida según el orden del plan.
+WHEN YOU FINISH A TASK, answer with:
+1. What you did (2-3 lines).
+2. Files created or modified.
+3. Yuca commands: the ones you ran (MODE A) or the ones left in the queue (MODE B).
+4. Which acceptance criteria are verified and which are still open.
+5. Suggested next task, following the plan's order.
 ```
 
 ---
 
-## Orden sugerido de sesiones
+## Session order
 
-| Sesión | "Tarea de hoy" | Plan detallado | Necesita Yuca | Estado |
+| Session | "Today's task" | Detailed plan | Needs Yuca | Status |
 | --- | --- | --- | --- | --- |
-| 1 | T1 y T2 | `implementation_plan.md` | No | Hecho |
-| 2 | T9 y T3 | `implementation_plan.md` | Sí | Hecho (`2242278`) |
-| 3 | T4 (blancos curados y clusters) | [plan_t4.md](plan_t4.md) | Para la corrida sí; código y tests no | Hecho (`2242423`) |
-| 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | Para cachear MODIS sí; el código no | Plan listo |
-| 5 | T5 (`earth_features.py` + job array) | [plan_t5.md](plan_t5.md) | Sí: es la corrida más pesada (después de T6) | Plan listo |
-| 6 | T7 y T8 (`match.py`, `export.py`) | [plan_t7_t8.md](plan_t7_t8.md) (English) | Para la corrida sí; se puede desarrollar con la prueba de T5 (`runs/2242432`) | Plan listo |
-| En paralelo (Javier) | T10 (app) con `app/public/data/sample.json` | `implementation_plan.md` | No | Esqueleto en `main` |
+| 1 | T1 and T2 | `implementation_plan.md` | No | Done |
+| 2 | T9 and T3 | `implementation_plan.md` | Yes | Done (2242278) |
+| 3 | T4 (curated targets and clusters) | [plan_t4.md](plan_t4.md) | For the run; code and tests do not | Done (2242423) |
+| 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | To build the MODIS cache | Done (2242430) |
+| 5 | T5 (`earth_features.py` and job array) | [plan_t5.md](plan_t5.md) | Yes: the heaviest run (after T6) | Code done, smoke test passed; full run pending |
+| 6 | T7 and T8 (`match.py`, `export.py`) | [plan_t7_t8.md](plan_t7_t8.md) | For the run; develop against the T5 smoke run (`runs/2242432`) | Plan ready |
+| 7 | Code in English | — | No | Pending (see below) |
+| In parallel (Javier) | T10 (app) with `app/public/data/sample.json` | `implementation_plan.md` | No | Skeleton on `main` |
 
-## Notas sobre el modo Orchestrator (Argon)
+## Translating the code to English (session 7)
 
-Según la [documentación de Antigravity](https://antigravity.google/docs/models/), revisada el 2026-11-13:
+The documentation is in English since 2026-11-13. The code still has Spanish comments, docstrings and log messages, and some files reference old document names. When there is time, and **not** in the middle of a run:
 
-- Cada mensaje empieza con una fase de planeación de solo lectura. Argon escribe su propio plan y le pasa la ejecución a Hydrogen. Si una verificación falla dos veces o aparece una interfaz inesperada, el control vuelve a Argon.
-- Hydrogen corre builds y pruebas por su cuenta. En Yuca eso es un riesgo: por eso el prompt insiste en que `pytest` va en un job y no en el login.
-- Es un solo agente por conversación (no reparte en paralelo) y su nivel de razonamiento es fijo.
-- Funciona mejor con pedidos concretos y acotados. Por eso los planes de Claude traen nombres exactos, criterios verificables y condiciones de "plan B".
+- Translate comments, docstrings and log messages in `pipeline/`, `jobs/`, `tests/`, `tools/` and `app/`. Do not rename public functions or JSON fields, because the app and the runs depend on them.
+- Update references to old document names, for example in `app/src/lib/types.ts`, `app/src/lib/content.ts` and `tools/v1_to_sample.py`:
+
+| Old name | New name |
+| --- | --- |
+| `bitacora.md` | `logbook.md` |
+| `plan_implementacion.md` | `implementation_plan.md` |
+| `prompt_gemini.md` | `gemini_prompt.md` |
+| `progreso_handoff.md` | `handoff.md` |
+| `propuesta_de_valor.md` | `value_proposition.md` |
+| `operacion_sin_ssh.md` | `working_without_ssh.md` |
+| `entrega.md` | `submission.md` |
+| `plan_maestro_y_especificaciones_del_proyecto.md` | `docs/master_plan.md` |
+| `ideas.md` | `docs/ideas.md` |
+
+- Run the tests after the change; behaviour must not change.
+
+## Notes on Orchestrator (Argon) mode
+
+From the [Antigravity documentation](https://antigravity.google/docs/models/), checked on 2026-11-13:
+
+- Every message starts with a read-only planning phase. Argon writes its own plan and hands execution to Hydrogen. If a check fails twice or an unexpected interface shows up, control returns to Argon.
+- Hydrogen runs builds and tests on its own. On Yuca that is a risk, which is why the prompt insists that `pytest` goes in a job and never on the login node.
+- It is a single agent per conversation (it does not fan out in parallel), and its reasoning level is fixed.
+- It works best with concrete, scoped requests. That is why Claude's plans give exact names, verifiable criteria and "plan B" conditions.
