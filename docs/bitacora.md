@@ -7,6 +7,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 - Se clonó el repo en `/lustre/proyectos/p089/code`; los jobs se envían desde ahí. Las copias viejas de los scripts en la raíz de `p089/` quedan sin uso.
 - Se creó `~/.netrc` de Earthdata en Yuca (a mano, por Owen).
 - Jobs enviados: `2242198` (`run_download_missing.slurm`) y `2242199` (`run_download_extra.slurm`).
+- `2242199` bajó Natural Earth, pero MODIS falló por credenciales de Earthdata inválidas. Tras corregir el `.netrc`, `2242203` bajó MODIS completo: 12 archivos MOD13C2 (NDVI) en `data/raw/earth/modis/ndvi` y 12 MOD11C3 (LST) en `data/raw/earth/modis/lst`, todo 2023.
 - `2242194` era un envío duplicado de `run_download_missing.slurm` (17:49) que corrió unos minutos a la vez que `2242198`; se canceló.
 - **Pendiente:** como dos descargas escribieron a la vez, verificar al final que los mosaicos tengan el tamaño de S3 (THEMIS Night 15179427309 bytes, WAC 5959263751 bytes) y que no queden `.aria2` junto a ellos y que todos los tiles de Copernicus abran con rasterio (lo hace T5 al registrar los tiles que fallan).
 
