@@ -83,11 +83,7 @@ Consultado el 2026-11-13 con `sinfo` y `sacctmgr`.
 | `cpu` (default) | 24 (`amdcpu-hpc-01..24`) | 64 CPUs, ~1 TB RAM | 7 días | 19 libres, 4 ocupados, 1 en drain (`24`) |
 | `gpu` | 6 (`amdgpu-hpc-01..06`) | 48 CPUs, ~1 TB RAM, 2 × AMD MI210 (ROCm, no CUDA) | 7 días | 3 libres, 2 ocupados, 1 caído (`06`) |
 
-Cuenta `p089`, QOS `qos089`, compartida por `aborquez`, `javier`, `owen` y `vmmn`. No hay límite por usuario ni de jobs simultáneos a nivel cuenta; el tope es el `GrpTRES` de la QOS, que se reparte entre todo el grupo. Las demás QOS de proyectos tienen `cpu=500, gres/gpu=4` y 7 días. Falta confirmar `qos089`:
-
-```bash
-sacctmgr show qos qos089 format=Name,MaxTRESPerUser,MaxJobsPerUser,MaxSubmitJobsPerUser,MaxWall,GrpTRES -p
-```
+Cuenta `p089`, QOS `qos089`, compartida por `aborquez`, `javier`, `owen` y `vmmn`. Límites de `qos089`: **500 CPUs y 4 GPUs en total para el grupo**, 7 días por job. No hay límite de jobs simultáneos ni de jobs en cola, por usuario ni por cuenta; el único tope es la suma de recursos de todos los jobs del grupo.
 
 ## Cómo correrlo
 
