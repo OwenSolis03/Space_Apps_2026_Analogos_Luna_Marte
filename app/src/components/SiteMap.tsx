@@ -80,7 +80,7 @@ export function SiteMap({ title, kind, tiles, geographic, points, onSelect, note
   }, [points, kind]);
 
   return (
-    <figure className="m-0 overflow-hidden rounded-panel border border-line bg-surface">
+    <figure className="panel m-0 overflow-hidden">
       <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <span className="eyebrow">{title}</span>
         {note && <span className="text-xs text-muted">{note}</span>}

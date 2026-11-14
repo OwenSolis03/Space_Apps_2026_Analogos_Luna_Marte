@@ -18,7 +18,7 @@ export function InfoButton({ id, title, open, onToggle }: Pick<InfoToggleProps, 
       aria-controls={`exp-${id}`}
       aria-label={`What does ${title} mean?`}
       onClick={onToggle}
-      className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:text-fg active:bg-surface-2 aria-expanded:text-accent max-sm:size-8"
+      className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border border-frame text-fg transition-colors hover:border-fg active:bg-fg active:text-bg aria-expanded:border-fg aria-expanded:bg-accent aria-expanded:text-on-accent max-sm:size-8"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
@@ -40,7 +40,7 @@ export function InfoPanel({ id, title, open, explanation, actionHeading = EXPLAN
     <div id={`exp-${id}`} role="region" aria-label={`${title}: explanation`} hidden={!open} className="info-panel grid gap-2 rounded-panel bg-surface-2 p-3 text-sm leading-relaxed text-fg">
       {parts.map(([h, t]) => (
         <div key={h}>
-          <h4 className="font-semibold">{h}</h4>
+          <h4>{h}</h4>
           <p>{t}</p>
         </div>
       ))}

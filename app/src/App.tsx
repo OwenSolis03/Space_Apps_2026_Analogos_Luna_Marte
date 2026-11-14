@@ -135,28 +135,25 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
-      <header className="sticky top-0 z-[1000] border-b border-line bg-bg/90 backdrop-blur">
+      <header className="sticky top-0 z-[1000] border-b border-frame bg-bg">
         <div className="mx-auto flex max-w-[82rem] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <a href="#top" className="flex items-center gap-2 font-display text-base font-extrabold">
-            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true">
-              <circle cx="9" cy="13" r="7" fill="none" stroke="var(--earth)" strokeWidth="2" />
-              <circle cx="17" cy="13" r="7" fill="none" stroke="var(--accent)" strokeWidth="2" />
-            </svg>
+          <a href="#top" className="flex items-center gap-3 font-display text-[length:var(--text-label)] font-medium tracking-[0.12em] uppercase">
+            <span aria-hidden="true" className="size-3 bg-accent" />
             Planetary Analog Finder
           </a>
-          <nav aria-label="Sections" className="hidden gap-5 text-sm text-muted md:flex">
+          <nav aria-label="Sections" className="hidden gap-6 text-muted md:flex">
             <a className="hover:text-fg" href="#explorar">Explore</a>
             <a className="hover:text-fg" href="#ficha">Site sheet</a>
             <a className="hover:text-fg" href="#metodo">Methodology</a>
           </nav>
-          <div role="group" aria-label="Target body" className="ml-auto inline-flex rounded-full border border-line bg-surface p-1">
+          <div role="group" aria-label="Target body" className="ml-auto inline-flex gap-2">
             {BODIES.map((b) => (
               <button
                 key={b}
                 type="button"
                 aria-pressed={body === b}
                 onClick={() => changeBody(b)}
-                className="min-h-9 cursor-pointer rounded-full px-4 text-sm text-muted transition-colors hover:text-fg active:bg-surface-2 aria-pressed:bg-accent aria-pressed:text-on-accent"
+                className="chip"
               >
                 {BODY_LABEL[b].name}
               </button>
@@ -166,37 +163,41 @@ export default function App() {
       </header>
 
       <main id="top" className="mx-auto max-w-[82rem] px-4">
-        <section className="grid gap-8 py-10 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
-          <div>
-            <p className="eyebrow">NASA Space Apps 2026 · Endurance CXXV · Hermosillo</p>
-            <h1 className="mt-3 max-w-[18ch] text-display leading-[1.02] font-extrabold sm:text-5xl lg:text-6xl">
-              Rehearse <span className="text-accent">{B.name}</span> without leaving Earth
+        <section className="relative grid gap-8 py-12 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-end">
+          <div aria-hidden="true" className="dotgrid pointer-events-none absolute top-8 right-0 hidden h-48 w-80 lg:block" />
+          <div className="relative">
+            <span className="rule" aria-hidden="true" />
+            <p className="eyebrow mt-4">NASA Space Apps 2026 · Endurance CXXV · Hermosillo</p>
+            <h1 className="display-a mt-4 text-[clamp(1.5rem,4.2vw,3.5rem)]">
+              Rehearse <span className="text-accent-ink">{B.name}</span> without leaving Earth
             </h1>
-            <p className="mt-4 max-w-[60ch] text-muted">
+            <p className="mt-6 max-w-[40ch] text-lg leading-7 font-light text-muted sm:text-2xl sm:leading-9">
               We compare {B.adj} terrain with thousands of Earth cells, score each pair with open data, and show, site by site, what matches
               and where the analogy breaks.
             </p>
           </div>
-          <dl className="grid grid-cols-3 border-t-2 border-fg">
-            <div className="pt-3 pr-3">
-              <dt className="text-xs text-muted">Earth cells evaluated</dt>
-              <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data?.metadata.earth_patches_evaluated?.toLocaleString("en-US") ?? "..."}</dd>
+          <dl className="relative grid grid-cols-3 border-t-[length:var(--stroke-bar)] border-accent">
+            <div className="min-w-0 pt-3 pr-3">
+              <dt className="text-muted">Earth cells evaluated</dt>
+              <dd className="code text-xl sm:text-4xl">{data?.metadata.earth_patches_evaluated?.toLocaleString("en-US") ?? "..."}</dd>
             </div>
-            <div className="pt-3 pr-3">
-              <dt className="text-xs text-muted">{B.adj} targets ({curated} mission sites)</dt>
-              <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data ? bodyTargets.length : "..."}</dd>
+            <div className="min-w-0 pt-3 pr-3">
+              <dt className="text-muted">{B.adj} targets ({curated} mission sites)</dt>
+              <dd className="code text-xl sm:text-4xl">{data ? bodyTargets.length : "..."}</dd>
             </div>
-            <div className="pt-3">
-              <dt className="text-xs text-muted">new Earth candidate sites</dt>
-              <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data ? newSites.toLocaleString("en-US") : "..."}</dd>
+            <div className="min-w-0 pt-3">
+              <dt className="text-muted">new Earth candidate sites</dt>
+              <dd className="code text-xl sm:text-4xl">{data ? newSites.toLocaleString("en-US") : "..."}</dd>
             </div>
           </dl>
         </section>
 
         {load.state === "loading" && <p className="py-10 text-muted" role="status">Loading analog data...</p>}
         {load.state === "error" && (
-          <div role="alert" className="my-6 rounded-panel border border-bad bg-surface p-4">
-            <p className="font-semibold text-bad">The analog data could not be loaded.</p>
+          <div role="alert" className="panel my-6 p-4">
+            <p className="font-medium text-accent-ink">
+              <span className="tag tag-signal mr-2">Error</span>The analog data could not be loaded.
+            </p>
             <p className="mt-1 text-sm text-muted">
               {load.message}. Check that <code className="num">app/public/data/analogs_universe.json</code> exists (exported by <code className="num">pipeline/export.py</code>).
             </p>
@@ -207,7 +208,7 @@ export default function App() {
           <>
             <section id="explorar" aria-labelledby="explorar-h" className="scroll-mt-20 border-t border-line py-12">
               <div className="mb-5 grid gap-1">
-                <h2 id="explorar-h" className="text-2xl font-semibold">Explorer</h2>
+                <h2 id="explorar-h" className="display-c text-[clamp(1.75rem,4vw,3rem)]">Explorer</h2>
                 <p className="max-w-[70ch] text-sm text-muted">
                   Pick a mission case and adjust the weights. The ranking is recalculated in your browser. Dimensions that do not apply to {B.name} are disabled.
                 </p>
@@ -257,7 +258,7 @@ export default function App() {
 
             <section id="ficha" aria-labelledby="ficha-h" className="scroll-mt-20 border-t border-line py-12">
               <div className="mb-5 grid gap-1">
-                <h2 id="ficha-h" className="text-2xl font-semibold">Site sheet</h2>
+                <h2 id="ficha-h" className="display-c text-[clamp(1.75rem,4vw,3rem)]">Site sheet</h2>
                 <p className="max-w-[70ch] text-sm text-muted">How close each analog is, feature by feature, and what Earth cannot reproduce.</p>
               </div>
               {selected ? (
@@ -268,7 +269,7 @@ export default function App() {
             </section>
 
             <section id="metodo" aria-labelledby="metodo-h" className="scroll-mt-20 border-t border-line py-12">
-              <h2 id="metodo-h" className="mb-5 text-2xl font-semibold">Methodology</h2>
+              <h2 id="metodo-h" className="display-c mb-5 text-[clamp(1.75rem,4vw,3rem)]">Methodology</h2>
               <ol className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
                 {[
                   ["Targets", "Mission sites (Artemis III regions, Mars landing sites) plus terrain archetypes clustered from MOLA and LOLA."],
@@ -280,16 +281,16 @@ export default function App() {
                   ["MSI", "MSI = Σ w·S / Σ w over the dimensions that apply, recalculated in the browser; optional road-distance factor λ."],
                   ["Where it breaks", "Features beyond 1.5 σ or a different rock class, plus the fixed physical limits of each body."],
                 ].map(([h, p], i) => (
-                  <li key={h} className="border-t-2 border-fg pt-3">
-                    <span className="num text-xs text-accent">{i + 1}</span>
-                    <h3 className="mt-1 text-base font-semibold">{h}</h3>
+                  <li key={h} className="border-t-[length:var(--stroke-bar)] border-accent pt-3">
+                    <span className="num text-xs text-accent-ink">{i + 1}</span>
+                    <h3 className="mt-1">{h}</h3>
                     <p className="mt-1 text-sm text-muted">{p}</p>
                   </li>
                 ))}
               </ol>
               <div className="mt-6 grid gap-6 lg:grid-cols-2">
                 <div className="grid content-start gap-2 text-sm">
-                  <h3 className="text-base font-semibold">Dimensions</h3>
+                  <h3>Dimensions</h3>
                   <ul className="grid gap-2">
                     {(data.metadata.dimensions ?? []).map((d) => (
                       <li key={d.key}>
@@ -301,7 +302,7 @@ export default function App() {
                   </ul>
                   {data.metadata.scoring_policy?.rules && (
                     <div className="mt-3 border-t border-line pt-3">
-                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">Missing-data scoring policy</h4>
+                      <h4 className="text-muted">Missing-data scoring policy</h4>
                       <ul className="mt-1 list-disc pl-4 text-xs text-muted space-y-1">
                         {data.metadata.scoring_policy.rules.map((rule, idx) => (
                           <li key={idx}>{rule}</li>
@@ -311,7 +312,7 @@ export default function App() {
                   )}
                 </div>
                 <div className="grid content-start gap-2 text-sm">
-                  <h3 className="text-base font-semibold">Not modelled</h3>
+                  <h3>Not modelled</h3>
                   <ul className="grid gap-2">
                     {(data.metadata.not_modelled ?? []).map((n) => (
                       <li key={n.item}>
@@ -323,7 +324,7 @@ export default function App() {
                 </div>
               </div>
               <div className="mt-6 grid gap-2 text-sm">
-                <h3 className="text-base font-semibold">Source data</h3>
+                <h3>Source data</h3>
                 <ul className="grid gap-1 sm:grid-cols-2">
                   {(data.metadata.datasets ?? []).map((d) => (
                     <li key={d.name}>
@@ -357,7 +358,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mx-auto flex max-w-[82rem] flex-wrap justify-between gap-4 border-t border-line px-4 pt-6 pb-10 text-sm text-muted">
+      <footer className="mx-auto flex max-w-[82rem] flex-wrap justify-between gap-4 border-t border-line px-4 pt-6 pb-10 text-muted">
         <span>Planetary Analog Finder · prototype</span>
         <span>Endurance CXXV · NASA Space Apps Challenge 2026 · NASA Space Apps Sonora, Hermosillo</span>
       </footer>

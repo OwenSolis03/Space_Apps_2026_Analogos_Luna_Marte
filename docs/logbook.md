@@ -2,6 +2,18 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: RETICULA design system applied to the app
+
+**What was done** (Claude, branch `feat/reticula-design-system`; design system from the Claude artifact https://claude.ai/artifact/KKCjB4XjYzGiXQKt78yi74, last changed by "Fer" according to its `design-system.json`):
+
+- The system is a telemetry-console look: light grey page, one orange signal ink, graphite structure, uppercase monospace labels, square corners with a 45 degree chamfer, no shadows or gradients. It has a light theme (Hangar) and a dark one (Vigilia). The app already followed the system colour scheme, so Hangar and Vigilia map to it with no toggle.
+- `app/src/index.css` now holds the system's own tokens with its names and values (`surface`, `surface-raised`, `surface-sunken`, `ink`, `ink-muted`, `graphite`, `signal`, `signal-ink`, `on-signal`, `line`, `line-faint`, `focus`, spacing, stroke, chamfer) and maps them to the Tailwind utilities the components already use. The Moon/Mars accent switch and the teal, red and amber colours are gone: there is one accent, orange. Orange is only used as fill and marks; orange text uses `signal-ink`, as the system requires.
+- Type: Martian Mono for titles, labels, buttons and numbers (all interface text in capitals), Roboto for running text. Fonts come from the Google Fonts link in `index.html`.
+- Components: new `.panel` (raised tile with the chamfer), `.tag`, `.rule` (orange bar above headlines), `.chip` (square, 2 px ring, orange tick when selected), `.pending` (annotations in brackets), a dot grid in the hero. Map markers are ink, the selected one is orange; Leaflet controls, tooltips and attribution restyled to match. The radar is orange fill with an ink outline. Mismatch status uses `signal-ink` with the word, never colour alone.
+- Copy and behaviour are unchanged. The system's own text rules (Spanish examples, no "you") were not applied to the copy: the app stays in English.
+- Verified: `tsc` and the build pass; no emoji, no hard-coded values and no native select; every text and background pair of the system used by the app was measured with `contrast.py` and passes AA in both themes (15 pairs); looked at in the browser in light at 1366 by 768 and 390 px and in dark at 1366 by 768; no horizontal scroll at 390 px. Not checked: dark theme on a phone, and the Moon view.
+- A note for whoever reads the artifact with a tool: its automatic summary said the page only contains the text "Design System", but the artifact has 54 files (README, `tokens.json`, component CSS). Read the files, not the summary.
+
 ## 2026-11-14: UI pass on the Explorer and the Site sheet
 
 **What was done** (Claude, branch `feat/t17-plain-language`, no copy or behaviour changes):

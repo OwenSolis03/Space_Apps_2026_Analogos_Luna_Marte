@@ -20,9 +20,9 @@ export function Radar({ values, availableDims, earthMissingDims }: Props) {
   }).join(", ");
 
   return (
-    <svg viewBox="-40 0 380 252" className="mx-auto w-full max-w-sm" role="img" aria-label={`Similarity by dimension. ${summary}`}>
+    <svg viewBox="-40 0 380 252" className="mx-auto w-full max-w-sm font-display tracking-wider uppercase" role="img" aria-label={`Similarity by dimension. ${summary}`}>
       {[0.25, 0.5, 0.75, 1].map((f) => (
-        <polygon key={f} points={DIMENSIONS.map((_, i) => pt(i, R * f).join(",")).join(" ")} fill="none" stroke="var(--line)" />
+        <polygon key={f} points={DIMENSIONS.map((_, i) => pt(i, R * f).join(",")).join(" ")} fill="none" stroke="var(--line-faint)" />
       ))}
       {DIMENSIONS.map((d, i) => {
         const [x, y] = pt(i, R);
@@ -31,11 +31,11 @@ export function Radar({ values, availableDims, earthMissingDims }: Props) {
         const missing = earthMissingDims?.includes(d);
         return (
           <g key={d}>
-            <line x1={cx} y1={cy} x2={x} y2={y} stroke="var(--line)" strokeDasharray={off ? "3 3" : undefined} />
-            <text x={lx} y={ly + (missing ? 0 : 4)} textAnchor="middle" fontSize="11" fill={off ? "var(--faint)" : "var(--muted)"}>
+            <line x1={cx} y1={cy} x2={x} y2={y} stroke="var(--line-faint)" strokeDasharray={off ? "3 3" : undefined} />
+            <text x={lx} y={ly + (missing ? 0 : 4)} textAnchor="middle" fontSize="9" fill="var(--ink-muted)">
               <tspan x={lx}>{DIM_LABEL[d].label}</tspan>
               {missing && (
-                <tspan x={lx} dy="10" fontSize="8" fill="var(--bad)">
+                <tspan x={lx} dy="10" fontSize="7" fill="var(--signal-ink)">
                   no Earth data
                 </tspan>
               )}
@@ -43,20 +43,20 @@ export function Radar({ values, availableDims, earthMissingDims }: Props) {
           </g>
         );
       })}
-      <polygon points={poly} fill="var(--earth)" fillOpacity={0.2} stroke="var(--earth)" strokeWidth={2} strokeLinejoin="round" />
+      <polygon points={poly} fill="var(--signal)" fillOpacity={0.35} stroke="var(--ink)" strokeWidth={2} strokeLinejoin="round" />
       {DIMENSIONS.map((d, i) => {
         const s = v(d);
         if (s != null) {
           const [x, y] = pt(i, R * s);
-          return <circle key={d} cx={x} cy={y} r={3.5} fill="var(--earth)" />;
+          return <circle key={d} cx={x} cy={y} r={3.5} fill="var(--ink)" />;
         }
         if (earthMissingDims?.includes(d)) {
           const [x, y] = pt(i, 0);
-          return <circle key={d} cx={x} cy={y} r={4.5} fill="var(--surface)" stroke="var(--bad)" strokeWidth={1.5} />;
+          return <circle key={d} cx={x} cy={y} r={4.5} fill="var(--surface-raised)" stroke="var(--signal-ink)" strokeWidth={1.5} />;
         }
         return null;
       })}
-      <text x={cx} y={248} textAnchor="middle" fontSize="10" fill="var(--faint)">
+      <text x={cx} y={248} textAnchor="middle" fontSize="7" fill="var(--ink-muted)">
         dashed axes: not applicable · hollow circle: no Earth data (0)
       </text>
     </svg>
