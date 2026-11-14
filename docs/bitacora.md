@@ -2,6 +2,28 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T10, primer esqueleto de la app (branch `feat/app-t10-esqueleto`)
+
+**Qué se hizo (código escrito por Claude, a partir del mockup publicado como artefacto)**
+
+- `app/`: React 18 + Vite 5 + TypeScript + Tailwind 4. Interfaz en inglés. Secciones: selector Marte / Luna, tesis con cifras, explorador (presets de misión, sliders de pesos, MSI mínimo, mapas dobles, ranking), ficha del sitio (tabla blanco contra Tierra con coincide / no coincide, radar de 4 dimensiones, uso sugerido, "Where the analogy breaks") y metodología con las fuentes.
+- El MSI se recalcula en el navegador con `MSI = Σ w·S / Σ w`, solo sobre las dimensiones que tienen `sub_score` (`app/src/lib/msi.ts`). Ambiente y térmico aparecen deshabilitados con la tarea que los trae (T5/T6, T7).
+- Mapas: Leaflet para los tres cuerpos (Marte con MOLA de Trek, la Luna con LROC WAC de Trek, ambos en EPSG:4326; la Tierra con Blue Marble de GIBS en Web Mercator). El plan pedía MapLibre para la Tierra; se dejó Leaflet para tener una sola librería en el esqueleto. Radar dibujado en SVG propio en lugar de Recharts por la misma razón.
+- `tools/v1_to_sample.py` convierte `output/analogs.json` (v1) al esquema v2 de la sección 5 y escribe `app/public/data/sample.json` (80 blancos, 400 análogos, 260 KB). Los `sub_scores` son provisionales: kernel RBF por rasgo con σ = 35 % del valor del blanco y un mínimo absoluto (1.5° y 2.5° para pendientes, 30 m y 25 m para σ de elevación y TRI). `mismatches` marca los rasgos a más de 1.5 σ (desviación del conjunto por cuerpo): 67 de 400 análogos tienen al menos uno. Presets y límites físicos van con texto en inglés provisional; T11 los reemplaza.
+- Diseño con los tokens en `app/src/index.css` (una capa de variables CSS, tema claro y oscuro por `prefers-color-scheme`, acento óxido para Marte y gris azulado para la Luna).
+- Verificado: `npm run build` sin errores; en el navegador cargan los tiles de Trek y GIBS sin errores de consola, el preset, el cambio de cuerpo y la selección de blanco y análogo actualizan ranking, mapas y ficha; sin scroll horizontal a 320 y 414 px. Gates del kit de diseño: sin emoji, sin valores fijos, sin `<select>` nativo. Contraste AA medido en los pares de tokens de ambos temas; `--faint` claro se oscureció a `#5c6370` porque fallaba sobre `--surface-2`. Los gates de render del kit no se corrieron porque esperan un HTML suelto y la app necesita servidor para leer el JSON.
+- `.claude/launch.json` con la configuración `app` (puerto 5173) para levantarla desde Claude Code.
+
+**Qué falta**
+
+- Conectar `analogs_universe.json` real cuando exista T8 (basta con cambiar `DATA_URL` en `app/src/App.tsx`).
+- Vista "Compare" de dos sitios, exportar ficha (JSON / Markdown) y vista de impresión.
+- Filtro "solo nuevos candidatos" y prioridad logística (λ) cuando T6 traiga `dist_road_km`.
+- Aviso y vista polar para el polo sur lunar (la proyección equirectangular deforma mucho).
+- Medir el criterio de aceptación de 50 ms al mover un slider y revisar la app en 1366 × 768 y en el proyector.
+
+Para correrla: `cd app && npm install && npm run dev`.
+
 ## 2026-11-13: T1/T3 — aplicación de `scales`/`offsets` en `geo.py`, WAC por percentil lunar y metadatos de rasters
 
 **Qué se hizo (código escrito por Gemini)**
