@@ -31,3 +31,19 @@ YUCA_PROJECT_DIR: Path = Path("/lustre/proyectos/p089")
 RAW_DATA_DIR: Path = YUCA_PROJECT_DIR / "data" / "raw"
 DERIVED_DATA_DIR: Path = YUCA_PROJECT_DIR / "data" / "derived"
 RUNS_DIR: Path = YUCA_PROJECT_DIR / "runs"
+
+MARS_RAW_FILES: dict[str, str] = {
+    "dem": "mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+    "themis_day": "mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif",
+    "themis_night": "mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif",
+}
+
+MOON_RAW_FILES: dict[str, str] = {
+    "dem": "moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif",
+    "wac_reflectance": "moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif",
+    "ice_south": "moon/Moon_IceFavorabilityIndex_90S000E_591mp.tif",
+    "ice_north": "moon/Moon_IceFavorabilityIndex_90N000E_591mp.tif",
+    "diviner_prp": "moon/diviner/dlre_prp_south.tab",
+}
+
+DIVINER_PARQUET_REL: str = "diviner_prp_south.parquet"

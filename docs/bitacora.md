@@ -2,6 +2,20 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T3 — barrido global de Marte y la Luna (pipeline/planet_features.py)
+
+**Qué se hizo (código escrito por Gemini)**
+
+- Se verificó la suite T1+T2 en Yuca (job `2242225`, entorno `spaceapps_2026`: `9 passed in 1.16s`).
+- Se actualizó `pipeline/config.py` y `pipeline/requirements.txt` (`matplotlib>=3.7` y rutas de rasters planetarios y Diviner PRP).
+- Se implementó `pipeline/planet_features.py` y `jobs/t3_planet_features.slurm`: grilla global de `32 km` (`-88°` a `88°`, ~141k centros en Marte y ~37k en la Luna), extracción paralela por franjas (`--array=0-15`, `8 CPUs`), muestreo de capas auxiliares (`themis_day`, `themis_night`, `themis_delta` en Marte; `wac_reflectance`, `ice_favorability` polar y lectura/caché de `dlre_prp_south.tab` a `data/derived/diviner_prp_south.parquet` con consulta `cKDTree` en parches polares para `diviner_tmax_k`, `diviner_tavg_k`, `ice_depth_m` ignorando `-999`), opción `--limit` para pruebas y `--merge` para combinar franjas y generar mapas scatter PNG de `mean_slope_deg`.
+- Se añadieron pruebas unitarias sintéticas en `tests/test_planet_features.py` (`14 passed` en total localmente).
+
+**Qué falta**
+
+- Correr T3 en Yuca primero en modo prueba (`--limit 500`), revisar el log y el PNG, y después lanzar el job array completo (`0-15`) + `--merge`.
+- Continuar con T4 (`pipeline/targets.py` + `pipeline/data/targets.json`) y T5–T11.
+
 ## 2026-11-13: descarga de Diviner
 
 - Se encontró el Diviner Polar Resource Product en el paquete PDS4 `lro_diviner_derived1`, colección `data_derived_prp` (Yuca sí llega a PDS Geosciences; la laptop no).

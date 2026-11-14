@@ -7,4 +7,5 @@ pandas>=2.0
 pyarrow>=12.0
 geopandas>=0.13
 shapely>=2.0
+matplotlib>=3.7
 pytest>=7.0
