@@ -37,11 +37,19 @@ Para correrla: `cd app && npm install && npm run dev`.
 - En `pipeline/features.py` se dejó explícito `np.gradient(z_clean, res, res)` para ambos ejes.
 - En `pipeline/planet_features.py` se agregó `_log_raster_meta` para imprimir al inicio `dtype`, `nodata`, `scales`, `offsets` y `res` de cada raster usado (`DEM`, `themis_day`, `themis_night`, `wac_reflectance`, `ice_south`, `ice_north`), el resumen (`min`, `mediana`, `p95`, `max`) de `mean_slope_deg`, `relief_m`, `mean_elev_m` y `wac_reflectance`, y la función `compute_lunar_wac_percentile` para transformar el brillo WAC a percentil `[0, 1]` dentro de la Luna.
 - En `tests/test_geo.py` y `tests/test_planet_features.py` se añadieron pruebas para `int16` escalado (`scale=0.5`, `offset=100.0`, `nodata=-32768`), `uint8` WAC escalado a `100 m/px`, filtrado de `nodata=-3.4e38` sin warnings y `compute_lunar_wac_percentile`.
+- **Verificación en Yuca (commit `bcf10de`):**
+  - Suite `pytest -q tests` (`tests_v2`): **`17 passed` in 3.30s** en `spaceapps_2026`.
+  - Prueba `--limit 500` **DESPUÉS** del arreglo (job `2242231_0`, 22 s en `amdcpu-hpc-23`), comparada frente al job `2242227` (ANTES, mismo conjunto de `494/500` parches lunares válidos):
+    - `mean_slope_deg` (Luna): min `0.33° -> 0.17°`, mediana `13.24° -> 6.93°`, p95 `21.50° -> 11.51°`, máx `27.68° -> 16.04°`.
+    - `relief_m` (Luna): min `67.92 -> 33.96 m`, mediana `3229.80 -> 1614.90 m`, p95 `7460.09 -> 3730.05 m`, máx `11210.04 -> 5605.02 m` (exactamente a la mitad).
+    - `mean_elev_m` (Luna): min `-10630.40 -> -5315.20 m`, mediana `-1424.61 -> -712.31 m`, p95 `8225.56 -> 4112.78 m`, máx `14751.13 -> 7375.57 m` (exactamente a la mitad y ya dentro del rango físico lunar `-9.1` a `+10.8 km`).
+    - `wac_reflectance` (Luna, brillo relativo `uint8` con `scale=1.00395, offset=-0.00395, nodata=0`): min `1.00`, mediana `67.26`, p95 `93.85`, máx `136.71` (`n=494`).
+    - `ice_south` / `ice_north` (`float32`, `nodata=-3.4028226550889045e+38`): leídos sin warnings y `Diviner polar` con 5 parches de cobertura en la muestra `--limit 500`.
+    - Marte en `2242231_0` (`498/500` válidos, `scale=1.0`): `mean_slope_deg` min `0.04°`, mediana `1.08°`, p95 `4.63°`, máx `17.15°`; `relief_m` min `6.04 m`, mediana `239.32 m`, p95 `1476.28 m`, máx `5310.49 m`; `mean_elev_m` min `-6864.79 m`, mediana `-282.06 m`, p95 `4256.35 m`, máx `9031.45 m`.
 
 **Qué falta**
 
-- Correr en Yuca la prueba `--limit 500` tras el arreglo y comparar mediana, p95 y máximo de `mean_slope_deg`, `relief_m` y `mean_elev_m` en la Luna entre la corrida `2242227` (antes) y la nueva corrida (después), además de verificar los `[META]` de todos los rasters (MOLA, THEMIS, LOLA, WAC, hielo).
-- Una vez verificada la caída de la pendiente lunar (~a la mitad), lanzar el array completo `0-15` y `--merge` de T3 antes de pasar a T4.
+- Correr en Yuca el job array completo `--array=0-15` de `jobs/t3_planet_features.slurm` y su `--merge` posterior para obtener `features_mars.parquet`, `features_moon.parquet` y los mapas PNG completos, antes de pasar a T4.
 
 ## 2026-11-13: T3 — barrido global de Marte y la Luna (pipeline/planet_features.py)
 

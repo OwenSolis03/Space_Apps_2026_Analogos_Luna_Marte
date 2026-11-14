@@ -29,10 +29,10 @@ Rutas en Yuca, bajo `/lustre/proyectos/p089/data/raw/`.
 | --- | --- | --- | --- |
 | Marte | `mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif` (2 GB) | USGS Astrogeology | OK |
 | Marte | `mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif` (22 GB) | USGS Astrogeology | OK |
-| Marte | `mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` (15.2 GB) | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
+| Marte | `mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` (15.2 GB) | USGS Astrogeology | OK (verificado en job `2242231`) |
 | Luna | `moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif` (8 GB) | USGS Astrogeology | OK |
-| Luna | `moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB) | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
-| Luna | `moon/Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` | USGS Astrogeology | Pendiente: `run_download_missing.slurm` |
+| Luna | `moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB) | USGS Astrogeology | OK (verificado en job `2242231`) |
+| Luna | `moon/Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` | USGS Astrogeology | OK (verificado en job `2242231`) |
 | Luna | `moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | USGS Astrogeology | Obsoleto: en realidad es `ClrShade`; ya no se usa |
 | Tierra | `earth/copernicus_90m/*.tif` | Copernicus GLO-90 (AWS, sin firma) | Parcial: 6,983 de 26,475 tiles; el resto en `run_download_missing.slurm` |
 | Luna | `moon/diviner/dlre_prp_south.{tab,lbl,xml}` (577 MB, tabla ASCII de malla triangular 80–90°S) | NASA PDS Geosciences (LRO Diviner PRP) | `jobs/download_diviner.slurm` |
