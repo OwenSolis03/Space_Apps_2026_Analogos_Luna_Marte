@@ -10,9 +10,9 @@ This is the first plan written in English. Code comments, docstrings, log messag
 | --- | --- | --- |
 | T3 | `runs/2242278/features_{mars,moon}.parquet` | 140,916 Mars, 36,741 Moon |
 | T4 | `runs/2242423/targets.parquet` | 76 targets: 16 curated, 60 clusters |
-| T5 | `runs/<T5_RUN>/features_earth.parquet` | Expected 30–80k |
+| T5 | `runs/2242438/features_earth.parquet` | 40,244 (12,125 in Antarctica, 1,843 in Greenland) |
 
-T5 is the full run, not yet launched; until it finishes, develop with the smoke-test output `runs/2242432` (445 rows).
+T5 full run: `runs/2242438` (jobs 2242438–2242440). The smoke-test output `runs/2242432` (445 rows) is still handy for quick tests.
 
 **Outputs:**
 
@@ -365,7 +365,7 @@ sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slu
 Real run, after the full T5 run:
 
 ```bash
-sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/<T5_RUN> jobs/t7_match.slurm
+sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm
 ```
 
 **Publishing to the app** is a separate step, after Claude or Owen review `t7_report.md`:
