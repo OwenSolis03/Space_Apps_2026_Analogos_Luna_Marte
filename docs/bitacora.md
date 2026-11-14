@@ -2,6 +2,12 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: explorador de datasets
+
+- Claude escribió `tools/explore_datasets.py` y `jobs/explore_datasets.slurm`: un reporte HTML autocontenido con miniatura, metadatos (CRS, resolución, nodata, radio del cuerpo), estadísticas, histograma y valores en sitios conocidos de cada raster; cobertura y validación de los tiles de Copernicus (abre cada tile); mapas de NDVI y temperatura de MODIS; carreteras, aeropuertos y países; nomenclatura IAU. También escribe `resumen.md` y `resumen.json`.
+- Solo depende de numpy, rasterio y pyproj (las imágenes se generan sin matplotlib). MODIS se lee con GDAL o, si no tiene HDF4, con pyhdf (el job lo instala si falta).
+- Probado en la laptop con datos sintéticos (rasters equirectangulares, tiles válidos y uno dañado, shapefile y dbf). Falta correrlo en Yuca con los datos reales.
+
 ## 2026-11-13: verificación de mosaicos descargados (job 2242198)
 
 - THEMIS IR Night 60N-60S: 15179427309 bytes, igual que en S3, sin `.aria2`.

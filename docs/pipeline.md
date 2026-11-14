@@ -77,6 +77,16 @@ Logs en `logs/slurm/`.
 | 2241782 | matching | 5,175 tiles, 98,465 sitios |
 | 2241783 | matching | 6,983 tiles, 21,906 sitios (versión actual, con filtros de mar y planicie) |
 
+## Explorar los datos
+
+`jobs/explore_datasets.slurm` genera un reporte de todo lo descargado. Solo lee; no modifica `data/`.
+
+```bash
+cd /lustre/proyectos/p089/code && git pull && sbatch jobs/explore_datasets.slurm
+```
+
+Salida en `/lustre/proyectos/p089/runs/<JOBID>/exploracion/`: `index.html` (reporte con imágenes), `resumen.md` (tabla corta) y `resumen.json`. Para correr solo una parte: `sbatch jobs/explore_datasets.slurm --only planets` (o `copernicus`, `modis`, `vectors`).
+
 ## Recursos en Yuca
 
 Consultado el 2026-11-13 con `sinfo` y `sacctmgr`.
