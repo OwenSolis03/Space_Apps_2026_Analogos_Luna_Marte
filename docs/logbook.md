@@ -2,6 +2,37 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Experiment B executed on Yuca (HPC) & Verdict: Drop scored dimension; promote Option A
+
+**Execution and Results** (Slurm jobs `2242540`, `2242541`, `2242549`, `2242550` on Yuca):
+
+1. **Dataset Ingestion (`jobs/download_minerals.slurm`, job `2242541`):**
+   - Downloaded ASU TES 4 ppd mineral ENVI map (53.9 MB).
+   - Downloaded ESA OMEGA global maps `FERRIC_BD530` (207.4 MB) and `FERRIC_NNPHS` (207.4 MB) using authenticated HTTP basic auth via `~/.netrc` (COSMOS user `osolis`).
+   - Retrieved NASA EMIT L3 ASA V002 spectral abundance NetCDF granule via `earthaccess`.
+   - Generated `mineral_probe.json` confirming OMEGA equirectangular projection centered at (0, 0) in linear meters (1481.78 m/pixel = 40 ppd).
+
+2. **Mineral Layer Extraction (`jobs/t_mineral.slurm`, job `2242549`):**
+   - Sampled and ranked all **140,916** Mars T3 patches from OMEGA BD530 GeoTIFF (`mineral_mars.parquet`).
+   - Sampled all **76** targets (`mineral_targets.parquet`). Check M3 passed with **89.6%** global valid coverage on Mars.
+   - Sampled Earth candidate patches (`mineral_earth.parquet`) with `h5netcdf` / `h5py` engine.
+   - Diagnostic check M5 passed (`verdict: "keep"`, not redundant with Mars dust).
+
+3. **Experimental Match & Export (`jobs/t7_match.slurm`, job `2242550`):**
+   - Matched 40,244 Earth candidate patches across 76 targets with 6 presets, including `geology_and_materials_mineral_exp`.
+   - All 17 verification checks passed with **0 violations** (`MSI recomputation violations: 0`, `top-1 missing dimension: 0`). Total runtime: 4.4 s.
+
+4. **Empirical Evaluation (`tools/compare_mineral.py`, run `2242550`):**
+   - **Median Top-30 Jaccard Overlap:** `1.000`
+   - **Median Spearman rho:** `1.000`
+   - **Mean Top-10 Turnover:** `0.0` analogs
+   - **Mean Case C (Missing EMIT) Share:** `94.7%`
+
+**Scientific Verdict:**
+- **Drop the scored 8th mineral dimension for the submission.**
+- **Reason:** NASA's EMIT coverage on Earth is restricted to narrow arid dust-emission swaths from the ISS. Over 94.7% of Earth's surface lacks EMIT data. Under the principled missing data policy (Case C: score 0.0 with no renormalization), the unmapped penalty dominates, leaving top rankings 100% determined by the other 7 dimensions.
+- **Decision:** Maintain the 7 core physical dimensions for MSI scoring, and deliver mineralogy through **Option A (display-only context cards for Moon Kaguya, Mars TES, and Earth EMIT in the UI)**, which provides full scientific context without penalizing analogs for orbital track gaps.
+
 ## 2026-11-14: Experiment B implemented (branch `exp/mars-mineral-dimension`)
 
 **What was done** (implemented per `docs/plan_mineral_dimension.md` §4):
