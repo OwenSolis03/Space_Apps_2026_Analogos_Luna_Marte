@@ -53,7 +53,19 @@ export default function App() {
     for (const d of data?.metadata.dimensions ?? []) out[d.key] = d;
     return out;
   }, [data]);
-  const ranked = useMemo(() => rankTargets(bodyTargets, weights, minScore, lambda, newOnly), [bodyTargets, weights, minScore, lambda, newOnly]);
+  const { ranked, unranked } = useMemo(
+    () =>
+      rankTargets(
+        bodyTargets,
+        weights,
+        minScore,
+        lambda,
+        newOnly,
+        data?.metadata.scoring_policy?.earth_missing_score ?? 0,
+        data?.metadata.scoring_policy?.min_preset_coverage ?? 0.6,
+      ),
+    [bodyTargets, weights, minScore, lambda, newOnly, data],
+  );
   const selected = ranked.find((r) => r.target.id === targetId) ?? ranked[0] ?? null;
   const safeAnalog = selected && analogIndex < selected.analogs.length ? analogIndex : 0;
 
@@ -90,6 +102,18 @@ export default function App() {
     setBody(b);
     setTargetId(null);
     setAnalogIndex(0);
+    if (data && presetId) {
+      const current = data.mission_presets[presetId];
+      if (current?.applies_to && !current.applies_to.includes(b)) {
+        const first = Object.entries(data.mission_presets).find(
+          ([, p]) => !p.applies_to || p.applies_to.includes(b),
+        );
+        if (first) {
+          setPresetId(first[0]);
+          setWeights(fullWeights(first[1].weights));
+        }
+      }
+    }
   };
   const changeWeight = (d: Dimension, v: number) => {
     setWeights((w) => ({ ...w, [d]: v }));
@@ -190,6 +214,7 @@ export default function App() {
               </div>
               <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)_20rem]">
                 <ScenarioPanel
+                  body={body}
                   presets={data.mission_presets}
                   presetId={presetId}
                   onPreset={choosePreset}
@@ -225,7 +250,7 @@ export default function App() {
                   />
                 </div>
                 <div className="md:col-span-2 xl:col-span-1">
-                  <RankList ranked={ranked} total={bodyTargets.length} selectedId={selected?.target.id ?? null} onSelect={selectTarget} />
+                  <RankList ranked={ranked} unranked={unranked} total={bodyTargets.length} selectedId={selected?.target.id ?? null} onSelect={selectTarget} />
                 </div>
               </div>
             </section>
@@ -274,6 +299,16 @@ export default function App() {
                       </li>
                     ))}
                   </ul>
+                  {data.metadata.scoring_policy?.rules && (
+                    <div className="mt-3 border-t border-line pt-3">
+                      <h4 className="text-xs font-semibold uppercase tracking-wider text-muted">Missing-data scoring policy</h4>
+                      <ul className="mt-1 list-disc pl-4 text-xs text-muted space-y-1">
+                        {data.metadata.scoring_policy.rules.map((rule, idx) => (
+                          <li key={idx}>{rule}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <div className="grid content-start gap-2 text-sm">
                   <h3 className="text-base font-semibold">Not modelled</h3>

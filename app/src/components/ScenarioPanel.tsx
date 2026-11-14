@@ -1,8 +1,9 @@
-import type { Dimension, DimensionInfo, Preset, Weights } from "../lib/types";
+import type { Body, Dimension, DimensionInfo, Preset, Weights } from "../lib/types";
 import { DIMENSIONS } from "../lib/types";
 import { DIM_LABEL } from "../lib/content";
 
 interface Props {
+  body: Body;
   presets: Record<string, Preset>;
   presetId: string | null;
   onPreset: (id: string) => void;
@@ -28,11 +29,13 @@ export function ScenarioPanel(p: Props) {
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-sm font-semibold text-muted">Mission case</legend>
         <div className="flex flex-wrap gap-2">
-          {Object.entries(p.presets).map(([id, preset]) => (
-            <button key={id} type="button" className="chip text-left" aria-pressed={p.presetId === id} onClick={() => p.onPreset(id)}>
-              {preset.label}
-            </button>
-          ))}
+          {Object.entries(p.presets)
+            .filter(([, preset]) => !preset.applies_to || preset.applies_to.includes(p.body))
+            .map(([id, preset]) => (
+              <button key={id} type="button" className="chip text-left" aria-pressed={p.presetId === id} onClick={() => p.onPreset(id)}>
+                {preset.label}
+              </button>
+            ))}
         </div>
       </fieldset>
 

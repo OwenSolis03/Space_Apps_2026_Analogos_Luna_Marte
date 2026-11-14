@@ -2,7 +2,22 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
-<<<<<<< HEAD
+## 2026-11-14: T16.5 — app mirrors the missing-data policy
+
+**What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §7):
+
+- Updated `app/src/lib/types.ts`: added `available_dims` and `preset_status` to `Target`, `earth_missing_dims` to `Analog`, `applies_to` to `Preset`, `scoring_policy` and `preset_status_summary` to `Universe.metadata`.
+- Updated `app/src/lib/msi.ts`:
+  - Defined `DIMENSION_BODIES`.
+  - Updated `msi()` and `msiLog()` to accept `targetDims` and `earthMissing` (defaults to 0), scoring Case C missing Earth dimensions as 0 rather than dropping them.
+  - Updated `rankTargets()` to compute preset coverage per target against active weights; targets with coverage < `min_preset_coverage` (0.6) are unranked and returned in `unranked: UnrankedTarget[]`.
+- Updated `app/src/components/ScenarioPanel.tsx`: added `body` prop and filtered mission preset chips to only display presets whose `applies_to` includes the current planetary body.
+- Updated `app/src/components/RankList.tsx`: added `unranked` prop to render an unranked targets explanatory footer note below the list.
+- Updated `app/src/components/Radar.tsx`: added `availableDims` and `earthMissingDims` props; missing Earth data dimensions are plotted at r=0 with a hollow marker and flagged with "no Earth data" in the axis label.
+- Updated `app/src/components/Dossier.tsx`: passed `available_dims` and `earth_missing_dims` to `Radar`, formatted `no_earth_data:<dim>` mismatches as "no Earth data for <dim>", and added rows in the feature comparison table for missing Earth dimensions with status `differs` (scored 0).
+- Updated `app/src/App.tsx`: wired `body` into `ScenarioPanel`, wired `unranked` into `RankList`, added automatic preset switching on body change if the active preset is inapplicable to the new body, and rendered `metadata.scoring_policy.rules` under Dimensions in the Methodology section.
+- Verified: `npm --prefix app run build` (`tsc -b && vite build`) passed with 0 errors. Full test suite: 88 passed, 2 skipped.
+
 ## 2026-11-14: T16.4 — tests for the missing-data policy
 
 **What was done and why** (tests written by Gemini per `docs/plan_t16_missing_data.md` §6):

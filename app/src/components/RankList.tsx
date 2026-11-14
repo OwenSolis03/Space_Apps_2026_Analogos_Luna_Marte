@@ -1,14 +1,20 @@
-import type { RankedTarget } from "../lib/msi";
+import type { RankedTarget, UnrankedTarget } from "../lib/msi";
 import { fmtLat, fmtLon, pct } from "../lib/msi";
+import { DIM_LABEL } from "../lib/content";
 
 interface Props {
   ranked: RankedTarget[];
+  unranked?: UnrankedTarget[];
   total: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
 }
 
-export function RankList({ ranked, total, selectedId, onSelect }: Props) {
+export function RankList({ ranked, unranked, total, selectedId, onSelect }: Props) {
+  const missingDimensionNames = Array.from(
+    new Set((unranked ?? []).flatMap((u) => u.missingDims)),
+  ).map((d) => DIM_LABEL[d]?.label.toLowerCase() ?? d);
+
   return (
     <section aria-labelledby="rank-h" className="flex min-w-0 flex-col rounded-panel border border-line bg-surface">
       <header className="flex items-baseline justify-between gap-2 px-4 pt-3 pb-2">
@@ -49,6 +55,17 @@ export function RankList({ ranked, total, selectedId, onSelect }: Props) {
             );
           })}
         </ol>
+      )}
+      {unranked && unranked.length > 0 && (
+        <footer className="border-t border-line bg-surface-2/40 px-4 py-3 text-xs text-muted">
+          <p>
+            <span className="font-semibold text-fg">{unranked.length} targets</span> are not ranked for this case:
+            {" "}
+            no {missingDimensionNames.join(", ")} data at these sites (
+            {unranked.slice(0, 3).map((u) => u.target.name).join(", ")}
+            {unranked.length > 3 ? ", …" : ""}).
+          </p>
+        </footer>
       )}
     </section>
   );

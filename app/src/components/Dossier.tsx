@@ -1,7 +1,7 @@
-import type { Analog, Limit, Mismatch, Target } from "../lib/types";
+import type { Analog, Dimension, Limit, Mismatch, Target } from "../lib/types";
 import type { RankedTarget } from "../lib/msi";
 import { fmtLat, fmtLon, fmtNum, pct } from "../lib/msi";
-import { BODY_LABEL, FEATURE_LABEL, GEO_CLASS_LABEL, fmtValue, limitLabel, suggestedUses } from "../lib/content";
+import { BODY_LABEL, DIM_LABEL, FEATURE_LABEL, GEO_CLASS_LABEL, fmtValue, limitLabel, suggestedUses } from "../lib/content";
 import { Radar } from "./Radar";
 
 interface Props {
@@ -54,18 +54,22 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
   const process = processRows(t, a);
   const shown = new Set([...terrain, ...process.map((r) => r.key)]);
   const extra: Row[] = a.mismatches
-    .filter((m) => !shown.has(m.feature))
+    .filter((m) => !shown.has(m.feature) && !m.feature.startsWith("no_earth_data:"))
     .map((m) => ({ key: m.feature, label: FEATURE_LABEL[m.feature]?.label ?? m.feature, unit: FEATURE_LABEL[m.feature]?.unit ?? "", target: m.target, earth: m.earth }));
   const notes = [
     a.subsurface_note,
     a.polar_cold ? "Polar cold environment on Earth: useful for cold-trap and ice operations." : null,
     a.geology?.ice_surface ? "Ice-covered surface on Earth." : null,
   ].filter(Boolean) as string[];
-  const breaks = a.mismatches.map((m) =>
-    m.feature === "geo_class"
+  const breaks = a.mismatches.map((m) => {
+    if (m.feature.startsWith("no_earth_data:")) {
+      const dim = m.feature.split(":")[1] as Dimension;
+      return `no Earth data for ${DIM_LABEL[dim]?.label.toLowerCase() ?? dim}`;
+    }
+    return m.feature === "geo_class"
       ? `rock class (${fmtValue(m.earth)} on Earth, ${fmtValue(m.target)} on ${body})`
-      : (FEATURE_LABEL[m.feature]?.label ?? m.feature).toLowerCase(),
-  );
+      : (FEATURE_LABEL[m.feature]?.label ?? m.feature).toLowerCase();
+  });
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
@@ -169,6 +173,16 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
                   </td>
                 </tr>
               ))}
+              {a.earth_missing_dims?.map((dim) => (
+                <tr key={`missing-${dim}`} className="border-b border-line">
+                  <td className="px-2 py-2 italic">{DIM_LABEL[dim]?.label ?? dim}</td>
+                  <td className="num px-2 py-2 text-right">measured</td>
+                  <td className="num px-2 py-2 text-right">no Earth measurement, scored 0</td>
+                  <td className="px-2 py-2">
+                    <MatchCell mm={{ feature: `no_earth_data:${dim}`, earth: "none", target: "measured", z_diff: null }} />
+                  </td>
+                </tr>
+              ))}
               <tr className="border-b border-line text-faint">
                 <td className="px-2 py-2">Mean elevation</td>
                 <td className="num px-2 py-2 text-right">{fmtNum(t.features.mean_elev_m)} m</td>
@@ -199,7 +213,7 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
               MSI <span className="num text-fg">{pct(score)}</span>
             </span>
           </div>
-          <Radar values={a.sub_scores} />
+          <Radar values={a.sub_scores} availableDims={t.available_dims} earthMissingDims={a.earth_missing_dims} />
         </div>
 
         <div className="rounded-panel border border-line bg-surface p-4">

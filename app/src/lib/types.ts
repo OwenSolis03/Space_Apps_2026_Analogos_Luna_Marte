@@ -13,6 +13,7 @@ export const fullWeights = (w: Partial<Weights>): Weights => ({ ...ZERO_WEIGHTS,
 export interface Preset {
   label: string;
   weights: Partial<Weights>;
+  applies_to?: Body[];
 }
 
 export interface Limit {
@@ -56,6 +57,7 @@ export interface Analog {
   polar_cold?: boolean;
   subsurface_note?: string | null;
   mismatches: Mismatch[];
+  earth_missing_dims?: Dimension[];
 }
 
 export interface Target {
@@ -73,6 +75,15 @@ export interface Target {
   iau_label: string | null;
   features: Record<string, number>;
   aux: Record<string, number | null>;
+  available_dims?: Dimension[];
+  preset_status?: Record<
+    string,
+    {
+      status: "ok" | "not_applicable_body" | "insufficient_target_data";
+      coverage: number;
+      missing_dims: Dimension[];
+    }
+  >;
   geology?: { unit?: string; geo_class?: string; geo_class_share?: number } | null;
   dust?: { level_rank?: number; seasonality_rank?: number; peak_phase_deg?: number } | null;
   ice?: { cold_rank?: number; ice_T?: number; ice_source?: string } | null;
@@ -99,6 +110,12 @@ export interface Universe {
     not_modelled?: { item: string; note: string }[];
     citations?: string[];
     datasets?: { name: string; source: string; url: string | null }[];
+    scoring_policy?: {
+      earth_missing_score: number;
+      min_preset_coverage: number;
+      rules: string[];
+    };
+    preset_status_summary?: Record<string, Record<string, Record<string, number>>>;
   };
   mission_presets: Record<string, Preset>;
   limits: Record<Body, Limit[]>;
