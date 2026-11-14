@@ -412,6 +412,8 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 
 ## 6. Orden y tiempos (48 horas desde el 14 de noviembre, 9:00)
 
+> **Reemplazado por [entrega.md](entrega.md).** La sede real (NASA Space Apps Sonora, Tec de Monterrey) da el sábado de 9:00 a 21:00 y pitches el domingo en la mañana, no 48 horas. La tabla de abajo queda como referencia del orden de las tareas.
+
 | Horas | Pipeline (Owen + Gemini) | App (Javier) | Contenido |
 | --- | --- | --- | --- |
 | 0–2 | Enviar T0.1 y T0.2 (si no se enviaron antes). T1, T2 y sus tests | Proyecto Vite, mapas con capas base, JSON de ejemplo | `limits.json`, lista de blancos con fuentes (T4) |

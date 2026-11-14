@@ -16,6 +16,7 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 | `docs/plan_t4.md` | Plan detallado de T4 (blancos curados y clusters) |
 | `docs/prompt_gemini.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
 | `docs/progreso_handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
+| `docs/entrega.md` | Qué se entrega, checklist y cronograma del 14 y 15 de noviembre |
 | `docs/operacion_sin_ssh.md` | Trabajar sin SSH: flujo por Open OnDemand, kit offline y plan B |
 | `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |
 | `enrich_nomenclature.py` | Nombres IAU para cada arquetipo |
@@ -49,19 +50,39 @@ Notas de referencia del challenge, revisadas el 1 de noviembre de 2026.
 - Elías Peregrina Cázares
 - Javier Leonardo Miranda Sanchez
 
-## Sede: Hermosillo
+## Sede: NASA Space Apps Sonora (Tec de Monterrey)
 
-- **Evento:** [Local Event de Hermosillo](https://www.spaceappschallenge.org/2026/local-events/hermosillo/), presencial y gratuito, el 14 y 15 de noviembre
-- **Lugar:** Universidad Tecnológica de Hermosillo (UTH), Blvd. de los Seris final S/N, Col. Parque Industrial, 83299 Hermosillo, Son.
-- **Local Lead:** J. Fernando Morales Romero, fernandomorales@uthermosillo.edu.mx
-- **Qué llevar:** laptop y cargadores, multicontacto o extensión, identificación oficial o credencial escolar, y termo
-- **Premios locales:** la sede indica que 1.º y 2.º lugar reciben pase a la evaluación internacional
+El equipo está inscrito en **NASA Space Apps Sonora 2026**, en el Tec de Monterrey, Campus Sonora Norte, Salón de Congresos, Hermosillo. Antes el README apuntaba a la sede de la UTH; ese **no** es nuestro evento. Información revisada el 2026-11-13 en [spaceappssonora.org](https://spaceappssonora.org/) y en su [guía de pitches](https://spaceappssonora.org/pitches).
 
-Por aclarar con el Local Lead (revisado el 1 de noviembre de 2026):
+| Día | Horario (hora de Hermosillo) | Qué ocurre |
+| --- | --- | --- |
+| Viernes 13 | 14:00–16:00 | Bootcamp, Salón de Congresos |
+| Viernes 13 | 16:00 | Inauguración |
+| Sábado 14 | 9:00–21:00 | Hackathon (comida a las 13:00) |
+| Domingo 15 | 9:00–14:00 | **Pitches** y cierre |
 
-- **Horario:** la pestaña de la sede sigue con texto de ejemplo, sin horario real, así que aún no se conoce la hora de cierre de entregas.
-- **Pre-registro de la UTH:** la sede pide llenar un formulario de Google, pero el enlace no funciona; solo aparece el texto "Enlace al formulario Google de la sede UTH".
-- **Pase a la evaluación global:** la sede habla de un pase para 1.º y 2.º lugar, mientras que la página global dice que entregar el proyecto basta para ser elegible.
+- **Contacto:** el grupo de WhatsApp de participantes, que es obligatorio, más Instagram y Facebook. La página no publica correo ni nombres de los organizadores.
+- **Mentores:** Edgar León (Tec de Monterrey), Julio Waissman (UNISON), Eddy Varela, Jesús Medina, Octavio López y Michelle Sesteaga.
+- **Hora límite de entrega:** la página no la da. El cierre global es el 15 a las 23:59, pero los pitches son el domingo en la mañana, así que todo debe estar listo **antes del pitch**. Confirmarlo en el grupo de WhatsApp.
+- **Red:** la red de la sede bloquea SSH; usar Open OnDemand ([operacion_sin_ssh.md](docs/operacion_sin_ssh.md)).
+
+### Qué hay que entregar (reglas de la sede)
+
+Checklist completa y cronograma ajustado en [docs/entrega.md](docs/entrega.md).
+
+- **Pitch:**
+  - máximo **3 minutos**, sin preguntas;
+  - puede ser en español;
+  - láminas en **Canva**, con el nombre del proyecto y el **número de equipo** en la primera;
+  - estructura sugerida: problema y contexto, luego solución y tecnología, luego impacto y escalabilidad (un minuto cada parte).
+- **Documentación en inglés:** en la página del proyecto en spaceappschallenge.org.
+- **Video en inglés:** en YouTube, de **máximo 30 segundos** (problema 5 s, solución 15 s, impacto 10 s).
+- **App web publicada** para que los jueces la prueben; verificar el enlace antes de entregar.
+- **Criterios de evaluación:**
+  - innovación tecnológica;
+  - impacto social;
+  - documentación;
+  - escalabilidad.
 
 ## Qué pide
 
@@ -112,7 +133,7 @@ Reporte escrito, mapa interactivo, visualización, app, historia, sistema de ran
 
 ## Reglas clave
 
-- **No se puede empezar antes:** los equipos no pueden trabajar en el challenge antes del 14 de noviembre.
+- **No se puede empezar antes:** la regla global dice que no se trabaja en el challenge antes del 14 de noviembre. **Nuestra sede nos dio permiso de empezar desde el 13** (confirmado por Owen el 2026-11-13).
 - **Equipos:** máximo 6 personas. El mínimo para la evaluación global es 1 en un Local Event como el nuestro.
 - **Una sola participación:** cada persona va en un solo equipo y cada equipo aborda un solo challenge.
 - **Entrega:** se hace desde la página del proyecto del equipo. Hay que seguir la hora de cierre del Local Event elegido.
@@ -121,12 +142,14 @@ Reporte escrito, mapa interactivo, visualización, app, historia, sistema de ran
 
 ## Pendientes antes del hackathon
 
-- [x] Formar equipo para este challenge (Endurance CXXV, sede Hermosillo)
-- [ ] Confirmar con el Local Lead el horario, el pre-registro de la UTH y el pase a la evaluación global
-- [ ] Revisar los recursos y las guías el 13 de noviembre
+- [x] Formar equipo para este challenge (Endurance CXXV)
+- [x] Inscribirse en NASA Space Apps Sonora (Tec de Monterrey, Campus Sonora Norte)
+- [ ] Confirmar en el grupo de WhatsApp la hora límite de entrega y el número de equipo
+- [ ] Revisar los recursos y las guías del 13 de noviembre
 
 ## Fuentes
 
 - [Página del challenge](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/)
 - [Pasos del hackathon 2026](https://www.spaceappschallenge.org/2026/)
 - [Preguntas frecuentes para participantes](https://www.spaceappschallenge.org/resources/participant-faqs/)
+- [NASA Space Apps Sonora 2026](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches)

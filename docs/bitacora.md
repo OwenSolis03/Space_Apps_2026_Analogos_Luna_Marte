@@ -2,6 +2,18 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13 (noche): sede real y reglas de entrega
+
+- El equipo está inscrito en **NASA Space Apps Sonora 2026** (Tec de Monterrey, Campus Sonora Norte), no en la sede de la UTH que aparecía en el README.
+- Claude revisó [spaceappssonora.org](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches):
+  - hackathon el sábado 14 de 9:00 a 21:00; pitches el domingo 15 de 9:00 a 14:00;
+  - pitch de 3 minutos en Canva, con el número de equipo en la primera lámina;
+  - documentación y video de 30 s en inglés;
+  - app publicada;
+  - criterios de evaluación: innovación, impacto social, documentación y escalabilidad.
+- Se actualizó el README (sede, horario y reglas) y se creó [entrega.md](entrega.md) con la lista de entregables, el cronograma ajustado a un solo día útil, el checklist y el plan B. Se marcó como reemplazado el cronograma de 48 horas de `plan_implementacion.md`.
+- La sede dio permiso al equipo de empezar a trabajar desde el 13 de noviembre. Con eso queda resuelto el pendiente de la entrada "revisión del prototipo y repositorio", que preguntaba si las corridas previas contaban como trabajo previo.
+
 ## 2026-11-13: T4 — blancos curados, soporte polar T4.0 y clusters globales
 
 **Qué se hizo (código escrito por Gemini a partir de `docs/plan_t4.md` de Claude)**

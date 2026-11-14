@@ -1,6 +1,6 @@
 # Operación sin SSH a Yuca (14 y 15 de noviembre)
 
-La red de la sede (UTH) bloquea SSH, pero **Open OnDemand (OOD) sí funciona**: es el portal web de Yuca y va por HTTPS. Así se trabajó el 2026-11-13 y así se trabaja durante el hackathon. Este documento describe ese flujo, el kit offline y el plan B. Escrito el 2026-11-13 por Claude.
+La red de la sede (Tec de Monterrey, Campus Sonora Norte) bloquea SSH, pero **Open OnDemand (OOD) sí funciona**: es el portal web de Yuca y va por HTTPS. Así se trabajó el 2026-11-13 y así se trabaja durante el hackathon. Este documento describe ese flujo, el kit offline y el plan B. Escrito el 2026-11-13 por Claude.
 
 ---
 
@@ -128,7 +128,7 @@ Es un `tar` de unos cuantos MB: corre en segundos y está permitido en el login.
 En orden:
 
 1. **Hotspot del celular.** Con datos móviles normalmente pasan SSH y OOD. Para probar SSH: `ssh -o ConnectTimeout=8 owen@<host-de-yuca> hostname`; si responde `login-01`, se puede volver a MODO A.
-2. **Preguntar a la sede (Local Lead)** si hay otra red sin el bloqueo.
+2. **Preguntar a la sede** (grupo de WhatsApp de participantes) si hay otra red sin el bloqueo.
 3. **Otro integrante** con cuenta en `p089` (`aborquez` o `javier`) desde una red sin bloqueo, siguiendo la cola.
 
 No intentar túneles, proxies ni nada que rodee el bloqueo de la red de la institución.
