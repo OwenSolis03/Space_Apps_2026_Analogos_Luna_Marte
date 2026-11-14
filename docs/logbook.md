@@ -9,7 +9,7 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 - New [plan_mineral_dimension.md](plan_mineral_dimension.md) with the data sources checked live on 2026-11-14: OMEGA DDR global maps (ESA PSA), TES mineral maps (ASU), EMIT `EMITL3ASA` V001/V002 (CMR).
 - **Only one pairing holds up physically:** Mars OMEGA `FERRIC_BD530` (VNIR Fe³⁺ band depth) against EMIT hematite + goethite (VNIR mass fraction), compared as within-planet ranks like dust. TES hematite (coarse grey hematite, thermal IR) is a different material and is ruled out.
 - **Hydrated minerals and carbonates are not scored:** Mars has no continuous global hydration map in these sources (OMEGA gives a site list; TES sulfate and sheet-silicate abundances are near detection limits). They stay as display-only context (option A).
-- **Blocker:** since 2026, the ESA PSA archive returns 401 without a COSMOS login, so Owen has to register before the OMEGA download job can run. Without it, the pre-registered verdict is "drop for the submission".
+- **Blocker:** the ESA PSA archive now returns 401 without a COSMOS login (checked 2026-11-14), so Owen has to register before the OMEGA download job can run. Without it, the pre-registered verdict is "drop for the submission".
 - Built-in stop rule: drop if the Mars ferric rank duplicates the dust dimension (|Spearman ρ| > 0.7 against `dust_level_rank`).
 
 ## 2026-11-14: Architecture and pipeline diagram suite (Archify)
