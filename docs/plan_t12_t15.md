@@ -439,6 +439,44 @@ Claude confirms the unit mapping or corrects it, as a commit to `pipeline/data/g
 
 ---
 
+### 5.8 Review outcome (Claude, 2026-11-14, runs 2242482 / 2242484 / 2242485)
+
+**T14 geology (2242482): approved with overrides.** They are in `pipeline/data/geology_overrides.json` (commit `16db5db`), each with its reason in the file:
+
+- Moon terra units → `CRYSTALLINE`;
+- the basin formations and Maunder → `IMPACT`;
+- the terra domes → `VOLCANIC_OTHER`;
+- the Mars polar dunes → `SEDIMENTARY`.
+
+**T14 must be re-run before T15,** so the overrides are applied.
+
+**T13 dust (2242484): approved.**
+
+- **Mars passes every physical check:**
+  - the storm years MY25, MY34 and MY28 are the top 3;
+  - the global peak is at Ls 225 (perihelion season);
+  - the dust is highest in the tropical belt, with its maximum over Chryse–Valles Marineris.
+- **Earth's level and phase maps** are plausible.
+- **Two checks failed because their criteria were mis-specified,** not because the code is wrong:
+  - **Check 5 (hard):** the Taklimakan rank came out 0.73, against > 0.9 expected. Ranks are computed among *arid* patches only, which are dusty peers, and the Taklimakan's dust is strongly seasonal (spring), so its annual mean is moderate. The check is now **Bodélé rank > 0.9 (hard)**, with the Taklimakan reported only.
+  - **Check 7 (soft):** Hellas ≈ Tharsis is expected *because* of the 610 Pa normalisation. The plan's reasoning was wrong, and the check is dropped.
+- **Known limitation, to state in the report and the export:** Deep Blue AOD measures all aerosols, not only dust. Restricting Earth to arid patches (NDVI ≤ 0.25) removes most smoke and pollution regions, but not all.
+  - An optional refinement, **not** required for T15: keep only the months with a low Deep Blue Ångström exponent, which indicates coarse dust.
+
+**T12 ice (2242485): approved.**
+
+- the coldest 1 % of Earth patches are all in Antarctica;
+- Haworth and Slater have cold ranks of 0.97 and 0.96;
+- the Dry Valleys get `ice_E = 0.5`;
+- Arcadia SWIM gets `ice_T = 1`.
+
+Re-run it after T14 for consistency; it takes minutes.
+
+**Amendment for T15: seasons near the equator.** In the tropics the seasonal cycle is weak, and the hemisphere switch at 0° makes the local phase jump 180° across the equator. This shows as a hard seam on `map_dust_peak_phase_mars.png`.
+
+- **Rule:** when `|lat| < 15°` for **either** the Earth patch or the target, drop the phase term. Then `S_dust = exp(−(d_level² + d_season²) / (2 · 2))`.
+- **Add to `tests/test_match.py`:** a tropical target ignores the phase difference.
+
 ## 6. Jobs and commands
 
 | Job | Resources | What |
