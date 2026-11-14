@@ -37,10 +37,12 @@ CÓMO TRABAJAR
   no lo cambies por tu cuenta.
 - Si el plan trae un "plan B" o un límite de tiempo para una parte, respétalo y avisa cuando lo uses.
 - Si una verificación falla dos veces seguidas, no sigas intentando a ciegas: diagnostica y repórtamelo.
-- Una tarea = un commit (o las subtareas que el plan indique), con mensaje en español que empiece con el ID
-  ("T4: blancos curados y clusters").
-- En el mismo commit, agrega una entrada arriba en docs/bitacora.md: fecha, qué se hizo, qué falta, y que el
-  código lo escribió Gemini a partir del plan de Claude. Si cambias datos, corridas o el pipeline, actualiza
+- Una tarea = un commit (o las subtareas que el plan indique), con mensaje EN INGLÉS que empiece con el ID
+  ("T7: RBF matching, MSI presets and diversity selection"). Desde el 2026-11-13 todo lo nuevo va en inglés:
+  mensajes de commit, docstrings y comentarios de código nuevo, entradas nuevas de la bitácora y documentos
+  nuevos. No reescribas commits viejos ni hagas `git push --force`: docs/HISTORY.md cuenta la historia en inglés.
+- En el mismo commit, agrega una entrada arriba en docs/bitacora.md (en inglés): fecha, qué se hizo, por qué,
+  qué falta, y que el código lo escribió Gemini a partir del plan de Claude. Si cambias datos, corridas o el pipeline, actualiza
   docs/pipeline.md y la tabla de docs/progreso_handoff.md.
 - No borres ni reescribas los scripts v1 de la raíz (process_analogs.py, match_earth_analogs.py,
   enrich_nomenclature.py) y NO los importes: no tienen `if __name__ == "__main__"` y al importarlos se ejecutan

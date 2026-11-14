@@ -16,6 +16,7 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 | `docs/plan_t4.md` | Plan detallado de T4 (blancos curados y clusters) |
 | `docs/prompt_gemini.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
 | `docs/progreso_handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
+| `docs/HISTORY.md` | Project history in English: decisions, reasons, commits and Slurm jobs |
 | `docs/entrega.md` | Qué se entrega, checklist y cronograma del 14 y 15 de noviembre |
 | `docs/operacion_sin_ssh.md` | Trabajar sin SSH: flujo por Open OnDemand, kit offline y plan B |
 | `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |

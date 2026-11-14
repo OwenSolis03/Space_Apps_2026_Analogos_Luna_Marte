@@ -8,7 +8,7 @@ Leer antes: [pipeline.md](pipeline.md) (cómo funciona la v1 y recursos de Yuca)
 
 ## 0. Reglas para quien implemente
 
-1. **Una tarea, un commit.** Mensaje en español que diga qué tarea es (`T3: features globales de Marte y Luna`). Agregar una entrada en `docs/bitacora.md` en el mismo commit.
+1. **Una tarea, un commit.** Mensaje que diga qué tarea es. Hasta el 2026-11-13 los mensajes iban en español (`T3: features globales de Marte y Luna`); **desde entonces van en inglés** (`T7: RBF matching and MSI presets`). La historia completa en inglés está en [HISTORY.md](HISTORY.md). Agregar una entrada en `docs/bitacora.md` en el mismo commit.
 2. **No borrar la v1.** Los scripts de la raíz (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) se quedan como referencia. El código nuevo va en `pipeline/`.
 3. **Nada pesado en el repo.** Rasters, parquet y shards van en Yuca (`/lustre/proyectos/p089/...`). Al repo solo sube el JSON final que consume la app (`app/public/data/`) si pesa menos de 20 MB.
 4. **Reglas de Yuca (obligatorias):**
