@@ -1,0 +1,100 @@
+/* RETÍCULA component styles, copied from docs/design-system/reticula/project/components/bundle.css. */
+/* Additions for the explorer (.tm-chip, .tm-range) are appended in phase 4. */
+/* RETÍCULA: estilos de componentes. Se carga después de tokens.css y no declara valores propios de color, tipo ni espacio. */
+
+/* Tipografía: el sistema pone en mayúsculas display, titulares y etiquetas */
+.display-a, .display-b, .display-c, .code, .headline, .byline, .label, .quote { text-transform: uppercase; }
+.tm-outline { color: transparent; -webkit-text-stroke: var(--stroke-hairline) var(--ink); }
+
+/* Tonos de glifo y mark */
+.tm-tone-ink { color: var(--ink); }
+.tm-tone-muted { color: var(--ink-muted); }
+.tm-tone-graphite { color: var(--graphite); }
+.tm-tone-signal { color: var(--signal); }
+
+.tm-focusable:focus-visible { outline: var(--stroke-line) solid var(--focus); outline-offset: 2px; }
+
+/* Panel */
+.tm-panel { position: relative; box-sizing: border-box; min-height: 192px; padding: var(--space-4); display: flex; flex-direction: column; justify-content: space-between; gap: var(--space-4); margin: 0; }
+.tm-panel--chamfer { clip-path: polygon(0 0, calc(100% - var(--chamfer-md)) 0, 100% var(--chamfer-md), 100% 100%, 0 100%); }
+.tm-panel--raised { background: var(--surface-raised); color: var(--ink); }
+.tm-panel--signal { background: var(--signal); color: var(--on-signal); }
+.tm-panel--tint { background: var(--signal-tint); color: var(--ink); }
+.tm-panel--graphite { background: var(--graphite); color: var(--on-graphite); }
+.tm-panel--sunken { background: var(--surface-sunken); color: var(--ink); border: var(--stroke-hairline) solid var(--line-faint); }
+.tm-panel--outline { background: transparent; color: var(--ink); border: var(--stroke-hairline) solid var(--line); }
+.tm-panel__head { display: grid; gap: var(--space-1); }
+.tm-panel__label, .tm-panel__note { margin: 0; }
+.tm-panel__body { flex: 1; }
+.tm-panel__foot { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); }
+.tm-panel__code { margin: 0; }
+.tm-panel__marks { flex: none; }
+
+/* Tag */
+.tm-tag { display: inline-flex; align-items: center; box-sizing: border-box; padding: 2px var(--space-2); font-family: var(--font-display); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; background: var(--graphite); color: var(--on-graphite); }
+.tm-tag--signal { background: var(--signal); color: var(--on-signal); }
+.tm-tag--outline { background: transparent; color: var(--ink); border: var(--stroke-hairline) solid var(--line); }
+
+/* Button */
+.tm-btn { box-sizing: border-box; display: inline-flex; align-items: center; gap: var(--space-2); min-height: 40px; padding: 0 var(--space-4); border: var(--stroke-line) solid var(--signal); background: var(--signal); color: var(--on-signal); font-family: var(--font-display); font-size: 13px; line-height: 1; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; }
+.tm-btn--secondary { background: transparent; border-color: var(--ink); color: var(--ink); }
+.tm-btn:hover { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.tm-btn:active { background: var(--graphite); border-color: var(--graphite); color: var(--on-graphite); }
+.tm-btn:disabled { background: var(--surface-sunken); border-color: var(--surface-sunken); color: var(--ink-muted); cursor: not-allowed; }
+
+/* IconButton */
+.tm-ibtn-wrap { display: inline-flex; align-items: center; gap: var(--space-1); }
+.tm-ibtn { box-sizing: border-box; width: 40px; height: 40px; padding: 0; display: inline-grid; place-items: center; border-radius: var(--radius-round); border: var(--stroke-line) solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.tm-ibtn:hover, .tm-ibtn[aria-pressed="true"] { border-color: var(--ink); }
+.tm-ibtn:active { background: var(--ink); color: var(--surface); }
+.tm-ibtn:disabled { border-color: var(--line-faint); color: var(--ink-muted); cursor: not-allowed; }
+
+/* Progress */
+.tm-progress { display: grid; gap: var(--space-2); }
+.tm-progress__row { display: flex; justify-content: space-between; color: var(--ink); }
+.tm-progress__bar { display: flex; align-items: stretch; gap: var(--space-2); }
+.tm-progress__track { position: relative; box-sizing: border-box; flex: 1; height: 12px; border: var(--stroke-hairline) solid var(--line); }
+.tm-progress__fill { position: absolute; top: 2px; bottom: 2px; left: 2px; background: var(--signal); }
+.tm-progress__hazard { flex: 0 0 72px; height: 12px; }
+
+/* Readout */
+.tm-readout { display: grid; gap: var(--space-2); }
+.tm-readout__title { margin: 0; color: var(--ink); }
+.tm-readout__list { margin: 0; display: grid; gap: var(--space-1); }
+.tm-readout__row { display: grid; grid-template-columns: minmax(96px, 1fr) 2fr; gap: var(--space-3); align-items: center; }
+.tm-readout dt { color: var(--ink-muted); }
+.tm-readout dd { margin: 0; color: var(--ink); }
+
+/* Headline */
+.tm-headline { display: grid; gap: var(--space-3); }
+.tm-headline__rule { display: block; height: var(--stroke-bar); background: var(--signal); }
+.tm-headline__rule--graphite { background: var(--graphite); }
+.tm-headline__kicker { margin: 0; color: var(--ink-muted); }
+.tm-headline__title { margin: 0; color: var(--ink); font-weight: 300; }
+.tm-headline__subtitle { margin: 0; color: var(--signal-ink); }
+.tm-headline__by { margin: 0; color: var(--ink-muted); }
+
+/* Frame */
+.tm-frame { margin: 0; display: grid; gap: var(--space-2); }
+.tm-frame__box { position: relative; box-sizing: border-box; border: var(--stroke-hairline) solid var(--line); color: var(--line); }
+.tm-frame__x { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tm-frame__caption { color: var(--ink-muted); }
+
+/* Hazard */
+.tm-hazard { display: block; width: 100%; height: 24px; --c: var(--graphite); background: repeating-linear-gradient(135deg, var(--c) 0 6px, transparent 6px 12px); }
+.tm-hazard--signal { --c: var(--signal); }
+
+/* DotGrid */
+.tm-dotgrid { display: inline-flex; align-items: stretch; gap: var(--space-2); }
+.tm-dotgrid__lead { flex: none; width: var(--stroke-bar); background: var(--signal); }
+.tm-dotgrid--graphite { color: var(--graphite); }
+.tm-dotgrid--faint { color: var(--line-faint); }
+.tm-dotgrid--signal { color: var(--signal); }
+.tm-dotgrid__svg { display: block; }
+
+/* Barcode */
+.tm-barcode { display: flex; box-sizing: border-box; height: 24px; padding: 2px; border: var(--stroke-line) solid var(--c); --c: var(--signal); }
+.tm-barcode--ink { --c: var(--ink); }
+.tm-barcode--graphite { --c: var(--graphite); }
+.tm-barcode i { display: block; flex-basis: 0; flex-shrink: 1; }
+.tm-barcode i.on { background: var(--c); }
