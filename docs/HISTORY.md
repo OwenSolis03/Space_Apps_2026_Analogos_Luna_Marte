@@ -199,18 +199,21 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 - **Explainability and provisional limits:** pairs record per-feature physical mismatches (`|z_diff| > 1.5`) and thermal rank differences (`> 0.30`). Until T11 creates `pipeline/data/limits.json`, `export.py` falls back with a warning to the provisional limits in `app/public/data/sample.json`.
 - **Full run outcome (`2242474`):** `5/5` hard checks, `3,908` pairs (`213 KNOWN_ANALOG`, `3,695 NEW_CANDIDATE`) exported in `analogs_universe.json` (`3.18 MB`), pending review of `t7_report.md` before publishing into the app.
 
+## 14. Beyond terrain: geology, dust seasons and ice (T12–T14, before T15)
+
+**Commits:** `6df4021` (plan), `bec78d7`–`25f2e7e`, `c834727`, `16db5db` (`geology_overrides.json`). **Jobs:** `2242478` (70 tests), `2242481` (downloads), `2242482` (T14), `2242484` (T13), `2242485` (T12).
+
+- **Why:** T7 showed that pure topography leaves flat Mars plains tied (top 1 vs top 30 MSI differ by 0.012) and does not recognise volcanic edifices like Olympus Mons as volcanic. T12–T14 add lithology (`GEO_CLASSES` + `GEO_SIMILARITY`), dust level/seasonality/local peak phase, and water/cold-trap ice without changing `geo.py` or `features.py`.
+- **T14 Geology (`2242482`, 6/6 hard, 2/3 soft):** GLiM separates Antarctic/Greenland ice sheets (`12,742` patches) from exposed polar rock (`McMurdo Dry Valleys` = `sm -> SEDIMENTARY`). Lunar polygons use `Shapefiles/GeoUnits.shp` (`12,247` polygons, `49` units + DOMU CSV) because the lunar `.gdb` uses ESRI CDF compression unhandled by `OpenFileGDB`; Mars uses `SIM3292_geodatabase.gdb / SIM3292_Global_Geology` (`1,311` polygons, `44` units). Word-boundary matching prevented `"edifice"` from matching `"ice"`. After inspecting `geology_mapping_review.md`, `16db5db` added `pipeline/data/geology_overrides.json` for Moon terra/basin units and Mars polar dunes (`lApd`).
+- **T13 Dust & Seasons (`2242484`, 3/4 hard, 3/4 soft):** Printed NetCDF3 variable metadata selected Montabone `cdod610` (`Pa/Pa`, `MY24`–`MY36`, perihelion peak at `Ls=225°`, storm years `[25, 34, 28]` highest), and printed HDF4 metadata selected MODIS Terra `MOD08_M3` v6.1 `Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean_Mean` (`scale_factor=0.001`, `add_offset=0.0`, summer Sahara `0.4546`). Ranks and hemisphere-shifted local peak phase enable honest cross-body comparison. Check #5 failed only at Taklimakan `(39, 83)` (`rank=0.7281` vs `> 0.9`) because year-round annual mean 550 nm AOD across non-ice land peaks in the Indo-Gangetic Plain and Sahel/Sahara while Taklimakan's dust is strongly seasonal; paused at §5.6 for review.
+- **T12 Water & Ice (`2242485`, 1/1 hard, 3/3 soft):** Uses T14 `ice_surface` (`12,742`), winter-frozen `lst_day_c < 0` (`ice_E=0.5`, including 9/9 Dry Valleys patches), and `pipeline/data/ice_hints.json` (`mars-arcadia-swim`), plus within-body `cold_rank` (Haworth `0.9734`, Slater Plain `0.9574`).
+
 ---
 
 ## Next
 
-- **Beyond terrain (T12–T15, [plan_t12_t15.md](plan_t12_t15.md)).** The T7 run (job 2242474) showed that terrain alone cannot separate flat Mars plains (top-1 vs top-30 MSI differ by 0.012) and does not recognise volcanoes as volcanoes. Three evidence dimensions are added, each with open data checked on 2026-11-14:
-  - regional geology, a shared class taxonomy over GLiM (Earth), USGS SIM 3292 (Mars) and the USGS unified lunar map;
-  - dust processes and seasons, Montabone's Mars dust climatology against MODIS Deep Blue AOD, compared by rank and local seasonal phase;
-  - cold traps and ice, Diviner against MODIS LST and GLiM ice.
-
-  GLiM also lets the pipeline tell ice sheets from bare cold ground, so the polar cap of T7 becomes an ice cap.
-
-- **Review `runs/2242474/t7_report.md`** (score distribution and Olympus Mons check) and publish `analogs_universe.json` to `app/public/data/`.
+- **§5.6 Review stop (before T15):** Claude and Owen review `runs/2242484/t13_checks.json` + the 4 dust maps (notably hard check #5 at Taklimakan `0.7281`), `runs/2242485/t12_checks.json`, and confirm re-running `jobs/t14_geology.slurm` with `pipeline/data/geology_overrides.json` (`16db5db`).
+- **T15:** Integrate `geology`, `dust` and `ice` into `pipeline/match.py` and `pipeline/export.py` (7-dimension MSI + ice-sheet cap + extended `analogs_universe.json`), then publish to `app/public/data/`.
 - **T11:** physical limits per body (`pipeline/data/limits.json`) and verified dataset URLs.
 - **App (T10):** connect `app/` (`DATA_URL`) to `analogs_universe.json` and deploy.
 - **Code in English:** finish translating older Spanish docstrings/comments in `pipeline/` (T1–T6).

@@ -16,6 +16,10 @@ T6: pipeline/earth_layers.py + known_analogs.json ─► data/derived/{ndvi_max_
 T5: pipeline/earth_features.py ───────────┴─► runs/2242438/features_earth.parquet (40,244 valid patches; smoke: runs/2242432/)
                                           │
 T7/T8: pipeline/match.py, export.py ──────┴─► runs/2242474/analogs_universe.json (3.18 MB; pending copy to app/public/data/)
+
+T14: pipeline/geology.py + rules/overrides ─► runs/2242482/geology_{earth,moon,mars,targets}.parquet (pre-16db5db; review stop)
+T13: pipeline/dust.py ──────────────────────► runs/2242484/dust_{earth,mars,targets}.parquet + 4 PNGs (check #5 review stop)
+T12: pipeline/ice.py + ice_hints.json ──────┴─► runs/2242485/ice_{earth,targets}.parquet (uses T14_DIR=runs/2242482)
 ```
 
 **Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (e.g., jobs `2242438`–`2242440` write into `runs/2242438/`, `plan_t5.md` §2).
@@ -57,6 +61,11 @@ Paths on Yuca, under `/lustre/proyectos/p089/data/raw/`.
 | Earth | `earth/modis/ndvi/*.hdf` (MOD13C2 v061, 12 months of 2023) | NASA Earthdata (LP DAAC) | OK (cache in `data/derived/ndvi_max_2023.tif`) |
 | Earth | `earth/modis/lst/*.hdf` (MOD11C3 v061, 12 months of 2023) | NASA Earthdata (LP DAAC) | OK (cache in `data/derived/lst_2023.tif`) |
 | Earth | `earth/naturalearth/ne_10m_{roads,airports,admin_0_countries}` | Natural Earth | OK (1,650,450 road vertices after densifying to 0.02°) |
+| Earth | `geology/earth_glim/glim_wgs84_0point5deg.txt.asc` (1.2 MB) | GLiM 0.5° (Hartmann & Moosdorf 2012, PANGAEA) | OK (`2242481`) |
+| Mars | `geology/mars_sim3292/SIM3292_MarsGlobalGeologicGIS_20M/` (`SIM3292_geodatabase.gdb`) | USGS SIM 3292 1:20M (Tanaka et al. 2014) | OK (`2242481`, `1,311` polygons, `44` units) |
+| Moon | `geology/moon_unified/Unified_Geologic_Map_of_the_Moon_GIS/Lunar_GIS/Shapefiles/GeoUnits.shp` + `DOMU_descriptions.csv` | USGS Unified Geologic Map v2 1:5M (Fortezzo et al. 2020) | OK (`2242481`, `12,247` polygons, `49` units; `.gdb` skipped due to ESRI CDF) |
+| Mars | `mars/dust_montabone/dustscenario_MY{24..36}_v2-*.nc` (13 files, ~58 MB each) | Montabone et al. 2015/2020 kriged CDOD v2 | OK (`2242481`, NetCDF3 `scipy`) |
+| Earth | `earth/modis/aod/MOD08_M3.A{2019..2023}*.hdf` (60 granules) | NASA Earthdata (LAADS CMR v6.1 via `earthaccess`) | OK (`2242481`) |
 | Moon, Mars | `nomenclature/MARS*.dbf`, `nomenclature/MOON*.dbf` | USGS/IAU Gazetteer | OK (download not recorded in the scripts) |
 
 **Derived files** in `/lustre/proyectos/p089/data/derived/`:
@@ -85,6 +94,9 @@ Checked on Yuca on 2026-11-13 with rasterio. **Always apply `value = raw · scal
 | `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` | uint8 × 3 | 1.0 | 0.0 | 0 | Obsolete (colour-shaded RGB); move to `_to_delete/` |
 | `MOD13C2.A2023*.hdf` (`CMG 0.05 Deg Monthly NDVI`) | int16 | **÷ 10000** | 0.0 | −3000 | **Opposite MODIS VI convention:** divide by 10000, do not multiply. `valid_range = [-2000, 10000]`; values below −0.3 become NaN. No data south of 59.45°S (Antarctica missing). Read with `pyhdf` |
 | `MOD11C3.A2023*.hdf` (`LST_Day_CMG`, `LST_Night_CMG`) | uint16 | **× 0.02** | −273.15 (to °C) | 0 | **Here it is multiplied:** `°C = raw × 0.02 − 273.15` (`valid_range = [7500, 65535]`, at least 3 valid months). Covers Antarctica. Read with `pyhdf` |
+| `MOD08_M3.A2019..2023*.hdf` (`Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean_Mean`) | int16 | **× 0.001** (`0.0010000000474974513`) | 0.0 | −9999 | `(raw − add_offset) × scale_factor`, `valid_range = [0, 5000]`. Grid 180 × 360 (`89.5°N` to `-89.5°S`, `-179.5°W` to `179.5°E`); no retrievals over snow/ice (NaN). Read with `pyhdf` |
+| `dustscenario_MY{24..36}_v2-*.nc` (`cdod610`, `Ls`, `Time`) | float32 | 1.0 (`cdod610`) | 0.0 | — | NetCDF3 classic read via `xarray` `engine="scipy"`; `cdod610` is IR absorption CDOD normalized to 610 Pa (`units='Pa/Pa'`), grid 669 × 60 × 120 (`88.5` to `-88.5`, `-180` to `177`) |
+| `glim_wgs84_0point5deg.txt.asc` | int (`1..16`) | — | — | −9999 | ESRI ASCII 720 × 360 (`0.5°`); coastline cells mapped from `wb` via valid 3×3 neighborhood |
 | Copernicus GLO-90 tiles | float32 | 1.0 | 0.0 | **none** | **Sea inside coastal tiles is exactly 0.0.** Tile width shrinks with latitude (1200 px below 50°, down to 120 px above 85°). The VRT treats 0 as nodata |
 
 ## v1 scripts
@@ -138,6 +150,11 @@ Logs in `/lustre/proyectos/p089/output/` (v2) and `logs/slurm/` (v1).
 | 2242472 | `pytest -q tests` | v2 tests (T1–T8): 61 passed |
 | 2242473 | `sbatch --export=ALL,T5_DIR=runs/2242432 jobs/t7_match.slurm` | T7/T8 smoke run (445 Earth rows): 3,342 pairs, `analogs_universe.json` (2.99 MB), 5/5 hard checks |
 | 2242474 | `sbatch --export=ALL,T5_DIR=runs/2242438 jobs/t7_match.slurm` | T7/T8 full run (40,244 Earth rows): 3,908 pairs across 76 targets, `analogs_universe.json` (3.18 MB), 5/5 hard checks, `t7_report.md` ready for review |
+| 2242478 | `pytest -q tests` | v2 tests (T1–T8, T12–T14): `70 passed` (`commit e81cccb`) |
+| 2242481 | `jobs/download_t12_t14.slurm` | Downloads & SHA-256 verification: GLiM, SIM 3292, Moon Unified v2, Montabone MY24–MY36, and `60 MOD08_M3` v6.1 HDFs (2019–2023) |
+| 2242482 | `jobs/t14_geology.slurm` | T14 geology (`commit 25f2e7e`, before `16db5db` overrides): Earth GLiM (`40,244`), Moon (`49` units), Mars (`44` units), `6/6` hard and `2/3` soft checks, `geology_mapping_review.md` |
+| 2242484 | `jobs/t13_dust.slurm` | T13 dust & seasons (`commit 16db5db`): `cdod610` + `MOD08_M3 Deep_Blue` (`24,998` Earth valid), all parquets + 4 PNGs + `t13_checks.json` (`3/4` hard, `3/4` soft; paused at §5.6 for check #5 Taklimakan `rank=0.7281 < 0.9`) |
+| 2242485 | `sbatch --export=ALL,T14_DIR=runs/2242482 jobs/t12_ice.slurm` | T12 water & ice (`commit 16db5db`): `ice_earth` (`40,244`), `ice_targets` (`76`), `1/1` hard and `3/3` soft checks |
 
 ## Exploring the data
 

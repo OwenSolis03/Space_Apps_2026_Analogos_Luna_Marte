@@ -2,18 +2,61 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
-## 2026-11-14 (early morning): T14 geology, T13 dust & seasons, T12 water & ice — code and synthetic tests
+## 2026-11-14 (early morning): T14 geology, T13 dust & seasons, T12 water & ice (runs before T15 review stop)
 
-**What was done and why** (code written by Gemini from Claude's [`docs/plan_t12_t15.md`](plan_t12_t15.md) §1–§4 and §7, stopping before T15)
+**What was done and why** (code written by Gemini from Claude's [`docs/plan_t12_t15.md`](plan_t12_t15.md) §1–§4 and §7, stopping at §5.6 before T15)
 
-- **Downloads (`download_aod.py`, `jobs/download_t12_t14.slurm`):** idempotent download job for GLiM 0.5° (`earth_glim`), Mars SIM 3292 (`mars_sim3292`), Moon Unified Geologic Map v2 (`moon_unified`), Montabone kriged CDOD v2 (`mars/dust_montabone`), and 60 MODIS Terra `MOD08_M3` v061 granules (`2019-01-01` to `2023-12-31` via `earthaccess`), printing byte sizes and SHA-256 digests without `-k`.
-- **T14 Geology (`pipeline/geology_rules.py`, `pipeline/geology.py`, `jobs/t14_geology.slurm`, `tests/test_geology.py`):** implemented the 8-class shared taxonomy, symmetric `GEO_SIMILARITY` matrix, word-boundary-safe Moon/Mars keyword rules (preventing `"edifice"` from matching `"ice"`), vectorised GLiM `glim_at` with 3×3 coast fallback, spherical/projected Moon & Mars polygon sampling, `geology_mapping_review.md` / CSV unit summaries, optional `geology_overrides.json` support, and 9 verification checks (`t14_checks.json`).
-- **T13 Dust & Seasons (`pipeline/dust.py`, `jobs/t13_dust.slurm`, `tests/test_dust.py`):** implemented `Ls_E`, hemisphere-shifted `local_phase`, `circular_diff`, 12-bin curve metrics (`dust_level`, `dust_seasonality`, `dust_peak_phase_deg`), `storm_year_boost`, strict NetCDF3 (`engine="scipy"`) and `MOD08_M3` (`pyhdf`) attribute inspection that prints all names and stops if ambiguous, within-body percentile ranks, `S_dust` RBF scoring, 4 PNG maps, and 8 verification checks (`t13_checks.json`).
-- **T12 Water & Ice (`pipeline/data/ice_hints.json`, `pipeline/ice.py`, `jobs/t12_ice.slurm`, `tests/test_ice.py`):** added curated SWIM Arcadia hint (`mars-arcadia-swim`), `cold_rank_E`, three-tier `ice_E` (`1.0` / `0.5` / `0.0`), Diviner `cold_rank_T` and `ice_T`, `S_ice` scoring (`null` when Diviner missing or Mars `ice_T == 0`), and 4 checks (`t12_checks.json`).
+- **Downloads (`download_aod.py`, `jobs/download_t12_t14.slurm`):**
+  - Initial `MOD08_M3` search failed on `version="061"` (`job 2242480`); updated `download_aod.py` to LAADS CMR `version="6.1"` and filtered granules to `2019–2023` (`commit c0f88f5`, excluding Dec 2018 overlap `A2018335`).
+  - **`job 2242481` (`COMPLETED`, exit `0:0`, `00:04:42`, `/lustre/proyectos/p089/output/download_t12_t14_2242481.log`):** verified GLiM 0.5° (`earth_glim/glim_wgs84_0point5deg.txt.asc`, `1,235,039` B), Mars SIM 3292 (`sim3292_database.zip`, `808,910,442` B + extracted `.gdb`/shapefiles), Moon Unified Geologic Map v2 (`Unified_Geologic_Map_of_the_Moon_GIS_v2.zip`, `224,413,040` B), Montabone kriged CDOD v2 (`krigedcdod_v2.tar.gz`, `618,852,694` B + 13 `MY24`–`MY36` NetCDF3 files), and **60 non-empty `MOD08_M3` v6.1 `.hdf` granules** (`2019–2023`), printing byte sizes and SHA-256 digests.
+- **Unit tests (`tests/test_geology.py`, `tests/test_dust.py`, `tests/test_ice.py`):**
+  - Initial run (`job 2242476`) had 1 synthetic failure from overlapping 3×3 neighborhoods on a 4×4 grid; updated `test_glim_at_corners_and_coast_fallback` to 6×6 (`commit e81cccb`).
+  - **`job 2242478` (`COMPLETED`, exit `0:0`, `00:00:05`, `pytest -q tests`):** **`70 passed, 73 warnings in 3.63s`** (0 failures, 0 warnings from T12–T14).
+- **T14 Geology (`pipeline/geology_rules.py`, `pipeline/geology.py`, `jobs/t14_geology.slurm`):**
+  - Implemented the 8 `GEO_CLASSES`, symmetric `GEO_SIMILARITY`, word-boundary Moon/Mars rules (`\b<kw>(?:s|es)?\b` so `"edifice"` does not match `"ice"`), vectorised GLiM `glim_at` with 3×3 coast fallback, layer priority excluding boundary/clip/annotation layers (`commit 25f2e7e`), and `geology_mapping_review.md` / CSV unit summaries.
+  - **`job 2242482` (`COMPLETED`, exit `0:0`, runtime `7.501 s`, commit `25f2e7e`, output `/lustre/proyectos/p089/runs/2242482/`):**
+    - Earth GLiM over `40,244` T5 patches: `SEDIMENTARY=22,123`, `ICE=12,742`, `CRYSTALLINE=3,631`, `VOLCANIC_BASIC=739`, `VOLCANIC_OTHER=630`, `EVAPORITE=181`, `<NA>=138`, `PYROCLASTIC=60` (`lava_tube_terrain=739`, `ice_surface=12,742`).
+    - Moon read from `Shapefiles/GeoUnits.shp` (`12,247` polygons, `49` units, joined with `Unified_Geologic_Map_of_the_Moon_DOMU_descriptions.csv` because `Global_Geology_of_the_Moon_5M_03-02-2020.gdb` uses ESRI CDF compression unhandled by OpenFileGDB). Mars read from `SIM3292_geodatabase.gdb / SIM3292_Global_Geology` (`1,311` polygons, `44` units, joined with `Unit_Description`).
+    - Checks (**`6/6` hard, `2/3` soft** in [`t14_checks.json`](file:///lustre/proyectos/p089/runs/2242482/t14_checks.json)):
+      - Hard PASS: `earth_pinacate_tibesti` (`vb -> VOLCANIC_BASIC`), `earth_dry_valleys` (`sm -> SEDIMENTARY`), `earth_ice_interiors` (`ig -> ICE`), `moon_maria` (`Im2 -> VOLCANIC_BASIC`), `mars_tharsis_volcanoes` (`Ave -> VOLCANIC_BASIC`), `mars_north_polar_cap` (`lApc -> ICE`).
+      - Soft PASS: `moon_shackleton_rim` (`IMPACT`), `default_or_null_area_share` (Moon `7.34%` across 5 `[REVIEW]` units: `Ioho` `3.78%`, `Iif` `1.37%`, `Iohs` `0.93%`, `Iork` `0.73%`, `Iia` `0.54%`; Mars `0.00%`).
+      - Soft FAIL: `mars_arcadia_utopia` (`arcadia_swim: VOLCANIC_BASIC`, `utopia_zhurong: SEDIMENTARY`).
+  - **Post-run review commit `16db5db`:** Claude reviewed `runs/2242482/geology_mapping_review.md` and added [`pipeline/data/geology_overrides.json`](../pipeline/data/geology_overrides.json) (Moon: `Nt, pNt, INt, It -> CRYSTALLINE`, `Ioho, Iohs, Iif, Iork, Iia, Iom -> IMPACT`, `Itd -> VOLCANIC_OTHER`; Mars: `lApd -> SEDIMENTARY`; `arcadia_swim` kept on `lAv` with shallow ice handled via `ice_hints.json`). A clean re-run of `jobs/t14_geology.slurm` on `16db5db`+ awaits §5.6 sign-off together with T13.
+- **T13 Dust & Seasons (`pipeline/dust.py`, `jobs/t13_dust.slurm`):**
+  - First run (`job 2242483`) printed Montabone & MOD08 metadata and exited on `NameError: name 'math' is not defined`; fixed by adding `import math` (`commit c834727`, merged before `16db5db`).
+  - **`job 2242484` (`FAILED`, exit `1:0` at final hard-check guard after writing all parquets, maps and checks, runtime `13.638 s`, commit `16db5db`, output `/lustre/proyectos/p089/runs/2242484/`):**
+    - Printed Montabone NetCDF3 metadata (`669 × 60 × 120` across 13 files `MY24`–`MY36`): selected `cdod610` (`IR absorption CDOD normalized to the reference pressure of 610 Pa`, `units='Pa/Pa'`), `Ls` (`Solar longitude`, `degrees`), `Time` (`sol`).
+    - Printed `MOD08_M3` HDF4 metadata (60 files): selected `Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean_Mean` (`_FillValue=-9999`, `scale_factor=0.0010000000474974513`, `add_offset=0.0`, `valid_range=[0, 5000]`, grid `180 × 360` from `89.5°N` to `-89.5°S`, `-179.5°W` to `179.5°E`); summer Sahara mean AOD = `0.4546`.
+    - Wrote `dust_mars.parquet` (`140,916` rows), `dust_earth.parquet` (`40,244` rows, `24,998` with valid dust), `dust_targets.parquet` (`76` rows), and the 4 maps (`map_dust_level_{earth,mars}.png`, `map_dust_peak_phase_{earth,mars}.png`).
+    - Checks (**`3/4` hard, `3/4` soft** in [`t13_checks.json`](file:///lustre/proyectos/p089/runs/2242484/t13_checks.json)):
 
-**What is left**
+| # | Check | Kind | Status | Observed |
+| --- | --- | --- | --- | --- |
+| 1 | `mars_variables_identified` | Hard | PASS | `cdod610` (`Pa/Pa`), `Ls`, `Time` (`latitude`, `longitude`) |
+| 2 | `earth_sds_and_scaling` | Hard | PASS | `Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean_Mean`, Sahara summer AOD `0.4546` |
+| 3 | `mars_storm_years_top3` | Soft | PASS | Top 3: `MY25` (`0.27759`), `MY34` (`0.25284`), `MY28` (`0.18932`) |
+| 4 | `mars_global_curve_perihelion_peak` | Hard | PASS | Peak bin `7` (`Ls=225.0°`, mean `0.26039`) |
+| 5 | `earth_known_dust_sources` | Hard | FAIL | Bodélé `(17, 18)` AOD `0.513`, rank `0.9847`; Taklimakan `(39, 83)` AOD `0.2903`, rank `0.7281` (`< 0.9`) |
+| 6 | `earth_atacama_clean_air` | Soft | PASS | Atacama `(-24.5, -69.3)` AOD `0.0475`, rank `0.1615` |
+| 7 | `mars_hellas_gt_tharsis` | Soft | FAIL | Hellas `(-42, 70)` `0.1695` (rank `0.5954`) vs Tharsis `(0, -110)` `0.1718` (rank `0.6269`) |
+| 8 | `dust_maps_written` | Soft | PASS | All 4 PNG maps written |
 
-- Submit Slurm jobs in order (each awaiting user `"ok"` in MODE A): unit tests (`pytest -q tests`) -> `jobs/download_t12_t14.slurm` -> `jobs/t14_geology.slurm` + `jobs/t13_dust.slurm` -> `jobs/t12_ice.slurm`, then stop at `plan_t12_t15.md` §5.6 for Claude's review before modifying `pipeline/match.py` / `pipeline/export.py` (T15).
+    - **What was learned:**
+      - Mars local peak phase shows physically coherent perihelion dust timing (`Ls=225°` global peak, hemispheric solstice separation in `map_dust_peak_phase_mars.png`), and Earth local peak phase captures spring Asian/Saharan vs boreal summer aerosol maxima (`map_dust_peak_phase_earth.png`).
+      - Hard check #5 failed at Taklimakan `(39, 83)` because `MOD08_M3` Deep Blue 550 nm **annual** mean across the `24,998` valid Earth patches is highest over the Indo-Gangetic Plain (`0.6–0.9+`), Sahel/Sahara (`0.4–0.6`), Eastern China (`0.4–0.7`) and Arabia, whereas Taklimakan has strong spring dust storms and low winter AOD (yielding annual mean `0.2903`, rank `0.7281`). Similarly, median MY24–MY36 equatorial CDOD610 over Tharsis (`0.1718`) slightly exceeds mid-latitude Hellas (`0.1695` at `-42°`). Left untouched for §5.6 review.
+- **T12 Water & Ice (`pipeline/data/ice_hints.json`, `pipeline/ice.py`, `jobs/t12_ice.slurm`):**
+  - **`job 2242485` (`COMPLETED`, exit `0:0`, runtime `0.094 s`, commit `16db5db`, `T14_DIR=runs/2242482`, output `/lustre/proyectos/p089/runs/2242485/`):**
+    - `ice_earth.parquet` (`40,244` rows: `ice_E=1.0 -> 12,742`, `ice_E=0.5 -> 2,161`, `ice_E=0.0 -> 25,341`); `375` Moon T3 patches with finite `diviner_tavg_k`.
+    - Checks (**`1/1` hard, `3/3` soft** in [`t12_checks.json`](file:///lustre/proyectos/p089/runs/2242485/t12_checks.json)):
+      - Soft PASS #1 (`coldest_1pct_earth_polar`): `403/403` coldest 1% Earth patches in Antarctica (`outside_ant_grl_count=0`).
+      - Hard PASS #2 (`moon_haworth_slater_cold_rank`): `moon-a3-haworth=0.9734`, `moon-a3-slater-plain=0.9574` (`> 0.9`).
+      - Soft PASS #3 (`dry_valleys_ice_e_05`): `9` patches, `frac_eq_0_5=1.0`.
+      - Soft PASS #4 (`mars_ice_targets_list`): `[mars-arcadia-swim (ice_T=1.0, ice_source=ice_hint)]`.
+
+**What is left (§5.6 review stop before T15)**
+
+- Send `geology_mapping_review.md` / `geology_units_{moon,mars}.csv` (`2242482`), `t13_checks.json` + the 4 dust PNG maps (`2242484`), and `t12_checks.json` (`2242485`) to Owen/Claude.
+- Re-run `jobs/t14_geology.slurm` (to apply `pipeline/data/geology_overrides.json` from `16db5db`) and re-run `jobs/t13_dust.slurm` (and `t12_ice.slurm` if `T14_DIR` changes) once §5.6 decisions are confirmed, then implement and run T15 (`pipeline/match.py`, `pipeline/export.py`).
 
 ## 2026-11-13 (night): T7/T8 — RBF matching, MSI presets and universe JSON export
 
