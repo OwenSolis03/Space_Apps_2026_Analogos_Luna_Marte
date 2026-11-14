@@ -2,6 +2,14 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T18 EMIT unit decided: fractions, shown as percent (inferred)
+
+**Evidence** (Owen read the netCDF on Yuca): the variables carry no units attribute, only `long_name` (`Calcite_Baseline`, `Chlorite_Baseline`...); the maximum of `Calcite` is 0.79, of `Chlorite` 0.57 and of `Dolomite` 0.60. The file has no variable called `latitude`, so the coordinate names differ from the guide; the GDAL reader nevertheless placed the sites correctly (all of Antarctica, Greenland and Svalbard outside coverage, Atacama with values, the richest calcite cells on the Mauritanian coast and the Hadhramaut plateau).
+
+**Decision.** The values are read as fractions of 0 to 1 and multiplied by 100 for display. Why: read as percent, the ten minerals would add up to at most 0.79% and illite and kaolinite would have medians of 0.07% and 0.01% across 2,213 desert sites, which is not credible for desert soils; read as fractions the median total is 31% and the maximum 79%, and the sum never exceeds 1, as a mass fraction cannot. The Kaguya maps are also labelled percent and are fractions. This is an inference, not a documented fact, so the EMIT caveat on the site sheet now says so.
+
+**Changes.** `--emit-scale` defaults to 100 (the report and the log still warn when no site sums to 1, and when a sum exceeds 100%), and `jobs/t18_minerals.slurm` passes `EMIT_SCALE` (default 100). The EMIT run has to be repeated; the JSON that was placed in `app/public/data/` from the first run is not committed.
+
 ## 2026-11-14: T18 EMIT run checked, unit question open
 
 **What was checked** (Claude, on the `mineral_report.md` of the Yuca run and the `analogs_universe.json` Owen put in `app/public/data/`, not yet committed):

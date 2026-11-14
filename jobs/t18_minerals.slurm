@@ -16,7 +16,8 @@
 # leaves the blocks the input already has.
 #
 # Run from the clone:   cd /lustre/proyectos/p089/code && git pull && sbatch jobs/t18_minerals.slurm
-# Optional variables:   UNIVERSE=<input json>   EMIT_FILE=<EMIT_L3_ASA_002.nc>
+# Optional variables:   UNIVERSE=<input json>   EMIT_FILE=<EMIT_L3_ASA_002.nc>   EMIT_SCALE=<factor, default 100>
+# EMIT_SCALE: the EMIT file has no units attribute and its values are fractions (0 to 1), so they are x100 to show percent.
 # Output:               runs/<JOBID>/analogs_universe.json and runs/<JOBID>/mineral_report.md
 # Reads data only; nothing under data/ is modified, except that the EMIT file is downloaded if it is missing.
 

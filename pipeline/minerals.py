@@ -175,6 +175,7 @@ CAVEATS = {
     ],
     "emit_l3asa": [
         "Values are mass fractions of the EMIT-10 minerals, averaged over 0.5 degree cells (about 55 km), at the median grain size.",
+        "The file has no units attribute; its values never add up to more than 0.8 at any site, so they are read as fractions of 0 to 1 and shown as percent. Treat the absolute numbers with care.",
         "EMIT mostly sees arid surface minerals (clays, carbonates, sulfates, iron oxides), not the mafic minerals of the Moon and Mars.",
     ],
 }
@@ -644,8 +645,9 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--emit-file", type=Path, help="EMIT_L3_ASA_002.nc")
     p.add_argument("--emit-corner", choices=["auto", "yes", "no"], default="auto")
     p.add_argument(
-        "--emit-scale", type=float, default=1.0,
-        help="multiply the EMIT values by this (100 if the file stores fractions instead of percent)",
+        "--emit-scale", type=float, default=100.0,
+        help="multiply the EMIT values by this. The file has no units attribute and its values are fractions "
+        "(0 to 1, see check_emit_units), so the default is 100 to show percent; use 1 to keep the raw values",
     )
     p.add_argument("--report", type=Path, help="write a Markdown report here")
     args = p.parse_args(argv)
@@ -668,8 +670,10 @@ def main(argv: list[str] | None = None) -> None:
             if top < 1.0:
                 logger.warning(
                     "EMIT values never add up to 1 or more at any location, so they look like fractions, not percent. "
-                    "Check the variable units in the file and rerun with --emit-scale 100 if they are fractions."
+                    "Rerun with --emit-scale 100 if they are fractions."
                 )
+            elif top > 100.5:
+                logger.warning("The ten EMIT minerals add up to more than 100%% at one location (%.1f): the scale is too large.", top)
     checks = run_checks(kaguya, tes)
     for sid, c in counts.items():
         logger.info("%s: %s", sid, c)
