@@ -12,7 +12,6 @@ How Planetary Analog Finder was built, in English, with the reasoning behind eac
 | Javier Miranda | App (T10) |
 | Rest of Endurance CXXV | Pitch, content and presentation |
 
-The venue (NASA Space Apps Sonora, Tec de Monterrey) allowed the team to start on 2026-11-13.
 
 ---
 

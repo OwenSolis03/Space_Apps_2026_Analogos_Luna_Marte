@@ -1,156 +1,146 @@
-# NASA Space Apps 2026: análogos terrestres de la Luna y Marte
+# Planetary Analog Finder
 
-Proyecto del equipo Endurance CXXV: **Planetary Analog Finder**, un buscador de sitios en la Tierra análogos a sitios de la Luna y Marte, comparados con datos abiertos de topografía y capas térmicas. El procesamiento pesado corre en la supercomputadora Yuca (UniSon) y la app consume el JSON resultante.
+**NASA Space Apps Challenge 2026 · Team Endurance CXXV · NASA Space Apps Sonora (Hermosillo, Mexico)**
 
-Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en la [bitácora](docs/logbook.md).
+Planetary Analog Finder searches the whole Earth for places that resemble candidate landing and base sites on the Moon and Mars. It ranks them with an explainable score, and for every site it shows **where the analogy breaks**. Every comparison uses the same measurement on all three bodies: 32 × 32 km terrain patches, resampled to 500 m per pixel and reprojected around their own centre. The heavy processing runs on the Yuca supercomputer (Universidad de Sonora), and a static web app reads the result.
 
-## Estructura
+> **Status (2026-11-13):** prototype in progress.
+>
+> - **Done:** the Mars and Moon global sweeps (T3), the targets (T4) and the Earth layers (T6). The Earth sweep (T5) is implemented and passed its test run.
+> - **Next:** matching and export (T7/T8), and connecting the app to the real results. Until then the app runs on sample data converted from the v1 prototype.
+> - **Details:** [docs/handoff.md](docs/handoff.md) and [docs/HISTORY.md](docs/HISTORY.md).
 
-| Ruta | Qué contiene |
+---
+
+## The challenge
+
+[Identify Earth Locations that Analog the Permanent Moon Base Locations and Mars](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/). Find places, environments or processes on Earth that can stand in for future lunar bases or Mars landing and exploration sites, characterise them with open data from NASA and other agencies, and explain:
+
+1. what makes the analogy strong;
+2. where it breaks;
+3. how the analog would help prepare Moon or Mars exploration.
+
+The challenge stresses that visual resemblance is not enough, that scale matters, that well-known analogs (Atacama, Antarctica, Iceland, Hawaii) are already studied, and that Earth cannot reproduce reduced gravity, vacuum, the thin Martian atmosphere or space radiation.
+
+## How it works
+
+```text
+Raw data on Yuca (/lustre/proyectos/p089/data)
+  │
+  ├─ T3  Mars and Moon: global grid of 32 km patches ─► 140,916 Mars + 36,741 Moon patches
+  ├─ T4  Targets: Artemis III regions, Mars landing sites, 30 terrain clusters per body ─► 76 targets
+  ├─ T6  Earth layers: MODIS NDVI and land surface temperature, roads, airports, countries
+  ├─ T5  Earth: same patches, only on bare (unvegetated) land ─► ~45,000 candidates
+  ├─ T7  Matching: per-dimension RBF similarity, mission presets, 150 km diversity, mismatches
+  └─ T8  Export ─► analogs_universe.json ─► web app (React + Vite)
+```
+
+- **Same measurement everywhere.**
+  - Every patch is a 64 × 64 grid at 500 m/px in a local azimuthal equidistant projection, so slope and roughness are comparable across bodies and latitudes.
+  - The features (mean and p90 slope, relief, hypsometric integral, detrended roughness, terrain ruggedness index) come from one shared function.
+  - Elevation is never compared, because the datums differ.
+- **Targets that matter for the challenge:**
+  - the nine Artemis III candidate regions near the lunar south pole (NASA, 2024), as seven targets because two pairs share an anchor, plus the rim of Shackleton;
+  - eight Mars sites: Jezero, Gale, Gusev, Meridiani, Utopia, Elysium, Oxia Planum and the shallow-ice region of Arcadia Planitia;
+  - 30 global terrain archetypes per body, for exploration.
+- **Explainable score.**
+  - Each dimension (topography, roughness, environment, and thermal for Mars) gets a Gaussian similarity in [0, 1].
+  - The Mission Similarity Index (MSI) is their weighted mean. Three mission presets set the weights, and the user can re-weight them in the browser.
+- **Where it breaks.** Each analog lists the features that differ by more than 1.5 typical Earth deviations, in physical units, plus the fixed physical limits of each body.
+- **New vs. known.** Sites inside 12 well-studied analog regions are labelled `KNOWN_ANALOG`; everything else is a `NEW_CANDIDATE`. Each site also shows its distance to the nearest road and airport.
+
+The reasoning behind every design decision is in [docs/HISTORY.md](docs/HISTORY.md). The full specifications are in [docs/implementation_plan.md](docs/implementation_plan.md) and the per-task plans.
+
+## Data
+
+| Body | Dataset | Use | Source |
+| --- | --- | --- | --- |
+| Mars | MGS MOLA DEM, 463 m | Terrain features | [USGS Astrogeology](https://astrogeology.usgs.gov/search) (from NASA PDS) |
+| Mars | Mars Odyssey THEMIS IR day and night, 100 m | Relative thermal contrast | USGS Astrogeology |
+| Moon | LRO LOLA LDEM, 118 m | Terrain features | USGS Astrogeology |
+| Moon | LRO LROC WAC mosaic, 100 m | Relative brightness (percentile within the Moon) | USGS Astrogeology |
+| Moon | LRO Diviner Polar Resource Product (south) | Mean and max temperature, ice stability depth | [NASA PDS Geosciences](https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/) |
+| Moon | Lunar ice favorability index | Polar ice context | USGS Astrogeology |
+| Earth | Copernicus DEM GLO-90 (26,475 tiles) | Terrain features | [ESA Copernicus, AWS open data](https://registry.opendata.aws/copernicus-dem/) |
+| Earth | MODIS MOD13C2 (NDVI) and MOD11C3 (land surface temperature), 2023 | Vegetation mask, thermal amplitude | [NASA Earthdata](https://doi.org/10.5067/MODIS/MOD13C2.061), [MOD11C3](https://doi.org/10.5067/MODIS/MOD11C3.061) |
+| Earth | Natural Earth roads, airports, countries | Logistics and country | [Natural Earth](https://www.naturalearthdata.com/) |
+| Moon, Mars | Gazetteer of Planetary Nomenclature | Target anchors and names | [USGS / IAU](https://planetarynames.wr.usgs.gov/) |
+
+The raw data (~80 GB) lives on Yuca and is not in this repository. Units, scales and nodata values of every file are documented in [docs/pipeline.md](docs/pipeline.md). For example, LOLA stores half-metres, and MODIS NDVI and LST use opposite scale conventions.
+
+## Quick start
+
+**Web app** (needs Node 20):
+
+```bash
+cd app && npm install && npm run dev
+```
+
+It opens at http://localhost:5173 and reads `app/public/data/`.
+
+**Pipeline** (on Yuca, with the `spaceapps_2026` conda environment). Every heavy step is a Slurm job; nothing heavy runs on the login node.
+
+```bash
+cd /lustre/proyectos/p089/code && git pull
+```
+
+```bash
+sbatch jobs/t3_planet_features.slurm
+```
+
+The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md) and [plan_t7_t8.md](docs/plan_t7_t8.md). To run the Python dependencies elsewhere: `pip install -r pipeline/requirements.txt`. The tests (`pytest -q tests`) are synthetic and do not need the raw data.
+
+## Repository layout
+
+| Path | Content |
 | --- | --- |
-| `setup_and_download.sh`, `download_full_night.sh` | Descarga inicial de datos en Yuca (ya corrida) |
-| `run_download_missing.slurm` | Job que baja lo que faltó, con URLs corregidas |
-| `run_download_extra.slurm`, `download_earthdata.py` | Job de capas terrestres extra: MODIS (NDVI, LST) y Natural Earth |
-| `tools/explore_datasets.py`, `jobs/explore_datasets.slurm` | Reporte HTML para explorar los datasets descargados |
-| `docs/implementation_plan.md` | Plan de la v2 tarea por tarea (para implementar con Gemini) |
-| `docs/plan_t4.md` | Plan detallado de T4 (blancos curados y clusters) |
-| `docs/gemini_prompt.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
-| `docs/handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
-| `docs/HISTORY.md` | Project history in English: decisions, reasons, commits and Slurm jobs |
-| `docs/submission.md` | Qué se entrega, checklist y cronograma del 14 y 15 de noviembre |
-| `docs/working_without_ssh.md` | Trabajar sin SSH: flujo por Open OnDemand, kit offline y plan B |
-| `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |
-| `enrich_nomenclature.py` | Nombres IAU para cada arquetipo |
-| `match_earth_analogs.py`, `run_earth_matching.slurm` | Búsqueda de análogos en Copernicus GLO-90 |
-| `output/` | `planetary_baselines.json` y `analogs.json` de la última corrida |
-| `logs/` | Logs de descargas y de los jobs de Slurm |
-| `docs/pipeline.md` | Cómo funciona el pipeline, datos y corridas |
-| `docs/value_proposition.md` | Problemática, propuesta de valor y diferenciadores, para presentación y video |
-| `docs/logbook.md` | Registro de lo que se ha hecho y pendientes |
-| `docs/master_plan.md` | Plan completo (meta, no estado actual) |
-| `docs/ideas.md` | Ideas del equipo y su evaluación |
+| `pipeline/` | v2 pipeline: patch extraction (`geo.py`), features (`features.py`), Mars/Moon sweep (`planet_features.py`), targets (`targets.py`, `iau.py`), Earth layers (`earth_layers.py`), Earth sweep (`earth_features.py`) |
+| `pipeline/data/` | Hand-written definitions: curated targets, known analog regions, physical limits |
+| `jobs/` | Slurm jobs for each task |
+| `tests/` | Synthetic unit tests |
+| `app/` | Web app (React, Vite, TypeScript, Tailwind, Leaflet) |
+| `tools/` | Dataset explorer and the v1-to-v2 sample converter |
+| `docs/` | Documentation (see below) |
+| Root `*.py`, `*.sh`, `*.slurm` | v1 prototype and the download jobs, kept as reference |
+| `output/`, `logs/` | v1 outputs and logs |
 
-Los rasters (~32 GB más los tiles de Copernicus) viven en Yuca en `/lustre/proyectos/p089/data` y no se suben al repo.
+## Documentation
 
-## Challenge
-
-Notas de referencia del challenge, revisadas el 1 de noviembre de 2026.
-
-- **Challenge:** [Identify Earth Locations that Analog the Permanent Moon Base Locations and Mars](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/)
-- **Dificultad:** avanzada, intermedia y principiante/juvenil
-- **Temas:** ciencias de la Tierra, planetas y lunas, software, exploración espacial
-
-## Equipo: Endurance CXXV
-
-[Página del equipo](https://www.spaceappschallenge.org/2026/find-a-team/endurance-cxxv1/). Tiene 6 integrantes, el máximo permitido, y no busca más gente.
-
-- Fernando Borquez Guerrero (aparece como Team Owner)
-- Owen Adiel Solis Zatarain
-- Emily Beltrán Zazueta
-- Flor María Machado Félix
-- Elías Peregrina Cázares
-- Javier Leonardo Miranda Sanchez
-
-## Sede: NASA Space Apps Sonora (Tec de Monterrey)
-
-El equipo está inscrito en **NASA Space Apps Sonora 2026**, en el Tec de Monterrey, Campus Sonora Norte, Salón de Congresos, Hermosillo. Antes el README apuntaba a la sede de la UTH; ese **no** es nuestro evento. Información revisada el 2026-11-13 en [spaceappssonora.org](https://spaceappssonora.org/) y en su [guía de pitches](https://spaceappssonora.org/pitches).
-
-| Día | Horario (hora de Hermosillo) | Qué ocurre |
-| --- | --- | --- |
-| Viernes 13 | 14:00–16:00 | Bootcamp, Salón de Congresos |
-| Viernes 13 | 16:00 | Inauguración |
-| Sábado 14 | 9:00–21:00 | Hackathon (comida a las 13:00) |
-| Domingo 15 | 9:00–14:00 | **Pitches** y cierre |
-
-- **Contacto:** el grupo de WhatsApp de participantes, que es obligatorio, más Instagram y Facebook. La página no publica correo ni nombres de los organizadores.
-- **Mentores:** Edgar León (Tec de Monterrey), Julio Waissman (UNISON), Eddy Varela, Jesús Medina, Octavio López y Michelle Sesteaga.
-- **Hora límite de entrega:** la página no la da. El cierre global es el 15 a las 23:59, pero los pitches son el domingo en la mañana, así que todo debe estar listo **antes del pitch**. Confirmarlo en el grupo de WhatsApp.
-- **Red:** la red de la sede bloquea SSH; usar Open OnDemand ([working_without_ssh.md](docs/working_without_ssh.md)).
-
-### Qué hay que entregar (reglas de la sede)
-
-Checklist completa y cronograma ajustado en [docs/submission.md](docs/submission.md).
-
-- **Pitch:**
-  - máximo **3 minutos**, sin preguntas;
-  - puede ser en español;
-  - láminas en **Canva**, con el nombre del proyecto y el **número de equipo** en la primera;
-  - estructura sugerida: problema y contexto, luego solución y tecnología, luego impacto y escalabilidad (un minuto cada parte).
-- **Documentación en inglés:** en la página del proyecto en spaceappschallenge.org.
-- **Video en inglés:** en YouTube, de **máximo 30 segundos** (problema 5 s, solución 15 s, impacto 10 s).
-- **App web publicada** para que los jueces la prueben; verificar el enlace antes de entregar.
-- **Criterios de evaluación:**
-  - innovación tecnológica;
-  - impacto social;
-  - documentación;
-  - escalabilidad.
-
-## Qué pide
-
-Buscar en la Tierra lugares, ambientes o procesos que sirvan como análogos de posibles bases lunares permanentes o de sitios de aterrizaje y exploración en Marte. Hay que caracterizarlos con datos abiertos de la NASA y de otras agencias, y presentar los resultados como mapa, visualización u otra herramienta.
-
-La solución debe explicar:
-
-1. Qué características o procesos hacen fuerte la analogía.
-2. Dónde se rompe la analogía.
-3. Cómo ayudaría ese análogo a preparar la exploración de la Luna o Marte.
-
-## Formatos aceptados
-
-Reporte escrito, mapa interactivo, visualización, app, historia, sistema de ranking por similitud, herramienta de machine learning, juego u otro enfoque. Puede centrarse en un solo lugar, comparar varios o proponer un método sistemático de búsqueda global.
-
-## Dimensiones de comparación sugeridas
-
-- Geología, mineralogía y materiales de superficie
-- Terreno, elevación, pendiente, rugosidad y cráteres
-- Temperatura, iluminación y extremos ambientales
-- Agua, hielo, permafrost y otros recursos
-- Polvo, viento, erosión y procesos atmosféricos
-- Biología, extremófilos, habitabilidad y biofirmas
-- Cuevas, tubos de lava y otros ambientes subterráneos
-- Condiciones para aterrizaje, movilidad, navegación, operaciones y construcción
-
-## Lo que el challenge recalca
-
-- **No basta el parecido visual:** la analogía debe justificarse con datos.
-- **No hace falta que coincida todo:** un sitio puede ser buen análogo geológico y mal análogo térmico.
-- **Los procesos también cuentan:** no solo los lugares, también sedimentación, tormentas de polvo, vulcanismo o dinámica del hielo.
-- **Hay que ir más allá de lo conocido:** Antártida, Atacama, Islandia y Hawái ya están muy estudiados, y no se busca solo redescubrir sitios famosos.
-- **La escala importa:** un cráter, valle o sistema de cuevas concreto puede ser mejor análogo que un desierto entero.
-- **Hay que conectar con la exploración:** cómo ayuda a probar instrumentos, preparar operaciones, buscar recursos o reducir riesgos.
-- **La Tierra tiene límites:** no reproduce la gravedad reducida, el vacío lunar, la atmósfera tenue de Marte ni su radiación. Reconocerlo es parte de un buen análisis.
-
-## Fechas (2026)
-
-| Fecha | Qué ocurre |
+| File | What it covers |
 | --- | --- |
-| 3 de noviembre | Abre Space Apps Connect y su guía |
-| 13 de noviembre | Se publican los recursos del challenge, las Global Offers y las guías de entrega y de evaluación |
-| 14 de noviembre, 9:00 | Abre la entrega de proyectos (hora local) |
-| 15 de noviembre, 23:59 | Cierra la entrega de proyectos (hora local); también cierran registro, evento y equipos |
-| 30 de noviembre | Encuesta de participantes |
-| Diciembre | Anuncio de nominados, finalistas y menciones honoríficas |
-| Enero de 2027 | Anuncio de ganadores globales |
+| [HISTORY.md](docs/HISTORY.md) | How the project was built and why each decision was made, with commits and Slurm jobs |
+| [handoff.md](docs/handoff.md) | Current status per task, run ids and the queue of pending cluster commands |
+| [implementation_plan.md](docs/implementation_plan.md) | The v2 specification, task by task (T0–T11), and the data contract |
+| [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md), [plan_t7_t8.md](docs/plan_t7_t8.md) | Detailed plans per task |
+| [pipeline.md](docs/pipeline.md) | Data, scales and nodata per file, Yuca resources and the run log |
+| [logbook.md](docs/logbook.md) | Day-by-day log |
+| [submission.md](docs/submission.md) | What is submitted, checklist and timeline for 14–15 November |
+| [value_proposition.md](docs/value_proposition.md) | Problem, value proposition and differentiators (for the pitch) |
+| [working_without_ssh.md](docs/working_without_ssh.md) | Working through Open OnDemand when SSH is blocked; offline kit |
+| [gemini_prompt.md](docs/gemini_prompt.md) | Working instructions given to the coding agent |
+| [master_plan.md](docs/master_plan.md), [ideas.md](docs/ideas.md) | Original master plan and the evolution of the idea |
 
-## Reglas clave
+## Use of AI
 
-- **No se puede empezar antes:** la regla global dice que no se trabaja en el challenge antes del 14 de noviembre. **Nuestra sede nos dio permiso de empezar desde el 13** (confirmado por Owen el 2026-11-13).
-- **Equipos:** máximo 6 personas. El mínimo para la evaluación global es 1 en un Local Event como el nuestro.
-- **Una sola participación:** cada persona va en un solo equipo y cada equipo aborda un solo challenge.
-- **Entrega:** se hace desde la página del proyecto del equipo. Hay que seguir la hora de cierre del Local Event elegido.
-- **Uso de IA:** está permitido, pero la entrega debe describir cómo se usó. El sitio la llama "Super Intelligence" (SI).
-- **Menores de 18:** los registra su madre, padre o tutor, y aplican restricciones de fotos, voz e imagen.
+AI was used throughout and is documented in [docs/HISTORY.md](docs/HISTORY.md) and [docs/logbook.md](docs/logbook.md).
 
-## Pendientes antes del hackathon
+| Tool | Role |
+| --- | --- |
+| Claude (Anthropic) | Detailed implementation plans, documentation, data inspection on the cluster, and review of code and results. It also wrote the app skeleton and the dataset tools |
+| Gemini 4 (Google Antigravity, Orchestrator mode) | Wrote the v2 pipeline code from those plans and ran tests and jobs through Slurm |
 
-- [x] Formar equipo para este challenge (Endurance CXXV)
-- [x] Inscribirse en NASA Space Apps Sonora (Tec de Monterrey, Campus Sonora Norte)
-- [ ] Confirmar en el grupo de WhatsApp la hora límite de entrega y el número de equipo
-- [ ] Revisar los recursos y las guías del 13 de noviembre
+Every cluster job was approved and run by a team member.
 
-## Fuentes
+## Team and event
 
-- [Página del challenge](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/)
-- [Pasos del hackathon 2026](https://www.spaceappschallenge.org/2026/)
-- [Preguntas frecuentes para participantes](https://www.spaceappschallenge.org/resources/participant-faqs/)
-- [NASA Space Apps Sonora 2026](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches)
+**Endurance CXXV:** Fernando Borquez Guerrero, Owen Adiel Solis Zatarain, Emily Beltrán Zazueta, Flor María Machado Félix, Elías Peregrina Cázares and Javier Leonardo Miranda Sanchez.
+
+**Venue:** [NASA Space Apps Sonora 2026](https://spaceappssonora.org/), Tec de Monterrey, Campus Sonora Norte, Hermosillo, 13–15 November 2026.
+
+| When | What |
+| --- | --- |
+| Friday 13 | Bootcamp and opening |
+| Saturday 14, 9:00–21:00 | Hackathon |
+| Sunday 15, 9:00–14:00 | Pitches |
+
+The venue rules and our checklist are in [docs/submission.md](docs/submission.md). Computing resources: Yuca supercomputer, Área de Cómputo de Alto Rendimiento (ACARUS), Universidad de Sonora.
