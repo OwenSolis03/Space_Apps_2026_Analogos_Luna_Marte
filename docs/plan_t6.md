@@ -1,76 +1,76 @@
-# Plan detallado T6: capas terrestres (NDVI, LST, logística, país y análogos conocidos)
+# Detailed plan T6: Earth layers (NDVI, LST, logistics, country and known analogs)
 
-Especificación completa de T6. Amplía la sección T6 de [implementation_plan.md](implementation_plan.md). Si algo choca, **este documento manda para T6**. Escrito por Claude el 2026-11-13 sobre `main` en `115e0c3`, con los datos de Yuca revisados ese día.
+Full specification of T6. It expands section T6 of [implementation_plan.md](implementation_plan.md); where they disagree, **this document wins for T6**. Written by Claude on 2026-11-13 on `main` at `115e0c3`, after checking the Yuca data that day.
 
-T6 no barre la Tierra (eso es T5). T6 entrega:
+**Status:** implemented by Gemini (commits `29fbb88`, `84888cd`). The cache was built in job 2242426; the checks in job 2242430 passed 8/8 hard and 5/5 soft.
 
-1. Dos rasters derivados en caché (NDVI máximo y LST anual de 2023).
-2. Una clase que, dados muchos puntos (lat, lon), devuelve **todas** las columnas terrestres que T5 adjunta a cada parche.
+T6 does not sweep the Earth (that is T5). It delivers:
 
-T5 solo importa esa clase.
+1. **Two cached derived rasters:** annual maximum NDVI and annual LST for 2023.
+2. **A class** that, given many (lat, lon) points, returns **every** Earth column T5 attaches to each patch. T5 only imports that class.
 
 ---
 
-## 0. Resumen
+## 0. Summary
 
-| Qué | Dónde |
+| What | Where |
 | --- | --- |
-| Lectura de MODIS y cálculo de NDVI máximo y LST anual | `pipeline/earth_layers.py` |
-| Regiones análogas conocidas (escrito a mano, va al repo) | `pipeline/data/known_analogs.json` |
-| Rutas nuevas | `pipeline/config.py` |
-| Job: construir caché y verificar | `jobs/t6_earth_layers.slurm` |
-| Pruebas | `tests/test_earth_layers.py` |
-| Caché compartida (no va al repo) | `data/derived/ndvi_max_2023.tif`, `data/derived/lst_2023.tif` |
-| Salidas de la corrida | `runs/<JOBID>/t6_checks.json`, `map_ndvi_max.png`, `map_lst_amplitude.png`, `map_known_analogs.png` |
+| Reading MODIS and computing the NDVI maximum and annual LST | `pipeline/earth_layers.py` |
+| Known analog regions (hand-written, committed) | `pipeline/data/known_analogs.json` |
+| New paths | `pipeline/config.py` |
+| Job: build the cache and check it | `jobs/t6_earth_layers.slurm` |
+| Tests | `tests/test_earth_layers.py` |
+| Shared cache (not committed) | `data/derived/ndvi_max_2023.tif`, `data/derived/lst_2023.tif` |
+| Run outputs | `runs/<JOBID>/t6_checks.json`, `map_ndvi_max.png`, `map_lst_amplitude.png`, `map_known_analogs.png` |
 
-Commit: `T6: capas terrestres (NDVI, LST, logística, regiones conocidas)`. **Commitear antes de enviar el job**, para que el log registre el commit correcto (en T4 el log de la corrida registró `0e1e43c` porque el job corrió antes del commit).
+Commit: `T6: Earth layers (NDVI, LST, logistics, known regions)`. **Commit before submitting the job,** so the log records the right commit. In T4, the run's log recorded `0e1e43c` because the job ran before the commit.
 
 ---
 
-## 1. Hechos verificados en Yuca (no asumir otra cosa)
+## 1. Facts checked on Yuca (do not assume otherwise)
 
-**MODIS: GDAL no puede leerlo.** El GDAL del entorno `spaceapps_2026` (3.12.3) **no tiene el plugin HDF4**: `gdalinfo` y `rasterio` no abren los `.hdf`. `pyhdf` **sí** está instalado y funciona. Por lo tanto:
+**MODIS: GDAL cannot read it.** The GDAL build in `spaceapps_2026` (3.12.3) **has no HDF4 plugin**, so neither `gdalinfo` nor `rasterio` can open the `.hdf` files. `pyhdf` **is** installed and works. Therefore:
 
-- Leer con `from pyhdf.SD import SD, SDC`, haciendo `SD(path, SDC.READ).select(<nombre>).get()`.
-- Hacer el `import pyhdf` **dentro** de las funciones que leen HDF, no arriba del módulo. Así las pruebas corren en la laptop aunque `pyhdf` no esté instalado.
-- No instalar `libgdal-hdf4` ni tocar el entorno de conda.
+- Read with `from pyhdf.SD import SD, SDC`, calling `SD(path, SDC.READ).select(<name>).get()`.
+- Do the `import pyhdf` **inside** the functions that read HDF, not at module level. That way the tests run on a laptop without `pyhdf`.
+- Do not install `libgdal-hdf4` or touch the conda environment.
 
-**MOD13C2 (NDVI), 12 archivos en `data/raw/earth/modis/ndvi/`, uno por mes de 2023:**
+**MOD13C2 (NDVI):** 12 files, one per month of 2023, in `data/raw/earth/modis/ndvi/`.
 
-| SDS | Tipo | Atributos reales |
+| SDS | Type | Actual attributes |
 | --- | --- | --- |
 | `CMG 0.05 Deg Monthly NDVI` | int16, 3600 × 7200 | `scale_factor=10000.0`, `_FillValue=-3000`, `valid_range=[-2000, 10000]` |
 | `CMG 0.05 Deg Monthly pixel reliability` | int8 | `valid_range=[0, 4]`, `_FillValue=-1` |
 
-- ⚠️ **Convención MODIS VI: `NDVI = crudo / 10000`.** Se **divide** por el `scale_factor`, no se multiplica. Escribir la constante explícita, `NDVI_DIVISOR = 10000.0`, y no leer el atributo de forma genérica.
+⚠️ **MODIS VI convention: `NDVI = raw / 10000`.** You **divide** by the `scale_factor`; you do not multiply. Write the constant explicitly (`NDVI_DIVISOR = 10000.0`), and do not apply the attribute generically.
 
-**MOD11C3 (LST), 12 archivos en `data/raw/earth/modis/lst/`:**
+**MOD11C3 (LST):** 12 files in `data/raw/earth/modis/lst/`.
 
-| SDS | Tipo | Atributos reales |
+| SDS | Type | Actual attributes |
 | --- | --- | --- |
-| `LST_Day_CMG`, `LST_Night_CMG` | uint16, 3600 × 7200 | `scale_factor=0.02`, `_FillValue=0`, `valid_range=[7500, 65535]`, unidades K |
+| `LST_Day_CMG`, `LST_Night_CMG` | uint16, 3600 × 7200 | `scale_factor=0.02`, `_FillValue=0`, `valid_range=[7500, 65535]`, unit K |
 
-- ⚠️ **Aquí se multiplica:** `K = crudo · 0.02`, y luego `°C = K − 273.15`. Constante explícita: `LST_SCALE = 0.02`.
+⚠️ **Here you multiply:** `K = raw · 0.02`, then `°C = K − 273.15`. Explicit constant: `LST_SCALE = 0.02`.
 
-**Malla común a los dos productos** (`StructMetadata.0`):
+**Common grid of both products** (from `StructMetadata.0`): `Projection=GCTP_GEO`, `UpperLeft=(-180, 90)`, `LowerRight=(180, -90)`, 7200 × 3600. That means:
 
-- `Projection=GCTP_GEO`, `UpperLeft=(-180, 90)`, `LowerRight=(180, -90)`, 7200 × 3600.
-- Es decir: **EPSG:4326, celda de 0.05°, fila 0 = 90°N, columna 0 = 180°W**.
-- Transformación: `rasterio.transform.from_origin(-180.0, 90.0, 0.05, 0.05)`.
+- EPSG:4326, 0.05° cells;
+- row 0 = 90°N, column 0 = 180°W;
+- transform `rasterio.transform.from_origin(-180.0, 90.0, 0.05, 0.05)`.
 
-**Natural Earth (`data/raw/earth/naturalearth/`, EPSG:4326):**
+**Natural Earth** (`data/raw/earth/naturalearth/`, EPSG:4326):
 
-| Capa | Datos verificados |
+| Layer | Content |
 | --- | --- |
-| `ne_10m_roads` | 56,600 líneas, 709,166 vértices. `featurecla` ∈ {`Road`: 56,312, `Ferry`: 288}. **Excluir `Ferry`** |
-| `ne_10m_airports` | 893 puntos. `type` ∈ {`mid` 475, `major` 369, `mid and military` 14, `major and military` 14, `military mid` 10, `military major` 4, `spaceport` 3, `small` 2, `military` 2}. Tiene las columnas `name`, `iata_code` |
-| `ne_10m_admin_0_countries` | 258 polígonos, columna `ADMIN` |
+| `ne_10m_roads` | 56,600 lines, 709,166 vertices. `featurecla` ∈ {`Road`: 56,312, `Ferry`: 288}. **Exclude `Ferry`** |
+| `ne_10m_airports` | 893 points. `type` ∈ {`mid` 475, `major` 369, `mid and military` 14, `major and military` 14, `military mid` 10, `military major` 4, `spaceport` 3, `small` 2, `military` 2}. Has `name` and `iata_code` |
+| `ne_10m_admin_0_countries` | 258 polygons, column `ADMIN` |
 
-Natural Earth no tiene carreteras en la Antártida, así que ahí `dist_road_km` será muy grande. Es correcto: los Valles Secos son logísticamente remotos.
+Natural Earth has no roads in Antarctica, so `dist_road_km` will be very large there. That is correct: the Dry Valleys are logistically remote.
 
 ---
 
-## 2. `pipeline/config.py`: agregar
+## 2. `pipeline/config.py`: additions
 
 ```python
 EARTH_RAW_FILES: dict[str, str] = {
@@ -87,121 +87,121 @@ EARTH_DERIVED_FILES: dict[str, str] = {
 MODIS_CMG_RES_DEG: float = 0.05
 ```
 
-Todas las rutas son relativas a `<project_dir>/data/raw` y a `<project_dir>/data/derived`. Nada en T6 debe usar `/lustre/...` directamente: así funciona igual con el kit offline (`--project-dir ~/p089_offline`).
+All paths are relative to `<project_dir>/data/raw` and `<project_dir>/data/derived`. Nothing in T6 uses `/lustre/...` directly, so it works the same with the offline kit (`--project-dir ~/p089_offline`).
 
 ---
 
 ## 3. `pipeline/earth_layers.py`
 
-### 3.1 Funciones puras (sin E/S; se prueban con arreglos sintéticos)
+### 3.1 Pure functions (no I/O; tested with synthetic arrays)
 
 ```python
 NDVI_SDS = "CMG 0.05 Deg Monthly NDVI"
 NDVI_FILL = -3000
 NDVI_DIVISOR = 10000.0
-NDVI_MIN_VALID = -0.3          # valores menores -> NaN (agua/ruido), como dice el plan general
+NDVI_MIN_VALID = -0.3          # values below -> NaN (water/noise), as in the general plan
 LST_DAY_SDS, LST_NIGHT_SDS = "LST_Day_CMG", "LST_Night_CMG"
 LST_FILL = 0
 LST_MIN_RAW = 7500
 LST_SCALE = 0.02
 KELVIN_0C = 273.15
-MIN_MONTHS_LST = 3             # meses válidos mínimos para la media anual
+MIN_MONTHS_LST = 3             # minimum valid months for the annual mean
 
 def ndvi_from_raw(raw: np.ndarray) -> np.ndarray:
-    """int16 -> float32. Fill, crudo < -2000 o > 10000 -> NaN; luego /10000; < -0.3 -> NaN."""
+    """int16 -> float32. Fill, raw < -2000 or > 10000 -> NaN; then /10000; < -0.3 -> NaN."""
 
 def lst_c_from_raw(raw: np.ndarray) -> np.ndarray:
-    """uint16 -> float32 °C. Fill (0) o crudo < 7500 -> NaN; luego crudo*0.02 - 273.15."""
+    """uint16 -> float32 °C. Fill (0) or raw < 7500 -> NaN; then raw*0.02 - 273.15."""
 
 def running_nanmax(acc: np.ndarray | None, x: np.ndarray) -> np.ndarray:
-    """Máximo acumulado ignorando NaN (np.fmax). acc=None -> copia de x."""
+    """Running maximum ignoring NaN (np.fmax). acc=None -> copy of x."""
 
 def running_sum_count(sum_: np.ndarray | None, cnt: np.ndarray | None, x: np.ndarray
                       ) -> tuple[np.ndarray, np.ndarray]:
-    """Acumula suma (float64) y conteo (uint8) de valores finitos."""
+    """Accumulates the sum (float64) and count (uint8) of finite values."""
 
 def finalize_mean(sum_, cnt, min_count) -> np.ndarray:
-    """sum/cnt como float32; NaN donde cnt < min_count."""
+    """sum/cnt as float32; NaN where cnt < min_count."""
 
 def cell_index(lat: np.ndarray, lon: np.ndarray, res: float = 0.05) -> tuple[np.ndarray, np.ndarray]:
-    """Fila y columna de la celda que contiene cada punto en la malla CMG.
-    row = floor((90 - lat)/res) recortado a [0, 3599]; col = floor((lon + 180)/res) recortado a [0, 7199].
-    lon se normaliza antes a [-180, 180)."""
+    """Row and column of the CMG cell containing each point.
+    row = floor((90 - lat)/res) clipped to [0, 3599]; col = floor((lon + 180)/res) clipped to [0, 7199].
+    lon is normalised to [-180, 180) first."""
 
 def patch_window_stat(grid: np.ndarray, lat: np.ndarray, lon: np.ndarray, half_km: float,
                       stat: str, res: float = 0.05) -> np.ndarray:
-    """Estadístico (stat ∈ {'median','mean','max'}) de las celdas dentro del cuadrado del parche:
-    medio lado en latitud = degrees(half_km / 6371.0); en longitud = ese valor / max(cos(lat), 0.05).
-    Celdas por fila y columna con cell_index en las esquinas; en longitud, envolver con módulo 7200
-    (el antimeridiano no se salta aquí: es una malla global). Ignora NaN; todo NaN -> NaN.
-    Vectorizar por punto con un bucle simple: son <= ~150k puntos y ventanas de <= ~15x40 celdas."""
+    """Statistic (stat ∈ {'median','mean','max'}) of the cells inside the patch square:
+    latitude half-side = degrees(half_km / 6371.0); longitude half-side = that / max(cos(lat), 0.05).
+    Corner cells via cell_index; in longitude wrap modulo 7200 (the antimeridian is not skipped here:
+    this is a global grid). NaN is ignored; all NaN -> NaN.
+    Loop per point: <= ~150k points and windows of <= ~15x40 cells."""
 ```
 
-**Por qué la ventana y no la celda central:** un parche de 32 km cubre ~6 × 6 celdas de 0.05° en el ecuador. Con la celda central, un oasis o un río podrían cambiar la clasificación del parche entero.
+**Why the window and not the centre cell:** a 32 km patch covers ~6 × 6 cells of 0.05° at the equator. With only the centre cell, an oasis or a river could flip the whole patch's classification.
 
-**Estadístico de cada variable:**
+**Statistic per variable:**
 
-| Variable | Estadístico | Por qué |
+| Variable | Statistic | Why |
 | --- | --- | --- |
-| `ndvi_max` | mediana (`median`) | Representa al parche y no a una franja de vegetación |
-| `lst_day_c`, `lst_night_c`, `lst_amplitude_c` | media (`mean`) | — |
+| `ndvi_max` | median | Represents the patch, not a strip of vegetation |
+| `lst_day_c`, `lst_night_c`, `lst_amplitude_c` | mean | — |
 
-### 3.2 Construcción de la caché (solo en el job)
+### 3.2 Building the cache (in the job only)
 
 ```python
 def build_ndvi_max(ndvi_dir: Path, out_tif: Path) -> Path:
-    """Lee los 12 MOD13C2 (ordenados por nombre) uno por uno con pyhdf, aplica ndvi_from_raw y
-    acumula running_nanmax y el conteo de meses válidos. Escribe GeoTIFF de 2 bandas:
-      banda 1 ndvi_max (float32, nodata NaN), banda 2 n_months (uint8 guardado como float32).
+    """Reads the 12 MOD13C2 files (sorted by name) one at a time with pyhdf, applies ndvi_from_raw and
+    accumulates running_nanmax and the count of valid months. Writes a 2-band GeoTIFF:
+      band 1 ndvi_max (float32, nodata NaN), band 2 n_months (uint8 stored as float32).
     EPSG:4326, from_origin(-180, 90, 0.05, 0.05), compress='deflate', tiled=True, BIGTIFF='IF_SAFER'.
-    Escribir a out_tif.with_suffix('.tmp.tif') y os.replace al final (atómico).
-    Falla con ValueError si no hay exactamente 12 archivos o si algún SDS no tiene forma (3600, 7200)."""
+    Write to out_tif.with_suffix('.tmp.tif') and os.replace at the end (atomic).
+    ValueError if there are not exactly 12 files or an SDS is not (3600, 7200)."""
 
 def build_lst(lst_dir: Path, out_tif: Path) -> Path:
-    """Igual con los 12 MOD11C3: medias anuales con finalize_mean(min_count=3) de día y de noche.
-    Escribe 3 bandas float32: 1 lst_day_c, 2 lst_night_c, 3 lst_amplitude_c = día - noche
-    (NaN si falta cualquiera). Mismos parámetros de escritura."""
+    """Same with the 12 MOD11C3 files: annual means with finalize_mean(min_count=3), day and night.
+    Writes 3 float32 bands: 1 lst_day_c, 2 lst_night_c, 3 lst_amplitude_c = day - night
+    (NaN if either is missing). Same writing parameters."""
 
 def ensure_cache(project_dir: Path, force: bool = False) -> dict[str, Path]:
-    """Construye lo que falte en data/derived/. Si ya existe, no lo toca.
-    Con force=True NO sobrescribe: falla y pide mover el archivo viejo a _to_delete/ a mano
-    (regla de Yuca: nunca sobrescribir)."""
+    """Builds whatever is missing in data/derived/. Existing files are left alone.
+    With force=True it does NOT overwrite: it fails and asks to move the old file to _to_delete/
+    by hand (Yuca rule: never overwrite)."""
 ```
 
-Memoria: se procesa un mes a la vez. Los acumuladores son 3600 × 7200 en float64 (~207 MB c/u), así que el pico está por debajo de 2 GB.
+Memory: one month is processed at a time. The accumulators are 3600 × 7200 float64 (~207 MB each), so the peak stays under 2 GB.
 
-### 3.3 Logística, país y regiones conocidas
+### 3.3 Logistics, country and known regions
 
 ```python
-ROAD_DENSIFY_DEG = 0.02        # ~2.2 km: error máximo por vértice ~1.1 km
+ROAD_DENSIFY_DEG = 0.02        # ~2.2 km: max error per vertex ~1.1 km
 AIRPORT_EXCLUDE_TYPES = {"military", "military mid", "military major", "spaceport"}
 EARTH_RADIUS_KM = 6371.0
 
 class Logistics:
     def __init__(self, roads_shp: Path, airports_shp: Path): ...
-        # Carreteras: featurecla != 'Ferry'; shapely.segmentize(geom, ROAD_DENSIFY_DEG);
-        # tomar todos los vértices (shapely.get_coordinates); BallTree(np.radians([[lat, lon]]),
-        # metric='haversine'). Imprimir el número de vértices tras densificar.
-        # Aeropuertos: type no en AIRPORT_EXCLUDE_TYPES; BallTree igual; guardar name e iata_code.
+        # Roads: featurecla != 'Ferry'; shapely.segmentize(geom, ROAD_DENSIFY_DEG);
+        # all vertices (shapely.get_coordinates); BallTree(np.radians([[lat, lon]]),
+        # metric='haversine'). Print the vertex count after densifying.
+        # Airports: type not in AIRPORT_EXCLUDE_TYPES; same BallTree; keep name and iata_code.
     def dist_road_km(self, lat, lon) -> np.ndarray: ...
     def nearest_airport(self, lat, lon) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """(dist_km float32, iata object, name object); iata vacío o '-' -> None."""
+        """(dist_km float32, iata object, name object); empty or '-' iata -> None."""
 
 class Countries:
     def __init__(self, countries_shp: Path): ...   # geopandas + .sindex
     def lookup(self, lat, lon, max_coast_km: float = 25.0) -> np.ndarray:
-        """ADMIN del polígono que contiene el punto (geopandas.sjoin con predicate='within').
-        Si ninguno lo contiene (costa, islas pequeñas), usar el país más cercano solo si está a
-        <= 25 km (sjoin_nearest en EPSG:4087 con max_distance=25_000). Si no, None."""
+        """ADMIN of the polygon that contains the point (geopandas.sjoin, predicate='within').
+        If none contains it (coast, small islands), use the nearest country only if it is
+        <= 25 km away (sjoin_nearest in EPSG:4087 with max_distance=25_000). Otherwise None."""
 
 class KnownRegions:
-    def __init__(self, json_path: Path = KNOWN_ANALOGS_JSON): ...  # valida (ver sección 4)
+    def __init__(self, json_path: Path = KNOWN_ANALOGS_JSON): ...  # validates (section 4)
     def lookup(self, lat, lon) -> np.ndarray:
-        """id de la primera región cuyo bbox contiene el CENTRO del parche, o None."""
+        """id of the first region whose bbox contains the patch CENTRE, or None."""
     def name_of(self, region_id: str) -> str: ...
 ```
 
-### 3.4 Fachada que usa T5
+### 3.4 Façade used by T5
 
 ```python
 EARTH_ENV_COLUMNS = ["ndvi_max", "lst_day_c", "lst_night_c", "lst_amplitude_c",
@@ -211,21 +211,21 @@ EARTH_ENV_COLUMNS = ["ndvi_max", "lst_day_c", "lst_night_c", "lst_amplitude_c",
 class EarthLayers:
     @classmethod
     def from_project(cls, project_dir: Path, need: set[str] | None = None) -> "EarthLayers":
-        """Carga en memoria: ndvi_max (banda 1) y las 3 bandas de LST como arreglos float32,
-        más Logistics, Countries y KnownRegions. `need` permite cargar solo una parte
-        (ej. {'ndvi'} para el prefiltro). Falla con un mensaje claro si falta la caché:
-        'Corre primero jobs/t6_earth_layers.slurm'."""
+        """Loads into memory ndvi_max (band 1) and the 3 LST bands as float32 arrays, plus
+        Logistics, Countries and KnownRegions. `need` can load only a part (e.g. {'ndvi'} for the
+        prefilter). Fails with a clear message if the cache is missing:
+        'Run jobs/t6_earth_layers.slurm first'."""
 
     def ndvi_prefilter(self, lat, lon, half_km: float = 16.0) -> np.ndarray:
-        """ndvi_max del parche (mediana de la ventana). Para el prefiltro de T5 (> 0.25 descarta)."""
+        """Patch ndvi_max (window median), for the T5 prefilter (> 0.25 is dropped)."""
 
     def sample(self, lat, lon, half_km: float = 16.0) -> pd.DataFrame:
-        """DataFrame con EARTH_ENV_COLUMNS, una fila por punto, en el mismo orden.
-        classification = 'KNOWN_ANALOG' si known_region no es None; si no, 'NEW_CANDIDATE'.
-        dtypes: float32 para los numéricos, string para los textos."""
+        """DataFrame with EARTH_ENV_COLUMNS, one row per point, in the same order.
+        classification = 'KNOWN_ANALOG' if known_region is not None, else 'NEW_CANDIDATE'.
+        float32 for numbers, string for texts."""
 ```
 
-Uso de memoria en T5: un `EarthLayers` ocupa ~420 MB (4 mallas de 104 MB más los árboles). T5 lo crea **una vez antes del `fork`** del `Pool`, para que los procesos lo compartan sin copiarlo (copy-on-write). Anotarlo en el docstring.
+**Memory use in T5:** one `EarthLayers` takes ~420 MB (four 104 MB grids plus the trees). T5 creates it **once, before forking** the `Pool`, so the processes share it copy-on-write. Note this in the docstring.
 
 ### 3.5 CLI
 
@@ -233,125 +233,65 @@ Uso de memoria en T5: un `EarthLayers` ocupa ~420 MB (4 mallas de 104 MB más lo
 python -m pipeline.earth_layers --project-dir P --out-dir RUN_DIR [--build] [--check]
 ```
 
-- `--build`: llama a `ensure_cache`.
-- `--check`: corre la verificación de la sección 6, escribe `t6_checks.json` e imprime una tabla; sale con código 1 si falla un criterio **duro**.
-- Los PNG (sección 6.3) se escriben siempre que se pase `--check`.
+- `--build` calls `ensure_cache`.
+- `--check` runs the checks of section 6, writes `t6_checks.json`, prints a table, and exits with code 1 if a **hard** criterion fails. It also writes the PNGs (§6.3).
 
 ---
 
-## 4. `pipeline/data/known_analogs.json` (escrito a mano)
+## 4. `pipeline/data/known_analogs.json` (hand-written)
 
-Copiar **tal cual**. Los bbox son **aproximados**: los trazó Claude para que contengan las zonas de estudio citadas, no vienen de una fuente oficial. Por eso cada uno lleva `bbox_note`. El criterio de la sección 6 los revisa en un mapa. Formato del bbox: `[lon_min, lat_min, lon_max, lat_max]`.
+The committed file is [pipeline/data/known_analogs.json](../pipeline/data/known_analogs.json). Its bounding boxes are **approximate**: Claude drew them to contain the cited study areas, and they do not come from an official source. Each one therefore carries a `bbox_note`, and the §6 checks review them on a map. The bbox format is `[lon_min, lat_min, lon_max, lat_max]`.
 
-Validación al cargar (`KnownRegions.__init__`):
+**Validation** in `KnownRegions.__init__`: unique `id`, `lon_min < lon_max` and `lat_min < lat_max`, valid ranges, and a non-empty `source_url`.
 
-- `id` único.
-- `lon_min < lon_max` y `lat_min < lat_max`.
-- Rangos válidos.
-- `source_url` no vacío.
+| id | Name | Country | bbox | Source |
+| --- | --- | --- | --- | --- |
+| `atacama` | Atacama Desert | Chile | −71.5, −30.0, −68.0, −18.0 | Wikipedia: Atacama Desert |
+| `mcmurdo-dry-valleys` | McMurdo Dry Valleys | Antarctica | 160.0, −78.5, 164.5, −76.5 | Wikipedia: McMurdo Dry Valleys |
+| `iceland` | Iceland | Iceland | −24.6, 63.2, −13.4, 66.7 | Wikipedia: Iceland |
+| `hawaii-big-island` | Hawaii (Mauna Kea / Kilauea) | United States | −156.1, 18.9, −154.8, 20.3 | Wikipedia: Mauna Kea |
+| `devon-island` | Devon Island (Haughton crater) | Canada | −96.0, 74.5, −79.5, 76.8 | Wikipedia: Haughton impact crater |
+| `utah-mdrs` | Utah (MDRS, Hanksville) | United States | −111.4, 37.9, −110.2, 38.9 | Wikipedia: Mars Desert Research Station |
+| `rio-tinto` | Rio Tinto | Spain | −7.0, 37.1, −6.4, 37.8 | Wikipedia: Rio Tinto (river) |
+| `svalbard` | Svalbard | Norway | 10.0, 76.4, 34.0, 80.9 | Wikipedia: Svalbard |
+| `pilbara` | Pilbara | Australia | 116.0, −23.5, 121.5, −20.0 | Wikipedia: Pilbara |
+| `meteor-crater` | Meteor Crater | United States | −111.35, 34.75, −110.70, 35.30 | Wikipedia: Meteor Crater |
+| `lanzarote` | Lanzarote | Spain | −13.88, 28.83, −13.40, 29.25 | Wikipedia: Lanzarote |
+| `mojave` | Mojave Desert | United States | −118.0, 34.0, −114.5, 36.5 | Wikipedia: Mojave Desert |
 
-```json
-{
-  "version": "2026-11-13",
-  "notes": "Well-studied terrestrial analog regions. Bounding boxes are approximate (drawn by Claude to contain the cited study areas) and only decide the KNOWN_ANALOG / NEW_CANDIDATE label.",
-  "regions": [
-    { "id": "atacama", "name": "Atacama Desert", "country": "Chile", "analog_for": ["Mars"],
-      "bbox": [-71.5, -30.0, -68.0, -18.0],
-      "why": "Hyper-arid desert used for Mars life-detection and rover tests.",
-      "source_url": "https://en.wikipedia.org/wiki/Atacama_Desert",
-      "bbox_note": "Approximate: coastal range to the Andean foothills, 18-30 S." },
-    { "id": "mcmurdo-dry-valleys", "name": "McMurdo Dry Valleys", "country": "Antarctica", "analog_for": ["Mars", "Moon"],
-      "bbox": [160.0, -78.5, 164.5, -76.5],
-      "why": "Cold, dry, ice-free valleys used as a Mars polar analog.",
-      "source_url": "https://en.wikipedia.org/wiki/McMurdo_Dry_Valleys",
-      "bbox_note": "Approximate: Victoria Land dry valleys." },
-    { "id": "iceland", "name": "Iceland", "country": "Iceland", "analog_for": ["Mars", "Moon"],
-      "bbox": [-24.6, 63.2, -13.4, 66.7],
-      "why": "Basaltic volcanism, lava fields and glaciers; Apollo astronauts trained there.",
-      "source_url": "https://en.wikipedia.org/wiki/Iceland",
-      "bbox_note": "Whole island." },
-    { "id": "hawaii-big-island", "name": "Hawaii (Mauna Kea / Kilauea)", "country": "United States", "analog_for": ["Mars", "Moon"],
-      "bbox": [-156.1, 18.9, -154.8, 20.3],
-      "why": "Basaltic shield volcanoes and lava tubes used for ISRU and habitat tests.",
-      "source_url": "https://en.wikipedia.org/wiki/Mauna_Kea",
-      "bbox_note": "Island of Hawaii." },
-    { "id": "devon-island", "name": "Devon Island (Haughton crater)", "country": "Canada", "analog_for": ["Mars", "Moon"],
-      "bbox": [-96.0, 74.5, -79.5, 76.8],
-      "why": "Polar desert with the Haughton impact crater; home of the Haughton-Mars Project.",
-      "source_url": "https://en.wikipedia.org/wiki/Haughton_impact_crater",
-      "bbox_note": "Approximate: whole island." },
-    { "id": "utah-mdrs", "name": "Utah (MDRS, Hanksville)", "country": "United States", "analog_for": ["Mars"],
-      "bbox": [-111.4, 37.9, -110.2, 38.9],
-      "why": "Red sedimentary badlands around the Mars Desert Research Station.",
-      "source_url": "https://en.wikipedia.org/wiki/Mars_Desert_Research_Station",
-      "bbox_note": "Approximate: about 50 km around Hanksville." },
-    { "id": "rio-tinto", "name": "Rio Tinto", "country": "Spain", "analog_for": ["Mars"],
-      "bbox": [-7.0, 37.1, -6.4, 37.8],
-      "why": "Acidic, iron-rich river used as an analog for Meridiani-type environments.",
-      "source_url": "https://en.wikipedia.org/wiki/Rio_Tinto_(river)",
-      "bbox_note": "Approximate: river basin from the source to the estuary." },
-    { "id": "svalbard", "name": "Svalbard", "country": "Norway", "analog_for": ["Mars"],
-      "bbox": [10.0, 76.4, 34.0, 80.9],
-      "why": "Arctic volcanic and permafrost sites (AMASE expeditions).",
-      "source_url": "https://en.wikipedia.org/wiki/Svalbard",
-      "bbox_note": "Whole archipelago." },
-    { "id": "pilbara", "name": "Pilbara", "country": "Australia", "analog_for": ["Mars"],
-      "bbox": [116.0, -23.5, 121.5, -20.0],
-      "why": "Archean stromatolites; reference for ancient biosignatures.",
-      "source_url": "https://en.wikipedia.org/wiki/Pilbara",
-      "bbox_note": "Approximate: Pilbara Craton outcrop area, not the whole administrative region." },
-    { "id": "meteor-crater", "name": "Meteor Crater", "country": "United States", "analog_for": ["Moon", "Mars"],
-      "bbox": [-111.35, 34.75, -110.70, 35.30],
-      "why": "Well-preserved simple impact crater; Apollo crews trained there.",
-      "source_url": "https://en.wikipedia.org/wiki/Meteor_Crater",
-      "bbox_note": "Approximate: about 30 km around the crater, larger than a 32 km patch." },
-    { "id": "lanzarote", "name": "Lanzarote", "country": "Spain", "analog_for": ["Mars", "Moon"],
-      "bbox": [-13.88, 28.83, -13.40, 29.25],
-      "why": "Basaltic lava fields and lava tubes; ESA PANGAEA training site.",
-      "source_url": "https://en.wikipedia.org/wiki/Lanzarote",
-      "bbox_note": "Whole island." },
-    { "id": "mojave", "name": "Mojave Desert", "country": "United States", "analog_for": ["Mars", "Moon"],
-      "bbox": [-118.0, 34.0, -114.5, 36.5],
-      "why": "Arid desert used for rover field tests (JPL Mars Yard trials, Mojave volcanic fields).",
-      "source_url": "https://en.wikipedia.org/wiki/Mojave_Desert",
-      "bbox_note": "Approximate core of the desert; excludes the Colorado Desert." }
-  ]
-}
-```
-
-En la presentación, si se habla de esta lista, decir que los bbox son aproximados. No hace falta ser más precisos: solo deciden la etiqueta y nunca entran al puntaje.
+The file also has `analog_for`, `why` and `bbox_note` for every region. If this list comes up in the presentation, say the boxes are approximate. More precision is not needed: they only decide the label and never enter the score.
 
 ---
 
-## 5. `tests/test_earth_layers.py` (solo datos sintéticos, sin `pyhdf`)
+## 5. `tests/test_earth_layers.py` (synthetic data only, no `pyhdf`)
 
-1. **`test_ndvi_from_raw`**: `[-3000, -2500, -2000, 0, 2500, 10000, 12000]` da `[nan, nan, -0.2, 0.0, 0.25, 1.0, nan]`. El fill y lo que sale de `valid_range` da NaN; `-2000` es válido y da `-0.2`.
-2. **`test_lst_c_from_raw`**: `0` da NaN, `7499` da NaN, `14658` da `20.01 °C` (±0.01), y `65535` da un valor finito.
-3. **`test_running_ops`**: tres "meses" de 2 × 2 con NaN intercalados. Comprueba que el `nanmax` es correcto, que la media exige `min_count` y que una celda con 2 meses válidos y `min_count=3` da NaN.
-4. **`test_cell_index_edges`**: `(90, -180)` da `(0, 0)`; `(-90, 180)` da `(3599, 0)`, porque `lon` 180 se normaliza a −180; `(0, 0)` da `(1800, 3600)`.
-5. **`test_patch_window_stat_antimeridian`**: malla con 1.0 en la columna 0 y 0.0 en la 7199. `max` en `(0, 179.99)` con `half_km = 16` da 1.0, porque la ventana envuelve el antimeridiano.
-6. **`test_patch_window_stat_lat`**: a 60° de latitud la ventana tiene ~2 veces más columnas que en el ecuador (±1).
-7. **`test_logistics_densify`**: un `GeoDataFrame` con **una** línea de 2 vértices de `(0, 0)` a `(0, 10)` (lat 0, lon 0→10) y otra de ferry pegada al punto. Comprueba:
-   - `dist_road_km(0.5, 5.0)` ≈ 55.6 km (±1.5). Sin densificar daría ~556 km.
-   - El ferry se ignora.
-8. **`test_airports_exclude_military`**: un aeropuerto `military` a 1 km y uno `mid` a 50 km: el resultado es el `mid`, a ~50 km.
-9. **`test_countries_lookup`**: un polígono sintético "Testland" sobre `[0,1]×[0,1]`.
-   - `(0.5, 0.5)` da "Testland";
-   - `(0.5, 1.1)`, a ~11 km fuera, da "Testland" por la regla de costa;
-   - `(0.5, 3)` da None.
-10. **`test_known_regions_real_file`**: carga `pipeline/data/known_analogs.json` real. Comprueba:
-    - 12 regiones, ids únicos y bbox válidos;
-    - `lookup(38.4064, -110.7919)` (MDRS) da `utah-mdrs`;
-    - `lookup(29.07, -110.96)` (Hermosillo) da None.
-11. **`test_sample_schema`**: un `EarthLayers` armado a mano con mallas sintéticas (agregar un constructor `EarthLayers.from_arrays(...)` para pruebas). `sample` devuelve exactamente `EARTH_ENV_COLUMNS` y `classification` es correcta.
+1. **`test_ndvi_from_raw`:** `[-3000, -2500, -2000, 0, 2500, 10000, 12000]` gives `[nan, nan, -0.2, 0.0, 0.25, 1.0, nan]`. The fill value and anything outside `valid_range` give NaN; `-2000` is valid and gives `-0.2`.
+2. **`test_lst_c_from_raw`:** `0` gives NaN, `7499` gives NaN, `14658` gives `20.01 °C` (±0.01), and `65535` gives a finite value.
+3. **`test_running_ops`:** three 2 × 2 "months" with NaNs scattered among them. The `nanmax` is right, the mean respects `min_count`, and a cell with 2 valid months and `min_count=3` gives NaN.
+4. **`test_cell_index_edges`:** `(90, -180)` gives `(0, 0)`; `(-90, 180)` gives `(3599, 0)`, because lon 180 is normalised to −180; `(0, 0)` gives `(1800, 3600)`.
+5. **`test_patch_window_stat_antimeridian`:** a grid with 1.0 in column 0 and 0.0 in column 7199. `max` at `(0, 179.99)` with `half_km = 16` gives 1.0, because the window wraps.
+6. **`test_patch_window_stat_lat`:** at 60° latitude the window has ~2× the columns it has at the equator (±1).
+7. **`test_logistics_densify`:** a `GeoDataFrame` with **one** 2-vertex line from `(0, 0)` to `(0, 10)` (lat 0, lon 0→10), plus a ferry line next to the point.
+   - `dist_road_km(0.5, 5.0)` ≈ 55.6 km (±1.5); without densifying it would be ~556 km.
+   - The ferry line is ignored.
+8. **`test_airports_exclude_military`:** a `military` airport 1 km away and a `mid` one 50 km away. The result is the `mid` one, at ~50 km.
+9. **`test_countries_lookup`:** a synthetic "Testland" polygon on `[0,1]×[0,1]`.
+   - `(0.5, 0.5)` gives "Testland";
+   - `(0.5, 1.1)`, ~11 km outside, also gives "Testland" (coast rule);
+   - `(0.5, 3)` gives None.
+10. **`test_known_regions_real_file`:** loads the real `pipeline/data/known_analogs.json`.
+    - It has 12 regions, unique ids and valid bboxes.
+    - `lookup(38.4064, -110.7919)` (MDRS) gives `utah-mdrs`.
+    - `lookup(29.07, -110.96)` (Hermosillo) gives None.
+11. **`test_sample_schema`:** an `EarthLayers` built by hand from synthetic grids, through a constructor `EarthLayers.from_arrays(...)` added for tests. `sample` returns exactly `EARTH_ENV_COLUMNS`, with a correct `classification`.
 
 ---
 
-## 6. Job y verificación
+## 6. Job and checks
 
 ### 6.1 `jobs/t6_earth_layers.slurm`
 
-Misma forma que `jobs/t4_targets.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, eco con el commit), con estos cambios:
+Same shape as `jobs/t4_targets.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit), with:
 
 ```bash
 #SBATCH -J p089-t6-earth-layers
@@ -361,60 +301,62 @@ Misma forma que `jobs/t4_targets.slurm` (`#!/usr/bin/env bash`, `set -euo pipefa
 #SBATCH -o /lustre/proyectos/p089/output/t6_earth_layers_%j.log
 #SBATCH -e /lustre/proyectos/p089/output/t6_earth_layers_%j.log
 ...
-python -c "import pyhdf" || { echo "Falta pyhdf en spaceapps_2026"; exit 2; }
+python -c "import pyhdf" || { echo "pyhdf missing in spaceapps_2026"; exit 2; }
 python -m pipeline.earth_layers --project-dir "$PROJECT_DIR" --out-dir "$OUT_DIR" --build --check "$@"
 ```
 
-`pyhdf` ya está instalado en el entorno. El job **no** debe instalar nada: si falta, que falle. Agregar `pyhdf>=0.10` a `pipeline/requirements.txt` con el comentario `# solo para construir la caché de T6 (Yuca)`.
+- **No installs.** `pyhdf` is already in the environment, so the job must not install anything; if it is missing, the job fails. Add `pyhdf>=0.10` to `pipeline/requirements.txt` with the comment `# only to build the T6 cache (Yuca)`.
+- **No separate test run.** The full job takes minutes, and its checks are the test. If it fails, diagnose before resubmitting.
+- **No half-built cache.** It is written to `.tmp.tif` and then `os.replace`d.
 
-No hace falta una corrida de prueba aparte: el job completo dura minutos y sus verificaciones son la prueba. Si falla, se diagnostica antes de reenviarlo. Una caché a medias no queda en su lugar, porque se escribe a `.tmp.tif` y luego `os.replace`.
+### 6.2 Criteria (in `--check`, written to `t6_checks.json`)
 
-### 6.2 Criterios (en `--check`, escritos en `t6_checks.json`)
+**Hard** (the job exits with code 1 if one fails):
 
-**Duros:** si fallan, el job sale con código 1.
-
-| # | Verificación | Criterio |
+| # | Check | Criterion |
 | --- | --- | --- |
-| 1 | Caché | Las mallas de los dos `.tif` son 3600 × 7200 en EPSG:4326 con `from_origin(-180, 90, 0.05, 0.05)` |
-| 2 | `ndvi_max` Sahara: parches en `(26.0, 3.0)` (Argelia) y `(24.0, 28.0)` (desierto occidental de Egipto) | < 0.10 |
+| 1 | Cache | Both `.tif` grids are 3600 × 7200 in EPSG:4326 with `from_origin(-180, 90, 0.05, 0.05)` |
+| 2 | `ndvi_max` Sahara: patches at `(26.0, 3.0)` (Algeria) and `(24.0, 28.0)` (Egypt's Western Desert) | < 0.12 (see §6.2.1) |
 | 3 | `ndvi_max` Atacama `(-24.5, -69.3)` | < 0.10 |
-| 4 | `ndvi_max` Amazonía `(-3.5, -62.0)` y Congo `(0.5, 20.0)` | > 0.70 |
+| 4 | `ndvi_max` Amazon `(-3.5, -62.0)` and Congo `(0.5, 20.0)` | > 0.70 |
 | 5 | `dist_road_km` Hermosillo `(29.07, -110.96)` | < 5 |
-| 6 | `country` en Hermosillo / Atacama / Sahara `(26.0, 3.0)` | `Mexico` / `Chile` / `Algeria` |
-| 7 | `known_region` en MDRS `(38.4064, -110.7919)` y Hermosillo | `utah-mdrs` / None |
-| 8 | Fracción de celdas de tierra con `ndvi_max` finito | > 0.25 de toda la malla (la tierra ocupa ~29 % del globo) |
+| 6 | `country` at Hermosillo / Atacama / Sahara `(26.0, 3.0)` | `Mexico` / `Chile` / `Algeria` |
+| 7 | `known_region` at MDRS `(38.4064, -110.7919)` and at Hermosillo | `utah-mdrs` / None |
+| 8 | Area-weighted (`cos(lat)`) fraction of cells with a finite `ndvi_max` | > 0.25 (land covers ~29 % of the globe; see §6.2.1) |
 
-**Blandos:** se reportan pero no hacen fallar el job. Si alguno falla, avisar.
+**Soft** (reported; they do not fail the job, but report any that fail):
 
-| # | Verificación | Esperado |
+| # | Check | Expected |
 | --- | --- | --- |
-| 9 | `lst_day_c` Valles Secos `(-77.5, 162.0)` | < 0 °C |
-| 10 | `lst_amplitude_c` Sahara `(26.0, 3.0)` frente a Amazonía | Sahara > 15 °C y mayor que Amazonía |
-| 11 | `dist_road_km` Valles Secos | > 1000 km (no hay carreteras en la Antártida) |
-| 12 | Fracción de la malla con `ndvi_max ≤ 0.25` | Imprimirla; es la estimación de cuántos parches pasan el prefiltro de T5. El plan general espera entre 40 y 120 mil parches terrestres válidos |
-| 13 | Tiempo de `EarthLayers.sample` sobre 10,000 puntos aleatorios en tierra | Imprimirlo; debe ser < 30 s para que T5 no se atore |
+| 9 | `lst_day_c` Dry Valleys `(-77.5, 162.0)` | < 0 °C |
+| 10 | `lst_amplitude_c` Sahara `(26.0, 3.0)` vs. the Amazon | Sahara > 15 °C, and above the Amazon |
+| 11 | `dist_road_km` Dry Valleys | > 1000 km (no roads in Antarctica) |
+| 12 | Fraction of the grid with `ndvi_max ≤ 0.25` | Print it: it estimates how many patches pass the T5 prefilter |
+| 13 | Time of `EarthLayers.sample` on 10,000 random land points | Print it; it should be < 30 s so T5 does not stall |
 
-### 6.2.1 Ajustes tras la primera corrida (job `2242426`, decididos por Claude el 2026-11-13)
+#### 6.2.1 Adjustments after the first run (job 2242426, decided by Claude on 2026-11-13)
 
-Los dos criterios duros que fallaron estaban mal planteados en este plan; el código y los datos son correctos.
+The two hard checks that failed in the first run were badly specified in this plan; the code and the data were correct.
 
-- **#2:** el umbral del Sahara pasa a **`< 0.12`**. El suelo desnudo brillante da NDVI de 0.05–0.12: en `(24.0, 28.0)` los 12 meses tienen confiabilidad 0 ("good") y la mediana del máximo es 0.103. Sigue muy lejos del corte de 0.25 del prefiltro.
-- **#8:** la fracción de celdas con `ndvi_max` finito se mide **ponderada por área** (`cos(lat)`) y debe ser `> 0.25`. El valor medido es 0.2696. La versión sin ponderar sobrerrepresenta los polos, y MOD13C2 no tiene datos al sur de −59.45°.
-- Consecuencia para T5: un NDVI NaN pasa el prefiltro solo si hay LST (ver `plan_t5.md` §2.5.3).
+- **#2:** the Sahara threshold is now **`< 0.12`**. Bright bare soil gives NDVI of 0.05–0.12. At `(24.0, 28.0)`, all 12 months have pixel reliability 0 ("good"), and the median of the maximum is 0.103. That is still far below the prefilter cut of 0.25.
+- **#8:** the fraction of cells with a finite `ndvi_max` is now **area-weighted** (`cos(lat)`) and must be `> 0.25`. The measured value is 0.2696. The unweighted version over-represents the poles, and MOD13C2 has no data south of −59.45°.
+- **Consequence for T5:** a NaN NDVI passes the prefilter only where LST exists ([plan_t5.md](plan_t5.md) §2.5.3).
 
-### 6.3 PNG en `runs/<JOBID>/`
+After these fixes, job 2242430 passed 8/8 hard and 5/5 soft.
 
-Imágenes de control, no para la presentación:
+### 6.3 PNG maps in `runs/<JOBID>/`
 
-- **`map_ndvi_max.png`:** la malla submuestreada ×4, con `cmap='YlGn'`, `vmin=0`, `vmax=0.9` y contorno de NDVI = 0.25 en rojo.
-- **`map_lst_amplitude.png`:** igual, con `cmap='magma'`.
-- **`map_known_analogs.png`:** NDVI en gris con los 12 bbox dibujados y etiquetados. Hay que revisar a ojo que cada rectángulo cae sobre su región.
+These are control images, not for the presentation:
+
+- **`map_ndvi_max.png`:** the grid downsampled ×4, `cmap='YlGn'`, `vmin=0`, `vmax=0.9`, with the NDVI = 0.25 contour in red;
+- **`map_lst_amplitude.png`:** the same, with `cmap='magma'`;
+- **`map_known_analogs.png`:** NDVI in grey with the 12 bboxes drawn and labelled. Check by eye that each rectangle sits on its region.
 
 ---
 
-## 7. Comandos para Owen en Yuca
+## 7. Commands for Owen on Yuca
 
-Por SSH o en la terminal de Open OnDemand, desde `/lustre/proyectos/p089/code`:
+Over SSH or in the Open OnDemand shell, from `/lustre/proyectos/p089/code`:
 
 ```bash
 cd /lustre/proyectos/p089/code && git pull
@@ -432,27 +374,27 @@ sbatch jobs/t6_earth_layers.slurm
 tail -n 80 /lustre/proyectos/p089/output/t6_earth_layers_<JOBID>.log
 ```
 
-Después se bajan por OOD Files los 3 PNG de `runs/<JOBID>/` para revisarlos. Agregar `data/derived/ndvi_max_2023.tif` y `lst_2023.tif` al kit offline **no** hace falta (~200 MB cada uno). En la laptop, las pruebas usan mallas sintéticas.
+Then download the 3 PNGs from `runs/<JOBID>/` through OOD Files to review them. The `.tif` caches do **not** need to go into the offline kit; the laptop tests use synthetic grids.
 
 ---
 
-## 8. Bitácora y documentación (mismo commit, y una actualización tras el job)
+## 8. Documentation (same commit, then updated after the job)
 
-- **`docs/logbook.md`:** entrada nueva con lo hecho, el JOBID, la tabla de verificaciones (duras y blandas) y la nota de que el código lo escribió Gemini a partir de este plan.
-- **`docs/pipeline.md`:**
-  - en la tabla de datos, agregar las dos cachés derivadas;
-  - en la tabla de escalas, agregar MOD13C2 (`/10000`, fill −3000) y MOD11C3 (`×0.02`, fill 0) con la advertencia de convenciones opuestas;
-  - la nota "GDAL sin HDF4: usar pyhdf";
-  - la corrida T6.
-- **`docs/handoff.md`:** T6 como hecho, con el JOBID y las rutas de la caché.
+- **[logbook.md](logbook.md):** a new entry with what was done, the job id, the check table (hard and soft), and a note that Gemini wrote the code from this plan.
+- **[pipeline.md](pipeline.md):**
+  - the two derived caches, in the data table;
+  - MOD13C2 (`/10000`, fill −3000) and MOD11C3 (`×0.02`, fill 0) in the scale table, with the opposite-convention warning;
+  - the note "GDAL has no HDF4: use pyhdf";
+  - the run.
+- **[handoff.md](handoff.md):** T6 done, with the job id and the cache paths.
 
 ---
 
-## 9. Qué NO hacer
+## 9. What NOT to do
 
-- No leer el `scale_factor` de MODIS de forma genérica (`valor * scale_factor`): en MOD13C2 daría NDVI × 10000.
-- No instalar `libgdal-hdf4` ni modificar el entorno de conda.
-- No sobrescribir la caché; si hay que rehacerla, mover la vieja a `/lustre/proyectos/p089/_to_delete/`.
-- No usar `known_region` ni `country` en el puntaje: solo etiquetan.
-- No inventar coordenadas ni bbox nuevos. Si una región parece mal trazada en `map_known_analogs.png`, reportarlo y proponer el cambio.
-- No importar los scripts v1 de la raíz.
+- Do not apply the MODIS `scale_factor` generically (`value * scale_factor`): on MOD13C2 that gives NDVI × 10000.
+- Do not install `libgdal-hdf4` or modify the conda environment.
+- Do not overwrite the cache. To rebuild it, move the old file to `/lustre/proyectos/p089/_to_delete/`.
+- Do not use `known_region` or `country` in the score: they only label.
+- Do not invent new coordinates or bboxes. If a region looks wrongly drawn in `map_known_analogs.png`, report it and propose the change.
+- Do not import the v1 scripts.
