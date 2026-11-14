@@ -18,20 +18,24 @@ import numpy as np
 import pandas as pd
 
 from .config import BODY_RADII_M, YUCA_PROJECT_DIR
+from .geology_rules import GEO_CLASSES, GEO_SIMILARITY
 from .match import (
+    DIMENSIONS,
+    ICE_CAP_EXEMPT_PRESETS,
     MATCH_FEATURES,
-    MAX_POLAR_PER_PRESET,
+    MAX_ICE_SURFACE_PER_PRESET,
     MIN_SEP_KM,
-    POLAR_COLD_LST_C,
     PRESET_KEYS,
     PRESETS,
     Normalizer,
-    _knn_embedding,
-    dimension_scores,
+    TargetVec,
+    build_earth_arrays,
     format_earth_id,
     haversine_km,
+    load_layers,
     mismatches,
     msi,
+    score_target,
     select_diverse,
     thermal_ranks,
 )
@@ -46,6 +50,7 @@ DEFAULT_SAMPLE_JSON: Path = (
 
 MAX_UNIVERSE_BYTES: int = 20 * 1024 * 1024
 MIN_COVERAGE_PER_PRESET: int = 20
+TOP_N_REPORT: int = 30
 OLYMPUS_LAT: float = 18.65
 OLYMPUS_LON: float = -133.80
 FRACTION_AUX_KEYS: set[str] = {"wac_percentile", "ice_stable_frac"}
@@ -64,6 +69,9 @@ REQUIRED_TARGET_KEYS: set[str] = {
     "iau_label",
     "features",
     "aux",
+    "geology",
+    "dust",
+    "ice",
     "analogs",
 }
 REQUIRED_ANALOG_KEYS: set[str] = {
@@ -80,12 +88,16 @@ REQUIRED_ANALOG_KEYS: set[str] = {
     "earth_env",
     "logistics",
     "polar_cold",
+    "geology",
+    "dust",
+    "ice",
+    "subsurface_note",
     "mismatches",
 }
 
 
 def default_datasets() -> list[dict[str, object]]:
-    """Return the 10 pipeline dataset provenance entries using verified doc URLs only."""
+    """Return the pipeline dataset provenance entries using verified doc URLs only."""
     return [
         {
             "name": "MGS MOLA DEM 463 m",
@@ -136,6 +148,32 @@ def default_datasets() -> list[dict[str, object]]:
             "name": "Natural Earth 10m (roads, airports, countries)",
             "source": "Natural Earth",
             # TODO(verify): add canonical Natural Earth 10m cultural vectors page URL
+            "url": None,
+        },
+        {
+            "name": "GLiM Global Lithological Map 0.5 deg (Hartmann and Moosdorf 2012)",
+            "source": "PANGAEA",
+            "url": "https://doi.pangaea.de/10.1594/PANGAEA.788537",
+        },
+        {
+            "name": "USGS SIM 3292 Global Geologic Map of Mars (Tanaka et al. 2014)",
+            "source": "USGS",
+            "url": "https://pubs.usgs.gov/sim/3292/",
+        },
+        {
+            "name": "USGS Unified Geologic Map of the Moon, 1:5M (Fortezzo, Spudis and Harrel 2020)",
+            "source": "USGS Astrogeology",
+            "url": "https://asc-astropedia.s3.us-west-2.amazonaws.com/Moon/Geology/Unified_Geologic_Map_of_the_Moon_GIS_v2.zip",
+        },
+        {
+            "name": "Mars dust climatology, kriged CDOD v2 (Montabone et al. 2015, 2020)",
+            "source": "LMD / Mars Climate Database",
+            "url": "https://www-mars.lmd.jussieu.fr/mars/dust_climatology/",
+        },
+        {
+            "name": "MODIS Terra MOD08_M3 collection 6.1 (Deep Blue AOD 550 nm, 2019-2023)",
+            "source": "NASA Earthdata / LAADS DAAC",
+            # TODO(verify): add LAADS landing URL for MOD08_M3 v6.1
             "url": None,
         },
         {
@@ -290,6 +328,76 @@ def _target_aux_dict(t_row: pd.Series, body: str) -> dict[str, float | None]:
     return aux
 
 
+def _opt_round(val: object, decimals: int) -> float | None:
+    return _round_val(val, decimals)
+
+
+def _bool_or_none(val: object) -> bool | None:
+    if val is None:
+        return None
+    try:
+        if pd.isna(val):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return bool(val)
+
+
+def _analog_geology(e_row: dict[str, object]) -> dict[str, object]:
+    return {
+        "glim_code": _clean_str(e_row.get("glim_code")),
+        "geo_class": _clean_str(e_row.get("geo_class")),
+        "lava_tube_terrain": bool(_bool_or_none(e_row.get("lava_tube_terrain")) or False),
+        "ice_surface": bool(_bool_or_none(e_row.get("ice_surface")) or False),
+    }
+
+
+def _analog_dust(e_row: dict[str, object]) -> dict[str, object]:
+    return {
+        "level_rank": _opt_round(e_row.get("dust_level_rank"), 3),
+        "seasonality_rank": _opt_round(e_row.get("dust_seasonality_rank"), 3),
+        "peak_phase_deg": _opt_round(e_row.get("dust_peak_phase_deg"), 1),
+    }
+
+
+def _analog_ice(e_row: dict[str, object]) -> dict[str, object]:
+    return {
+        "cold_rank": _opt_round(e_row.get("cold_rank_E"), 3),
+        "ice_E": _opt_round(e_row.get("ice_E"), 2),
+    }
+
+
+SUBSURFACE_NOTE: str = "Basaltic volcanic terrain: lava tubes are possible here (not mapped)"
+
+CITATIONS: list[str] = [
+    "Hartmann, J. and Moosdorf, N. (2012). The new global lithological map database GLiM. Geochem. Geophys. Geosyst., doi:10.1029/2012GC004370 (data: PANGAEA 10.1594/PANGAEA.788537).",
+    "Tanaka, K.L. et al. (2014). Geologic map of Mars. USGS Scientific Investigations Map 3292.",
+    "Fortezzo, C.M., Spudis, P.D. and Harrel, S.L. (2020). Release of the digital Unified Global Geologic Map of the Moon at 1:5,000,000-scale. USGS.",
+    "Montabone, L. et al. (2015). Eight-year climatology of dust optical depth on Mars. Icarus 251, 65-95, doi:10.1016/j.icarus.2014.12.034.",
+    "Montabone, L. et al. (2020). Martian year 34 column dust climatology from Mars Climate Sounder observations. J. Geophys. Res. Planets, doi:10.1029/2019JE006111.",
+    "MODIS Terra Atmosphere Monthly Global Product MOD08_M3, collection 6.1 (NASA LAADS DAAC).",
+]
+
+NOT_MODELLED: list[dict[str, str]] = [
+    {
+        "item": "mineralogy (spectral)",
+        "note": "Geology is regional lithology and mapped units, not spectra: two sites with the same class can differ in mineral composition.",
+    },
+    {
+        "item": "biology",
+        "note": "Earth analogs are selected as bare ground only; microbial life, soil biology and habitability are not modelled.",
+    },
+    {
+        "item": "caves (mapped)",
+        "note": "Lava tubes are only suggested by basaltic terrain; no cave inventory is used and nothing is scored on it.",
+    },
+]
+
+
+def _geology_similarity_dict() -> dict[str, dict[str, float]]:
+    return {a: {b: float(v) for b, v in row.items()} for a, row in GEO_SIMILARITY.items()}
+
+
 def build_universe_dict(
     matches_df: pd.DataFrame,
     targets_df: pd.DataFrame,
@@ -349,6 +457,9 @@ def build_universe_dict(
                 "roughness": _round_val(m_row.get("S_roughness"), 3),
                 "environment": _round_val(m_row.get("S_environment"), 3),
                 "thermal": None if body == "Moon" else _round_val(m_row.get("S_thermal"), 3),
+                "geology": _round_val(m_row.get("S_geology"), 3),
+                "dust": None if body == "Moon" else _round_val(m_row.get("S_dust"), 3),
+                "ice": _round_val(m_row.get("S_ice"), 3),
             }
             msi_by_preset = {
                 pkey: _round_val(m_row.get(f"msi_{pkey}"), 3)
@@ -390,6 +501,17 @@ def build_universe_dict(
                     "earth_env": earth_env,
                     "logistics": logistics,
                     "polar_cold": bool(m_row.get("polar_cold", False)),
+                    "geology": _analog_geology(e_row),
+                    "dust": _analog_dust(e_row),
+                    "ice": _analog_ice(e_row),
+                    "subsurface_note": (
+                        SUBSURFACE_NOTE
+                        if (
+                            bool(_bool_or_none(e_row.get("lava_tube_terrain")) or False)
+                            and _clean_str(t_row.get("geo_class")) == "VOLCANIC_BASIC"
+                        )
+                        else None
+                    ),
                     "mismatches": mm_list,
                 }
             )
@@ -425,6 +547,25 @@ def build_universe_dict(
                 "iau_label": _clean_str(t_row.get("iau_label")),
                 "features": t_features,
                 "aux": _target_aux_dict(t_row, body),
+                "geology": {
+                    "unit": _clean_str(t_row.get("geo_unit")),
+                    "geo_class": _clean_str(t_row.get("geo_class")),
+                    "geo_class_share": _round_val(t_row.get("geo_class_share"), 3),
+                },
+                "dust": (
+                    None
+                    if body == "Moon"
+                    else {
+                        "level_rank": _round_val(t_row.get("dust_level_rank"), 3),
+                        "seasonality_rank": _round_val(t_row.get("dust_seasonality_rank"), 3),
+                        "peak_phase_deg": _round_val(t_row.get("dust_peak_phase_deg"), 1),
+                    }
+                ),
+                "ice": {
+                    "cold_rank": _round_val(t_row.get("cold_rank_T"), 3),
+                    "ice_T": _round_val(t_row.get("ice_T"), 2),
+                    "ice_source": _clean_str(t_row.get("ice_source")),
+                },
                 "analogs": analogs_list,
             }
         )
@@ -438,13 +579,28 @@ def build_universe_dict(
     t3_lbl = _run_label(meta_in.get("t3_dir"))
     t4_lbl = _run_label(meta_in.get("t4_dir"))
     t5_lbl = _run_label(meta_in.get("t5_dir"))
+    t12_lbl = _run_label(meta_in.get("t12_dir"))
+    t13_lbl = _run_label(meta_in.get("t13_dir"))
+    t14_lbl = _run_label(meta_in.get("t14_dir"))
     t7_lbl = str(job_id) if job_id else "manual"
     sigma_scale = float(meta_in.get("sigma_scale", 1.0))
 
     metadata = {
         "version": "2.0.0",
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "source": f"pipeline v2 (T3 {t3_lbl}, T4 {t4_lbl}, T5 {t5_lbl}, T7 {t7_lbl})",
+        "source": (
+            f"pipeline v2 (T3 {t3_lbl}, T4 {t4_lbl}, T5 {t5_lbl}, T12 {t12_lbl}, "
+            f"T13 {t13_lbl}, T14 {t14_lbl}, T15 {t7_lbl})"
+        ),
+        "runs": {
+            "T3": t3_lbl,
+            "T4": t4_lbl,
+            "T5": t5_lbl,
+            "T12": t12_lbl,
+            "T13": t13_lbl,
+            "T14": t14_lbl,
+            "match_export": t7_lbl,
+        },
         "slurm_job_id": str(job_id) if job_id is not None else None,
         "commit": meta_in.get("commit") or _git_short_sha(Path(__file__).resolve().parents[1]),
         "limits_source": limits_source,
@@ -462,14 +618,23 @@ def build_universe_dict(
         "selection": {
             "top_n": 30,
             "min_sep_km": int(MIN_SEP_KM),
-            "max_polar_cold_per_preset": MAX_POLAR_PER_PRESET,
+            "candidate_pool": "none: every Earth patch is scored for every target",
+            "max_ice_surface_per_preset": MAX_ICE_SURFACE_PER_PRESET,
+            "ice_cap_exempt_presets": list(ICE_CAP_EXEMPT_PRESETS),
+            "dust_tropical_rule": "dust phase term dropped when |lat| < 15 deg for the Earth patch or the target",
         },
+        "dimensions": DIMENSIONS,
+        "geology_classes": list(GEO_CLASSES),
+        "geology_similarity": _geology_similarity_dict(),
+        "citations": CITATIONS,
+        "not_modelled": NOT_MODELLED,
         "datasets": default_datasets(),
     }
 
     mission_presets = {
         pkey: {
             "label": PRESETS[pkey]["label"],
+            "applies_to": list(PRESETS[pkey]["applies_to"]),
             "weights": dict(PRESETS[pkey]["weights"]),
         }
         for pkey in PRESET_KEYS
@@ -546,19 +711,40 @@ def _validate_target_and_analog_keys(targets: list[dict[str, object]]) -> list[s
     return errors
 
 
+MARS_PLAINS_IDS: tuple[str, ...] = (
+    "mars-elysium-insight",
+    "mars-arcadia-swim",
+    "mars-utopia-zhurong",
+    "mars-gusev-spirit",
+    "mars-meridiani-opportunity",
+)
+PLAINS_SPREAD_MIN: float = 0.012
+
+
+def _preset_top(target: dict[str, object], preset: str, n: int) -> list[dict[str, object]]:
+    """Analogs selected by a preset, best MSI first."""
+    sel = [
+        a
+        for a in target.get("analogs", [])
+        if preset in a.get("selected_by", []) and a["msi_by_preset"].get(preset) is not None
+    ]
+    sel.sort(key=lambda a: (-float(a["msi_by_preset"][preset]), a["id"]))
+    return sel[:n]
+
+
 def run_t7_checks(
     matches_df: pd.DataFrame,
     targets_df: pd.DataFrame,
     universe: dict[str, object],
     written_files: list[Path],
+    olympus: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    """Evaluate the 5 hard checks in plan_t7_t8.md §5 and return structured JSON report."""
+    """Evaluate the T7 hard checks 1-5 and the T15 checks 6-11 (plan_t12_t15.md 5.7)."""
     ok_targets = targets_df[targets_df["status"] == "ok"] if "status" in targets_df.columns else targets_df
     ok_ids = [str(tid) for tid in ok_targets["target_id"].tolist()]
 
-    # 1. Coverage (>= 20 per preset per ok target, or 8000-pool retry used and logged)
+    # 1. Coverage (>= 20 per preset per ok target)
     low_no_retry: list[dict[str, object]] = []
-    low_with_retry: list[dict[str, object]] = []
     if matches_df.empty:
         low_no_retry = [{"target_id": tid, "preset": "all", "count": 0} for tid in ok_ids]
     else:
@@ -568,16 +754,11 @@ def run_t7_checks(
             if grp is None or grp.empty:
                 low_no_retry.append({"target_id": tid, "preset": "all", "count": 0})
                 continue
-            retry_used = bool(grp["retry_used"].any()) if "retry_used" in grp.columns else False
             for pkey in PRESET_KEYS:
                 col = f"rank_{pkey}"
                 cnt = int(grp[col].notna().sum()) if col in grp.columns else 0
                 if cnt < MIN_COVERAGE_PER_PRESET:
-                    rec = {"target_id": tid, "preset": pkey, "count": cnt, "retry_used": retry_used}
-                    if retry_used:
-                        low_with_retry.append(rec)
-                    else:
-                        low_no_retry.append(rec)
+                    low_no_retry.append({"target_id": tid, "preset": pkey, "count": cnt})
     check1_pass = len(low_no_retry) == 0
 
     # 2. Diversity (>= 150 km separation within every target/preset)
@@ -606,22 +787,21 @@ def run_t7_checks(
                     )
     check2_pass = len(diversity_violations) == 0
 
-    # 3. Polar cap (<= 3 polar_cold per target/preset)
-    max_polar_seen = 0
-    polar_violations: list[dict[str, object]] = []
-    if not matches_df.empty:
+    # 3. Ice cap (<= 3 ice_surface analogs per target/preset, except isru_and_ice)
+    max_ice_seen = 0
+    ice_violations: list[dict[str, object]] = []
+    if not matches_df.empty and "ice_surface" in matches_df.columns:
         for tid, grp in matches_df.groupby("target_id", sort=False):
             for pkey in PRESET_KEYS:
+                if pkey in ICE_CAP_EXEMPT_PRESETS:
+                    continue
                 col = f"rank_{pkey}"
                 sub = grp[grp[col].notna()] if col in grp.columns else grp.iloc[0:0]
-                p_cnt = int(sub["polar_cold"].sum()) if "polar_cold" in sub.columns else 0
-                if p_cnt > max_polar_seen:
-                    max_polar_seen = p_cnt
-                if p_cnt > MAX_POLAR_PER_PRESET:
-                    polar_violations.append(
-                        {"target_id": str(tid), "preset": pkey, "polar_cold": p_cnt}
-                    )
-    check3_pass = len(polar_violations) == 0
+                i_cnt = int(sub["ice_surface"].sum())
+                max_ice_seen = max(max_ice_seen, i_cnt)
+                if i_cnt > MAX_ICE_SURFACE_PER_PRESET:
+                    ice_violations.append({"target_id": str(tid), "preset": pkey, "ice_surface": i_cnt})
+    check3_pass = len(ice_violations) == 0
 
     # 4. Scores (all non-null S_k and MSI in [0, 1], S_thermal null for Moon)
     score_errors: list[str] = []
@@ -662,6 +842,118 @@ def run_t7_checks(
     json_errors.extend(_validate_target_and_analog_keys(parsed_targets))
     check5_pass = len(json_errors) == 0 and len(parsed_targets) == len(universe.get("targets", []))
 
+    # 6. Layer scores in [0, 1]; S_dust and dust null for every Moon target
+    layer_errors: list[str] = []
+    n_geo = n_dust = n_ice = 0
+    for t in universe.get("targets", []):
+        body = t.get("body")
+        for a in t.get("analogs", []):
+            ss = a.get("sub_scores", {})
+            for dim in ("geology", "dust", "ice"):
+                v = ss.get(dim)
+                if v is None:
+                    continue
+                if dim == "geology":
+                    n_geo += 1
+                elif dim == "dust":
+                    n_dust += 1
+                else:
+                    n_ice += 1
+                if not (0.0 <= float(v) <= 1.0):
+                    layer_errors.append(f"{t.get('id')}/{a.get('id')} {dim}={v}")
+            if body == "Moon" and ss.get("dust") is not None:
+                layer_errors.append(f"Moon target {t.get('id')} analog {a.get('id')} has non-null S_dust")
+            if len(layer_errors) >= 10:
+                break
+        if len(layer_errors) >= 10:
+            break
+    check6_pass = len(layer_errors) == 0
+
+    # 7. Olympus Mons with geology_and_materials: >= 1 VOLCANIC_BASIC Earth patch in the top 10
+    if olympus is None:
+        check7_pass = False
+        olympus_obs: object = "Mars T3 feature table unavailable; check could not be evaluated"
+    else:
+        top10 = olympus.get("top10", [])
+        n_vb = sum(1 for r in top10 if r.get("geo_class") == "VOLCANIC_BASIC")
+        check7_pass = n_vb >= 1
+        olympus_obs = {
+            "n_volcanic_basic_top10": n_vb,
+            "top10_geo_classes": [r.get("geo_class") for r in top10],
+        }
+
+    # 8. Mars plains: spread top 1 -> top 30 (mobility_and_traction)
+    spreads: list[dict[str, object]] = []
+    for t in universe.get("targets", []):
+        if t.get("id") not in MARS_PLAINS_IDS:
+            continue
+        top = _preset_top(t, "mobility_and_traction", TOP_N_REPORT)
+        if len(top) >= 2:
+            s1 = float(top[0]["msi_by_preset"]["mobility_and_traction"])
+            sn = float(top[-1]["msi_by_preset"]["mobility_and_traction"])
+            spreads.append({"id": t["id"], "n": len(top), "msi_1st": round(s1, 4), "msi_nth": round(sn, 4), "spread": round(s1 - sn, 4)})
+    spread_vals = [float(r["spread"]) for r in spreads]
+    check8_pass = bool(spread_vals) and float(np.median(spread_vals)) > PLAINS_SPREAD_MIN
+
+    # 9. dust_and_seasons for Mars curated targets: top 5 with country and dust ranks
+    dust_top: list[dict[str, object]] = []
+    for t in universe.get("targets", []):
+        if t.get("body") != "Mars" or t.get("type") != "CURATED":
+            continue
+        dust_top.append(
+            {
+                "id": t["id"],
+                "target_dust": t.get("dust"),
+                "top5": [
+                    {
+                        "id": a["id"],
+                        "country": a.get("country"),
+                        "msi": a["msi_by_preset"]["dust_and_seasons"],
+                        "S_dust": a["sub_scores"].get("dust"),
+                        "dust": a.get("dust"),
+                    }
+                    for a in _preset_top(t, "dust_and_seasons", 5)
+                ],
+            }
+        )
+
+    # 10. isru_and_ice for lunar curated targets: top 5
+    isru_top: list[dict[str, object]] = []
+    for t in universe.get("targets", []):
+        if t.get("body") != "Moon" or t.get("type") != "CURATED":
+            continue
+        isru_top.append(
+            {
+                "id": t["id"],
+                "target_ice": t.get("ice"),
+                "top5": [
+                    {
+                        "id": a["id"],
+                        "country": a.get("country"),
+                        "msi": a["msi_by_preset"]["isru_and_ice"],
+                        "S_ice": a["sub_scores"].get("ice"),
+                        "ice": a.get("ice"),
+                        "geo_class": a.get("geology", {}).get("geo_class"),
+                    }
+                    for a in _preset_top(t, "isru_and_ice", 5)
+                ],
+            }
+        )
+
+    # 11. Share per geo_class and lava-tube terrain count
+    cls_counts: dict[str, int] = {}
+    total_analogs = 0
+    lava_tube = 0
+    for t in universe.get("targets", []):
+        for a in t.get("analogs", []):
+            total_analogs += 1
+            g = a.get("geology", {})
+            key = str(g.get("geo_class") or "NULL")
+            cls_counts[key] = cls_counts.get(key, 0) + 1
+            if g.get("lava_tube_terrain"):
+                lava_tube += 1
+    cls_share = {k: round(v / total_analogs, 4) for k, v in sorted(cls_counts.items())} if total_analogs else {}
+
     checks = [
         {
             "id": 1,
@@ -670,11 +962,10 @@ def run_t7_checks(
             "passed": check1_pass,
             "observed": {
                 "targets_checked": len(ok_ids),
-                "below_20_no_retry": low_no_retry[:10],
-                "below_20_no_retry_count": len(low_no_retry),
-                "below_20_with_retry_count": len(low_with_retry),
+                "below_20": low_no_retry[:10],
+                "below_20_count": len(low_no_retry),
             },
-            "expected": ">= 20 analogs per (ok target, preset), or 8000-pool retry used",
+            "expected": ">= 20 analogs per (ok target, preset) over the whole Earth table",
         },
         {
             "id": 2,
@@ -689,24 +980,22 @@ def run_t7_checks(
         },
         {
             "id": 3,
-            "name": "polar_cap",
+            "name": "ice_cap",
             "kind": "hard",
             "passed": check3_pass,
             "observed": {
-                "max_polar_per_preset": max_polar_seen,
-                "violations": polar_violations[:10],
+                "max_ice_surface_per_preset": max_ice_seen,
+                "exempt_presets": list(ICE_CAP_EXEMPT_PRESETS),
+                "violations": ice_violations[:10],
             },
-            "expected": "<= 3 polar_cold per (target, preset)",
+            "expected": "<= 3 ice_surface (GLiM ig) analogs per (target, preset), except isru_and_ice",
         },
         {
             "id": 4,
             "name": "scores",
             "kind": "hard",
             "passed": check4_pass,
-            "observed": {
-                "error_count": len(score_errors),
-                "sample_errors": score_errors,
-            },
+            "observed": {"error_count": len(score_errors), "sample_errors": score_errors},
             "expected": "all S_k & MSI in [0, 1]; S_thermal null for Moon",
         },
         {
@@ -720,41 +1009,117 @@ def run_t7_checks(
                 "targets_parsed": len(parsed_targets),
                 "errors": json_errors[:10],
             },
-            "expected": "valid JSON (no NaN/Infinity), < 20 MB (or split), types.ts keys present",
+            "expected": "valid JSON (no NaN/Infinity), < 20 MB (or split), required target/analog keys present",
+        },
+        {
+            "id": 6,
+            "name": "layer_scores",
+            "kind": "hard",
+            "passed": check6_pass,
+            "observed": {
+                "non_null_geology": n_geo,
+                "non_null_dust": n_dust,
+                "non_null_ice": n_ice,
+                "errors": layer_errors[:10],
+            },
+            "expected": "non-null S_geology, S_dust, S_ice in [0, 1]; S_dust null for all Moon targets",
+        },
+        {
+            "id": 7,
+            "name": "olympus_mons_geology",
+            "kind": "hard",
+            "passed": check7_pass,
+            "observed": olympus_obs,
+            "expected": "geology_and_materials: at least one VOLCANIC_BASIC Earth patch in the top 10",
+        },
+        {
+            "id": 8,
+            "name": "mars_plains_spread",
+            "kind": "soft",
+            "passed": check8_pass,
+            "observed": {
+                "median_spread": round(float(np.median(spread_vals)), 4) if spread_vals else None,
+                "per_target": spreads,
+            },
+            "expected": f"mobility_and_traction spread top 1 -> top {TOP_N_REPORT} > {PLAINS_SPREAD_MIN} (the T7 value)",
+        },
+        {
+            "id": 9,
+            "name": "dust_and_seasons_mars_top5",
+            "kind": "soft",
+            "passed": True,
+            "observed": dust_top,
+            "expected": "review: top 5 per Mars curated target with country and dust ranks",
+        },
+        {
+            "id": 10,
+            "name": "isru_and_ice_moon_top5",
+            "kind": "soft",
+            "passed": True,
+            "observed": isru_top,
+            "expected": "review: Antarctica / Greenland / high cold deserts expected",
+        },
+        {
+            "id": 11,
+            "name": "geo_class_shares",
+            "kind": "soft",
+            "passed": True,
+            "observed": {
+                "total_pairs": total_analogs,
+                "share_by_geo_class": cls_share,
+                "count_by_geo_class": dict(sorted(cls_counts.items())),
+                "lava_tube_terrain_pairs": lava_tube,
+            },
+            "expected": "print: share of exported analogs per geo_class and number with lava_tube_terrain",
         },
     ]
 
-    hard_passed = sum(1 for c in checks if c["passed"])
+    hard = [c for c in checks if c["kind"] == "hard"]
+    soft = [c for c in checks if c["kind"] == "soft"]
     return {
         "timestamp_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "summary": {
-            "hard_passed": hard_passed,
-            "hard_total": len(checks),
+            "hard_passed": sum(1 for c in hard if c["passed"]),
+            "hard_total": len(hard),
+            "soft_passed": sum(1 for c in soft if c["passed"]),
+            "soft_total": len(soft),
         },
         "checks": checks,
     }
 
 
+OLYMPUS_PRESET: str = "geology_and_materials"
+
+
 def _olympus_mons_sanity_check(
     earth_df: pd.DataFrame,
     mars_t3: pd.DataFrame | None,
+    t13_dir: Path | None,
+    t14_dir: Path | None,
     sigma_scale: float = 1.0,
 ) -> dict[str, object] | None:
-    """Evaluate top 10 diverse Earth analogs for the T3 Mars patch closest to Olympus Mons."""
+    """Top 10 diverse Earth analogs (geology_and_materials) for the T3 Mars patch nearest Olympus Mons.
+
+    Needs the row-aligned T14 ``geology_mars.parquet`` and T13 ``dust_mars.parquet`` tables.
+    """
     if mars_t3 is None or mars_t3.empty or earth_df.empty:
         return None
     if not {"lat", "lon", *MATCH_FEATURES}.issubset(mars_t3.columns):
         return None
+    if t14_dir is None or not (Path(t14_dir) / "geology_mars.parquet").exists():
+        return None
 
-    m_lats = pd.to_numeric(mars_t3["lat"], errors="coerce").to_numpy(dtype=np.float64)
-    m_lons = pd.to_numeric(mars_t3["lon"], errors="coerce").to_numpy(dtype=np.float64)
+    mars_all = mars_t3.reset_index(drop=True).copy()
+    mars_all["_row"] = np.arange(len(mars_all))
+    m_lats = pd.to_numeric(mars_all["lat"], errors="coerce").to_numpy(dtype=np.float64)
+    m_lons = pd.to_numeric(mars_all["lon"], errors="coerce").to_numpy(dtype=np.float64)
     valid_m = np.isfinite(m_lats) & np.isfinite(m_lons)
     for feat in MATCH_FEATURES:
-        valid_m &= np.isfinite(pd.to_numeric(mars_t3[feat], errors="coerce").to_numpy(dtype=np.float64))
+        valid_m &= np.isfinite(pd.to_numeric(mars_all[feat], errors="coerce").to_numpy(dtype=np.float64))
     if not np.any(valid_m):
         return None
 
-    mars_valid = mars_t3.loc[valid_m].reset_index(drop=True)
+    mars_valid = mars_all.loc[valid_m].reset_index(drop=True)
     d_ang = haversine_km(
         OLYMPUS_LAT,
         OLYMPUS_LON,
@@ -763,7 +1128,22 @@ def _olympus_mons_sanity_check(
     )
     nearest_i = int(np.argmin(d_ang))
     patch = mars_valid.iloc[nearest_i]
+    row = int(patch["_row"])
     mars_dist_km = float(d_ang[nearest_i]) * (BODY_RADII_M["Mars"] / BODY_RADII_M["Earth"])
+
+    geo_mars = pd.read_parquet(Path(t14_dir) / "geology_mars.parquet")
+    if len(geo_mars) != len(mars_all) or abs(float(geo_mars["lat"].iloc[row]) - float(patch["lat"])) > 1e-6:
+        raise ValueError("geology_mars.parquet is not row-aligned with the T3 Mars feature table")
+    patch_geo_unit = _clean_str(geo_mars["unit"].iloc[row])
+    patch_geo_class = _clean_str(geo_mars["geo_class"].iloc[row])
+
+    dust_level = dust_season = dust_phase = float("nan")
+    if t13_dir is not None and (Path(t13_dir) / "dust_mars.parquet").exists():
+        dust_mars = pd.read_parquet(Path(t13_dir) / "dust_mars.parquet")
+        if len(dust_mars) == len(mars_all):
+            dust_level = float(dust_mars["dust_level_rank"].iloc[row])
+            dust_season = float(dust_mars["dust_seasonality_rank"].iloc[row])
+            dust_phase = float(dust_mars["dust_peak_phase_deg"].iloc[row])
 
     earth_clean = earth_df.reset_index(drop=True).copy()
     if "earth_id" not in earth_clean.columns:
@@ -778,33 +1158,34 @@ def _olympus_mons_sanity_check(
     earth_clean = earth_clean.loc[finite_e].reset_index(drop=True)
     z_e = z_e[finite_e]
 
-    patch_df = pd.DataFrame([{**patch.to_dict(), "body": "Mars"}])
+    patch_df = pd.DataFrame([{**patch.drop(labels=["_row"]).to_dict(), "body": "Mars"}])
     z_t = norm.transform(patch_df)[0]
     zt_e, zt_t_arr = thermal_ranks(earth_clean, mars_valid, patch_df)
-    zt_t = float(zt_t_arr[0])
-
-    ndvi_e = pd.to_numeric(earth_clean["ndvi_max"], errors="coerce").to_numpy(dtype=np.float64)
-    lst_day = pd.to_numeric(earth_clean["lst_day_c"], errors="coerce").to_numpy(dtype=np.float64)
-    polar_e = lst_day < POLAR_COLD_LST_C
-    lat_e = pd.to_numeric(earth_clean["lat"], errors="coerce").to_numpy(dtype=np.float64)
-    lon_e = pd.to_numeric(earth_clean["lon"], errors="coerce").to_numpy(dtype=np.float64)
-
-    # Full Earth candidate matrix is ~40k rows, so exact vectorized evaluation stays sub-second.
-    _ = _knn_embedding(z_e)
-    scores = dimension_scores(z_e, z_t, ndvi_e, zt_e, zt_t, sigma_scale=sigma_scale)
-    msi_mob = np.asarray(
-        msi(scores, PRESETS["mobility_and_traction"]["weights"]),
-        dtype=np.float64,
+    ea = build_earth_arrays(earth_clean, z_e, zt_e)
+    tv = TargetVec(
+        body="Mars",
+        z_t=z_t,
+        zt_t=float(zt_t_arr[0]),
+        lat=float(patch["lat"]),
+        geo_class=patch_geo_class,
+        dust_level_rank=dust_level,
+        dust_season_rank=dust_season,
+        dust_phase=dust_phase,
+        cold_rank=float("nan"),
+        ice_t=float("nan"),
     )
-    order = np.argsort(-np.where(np.isfinite(msi_mob), msi_mob, -np.inf), kind="mergesort")
+    scores = score_target(ea, tv, sigma_scale=sigma_scale)
+    msi_vals = np.asarray(msi(scores, PRESETS[OLYMPUS_PRESET]["weights"]), dtype=np.float64)
+    order = np.argsort(-np.where(np.isfinite(msi_vals), msi_vals, -np.inf), kind="mergesort")
+    order = order[np.isfinite(msi_vals[order])]
     chosen = select_diverse(
         order,
-        lat_e,
-        lon_e,
-        polar_e,
+        ea.lat,
+        ea.lon,
+        ea.ice_surface,
         n=10,
         min_sep_km=MIN_SEP_KM,
-        max_polar=MAX_POLAR_PER_PRESET,
+        max_polar=MAX_ICE_SURFACE_PER_PRESET,
     )
 
     t_phys = {feat: patch[feat] for feat in MATCH_FEATURES}
@@ -817,7 +1198,7 @@ def _olympus_mons_sanity_check(
             z_e[g_idx],
             z_t,
             float(zt_e[g_idx]),
-            zt_t,
+            tv.zt_t,
         )
         top10.append(
             {
@@ -828,19 +1209,25 @@ def _olympus_mons_sanity_check(
                 "country": _clean_str(e_row.get("country")),
                 "known_region": _clean_str(e_row.get("known_region")),
                 "classification": _clean_str(e_row.get("classification")),
-                "msi_mobility": _round_val(msi_mob[g_idx], 3),
+                "glim_code": _clean_str(e_row.get("glim_code")),
+                "geo_class": _clean_str(e_row.get("geo_class")),
+                "ice_surface": bool(ea.ice_surface[g_idx]),
+                "msi_geology_preset": _round_val(msi_vals[g_idx], 3),
                 "S_topography": _round_val(scores["topography"][g_idx], 3),
                 "S_roughness": _round_val(scores["roughness"][g_idx], 3),
                 "S_environment": _round_val(scores["environment"][g_idx], 3),
-                "S_thermal": _round_val(scores["thermal"][g_idx], 3),
+                "S_geology": _round_val(scores["geology"][g_idx], 3),
                 "mismatch_count": len(mm),
             }
         )
 
     return {
+        "preset": OLYMPUS_PRESET,
         "target_lat": round(float(patch["lat"]), 4),
         "target_lon": round(float(patch["lon"]), 4),
         "offset_mars_km": round(mars_dist_km, 2),
+        "target_geo_unit": patch_geo_unit,
+        "target_geo_class": patch_geo_class,
         "features": {feat: round(float(patch[feat]), 2) for feat in [*MATCH_FEATURES, "mean_elev_m"] if feat in patch},
         "top10": top10,
     }
@@ -901,6 +1288,11 @@ def _curated_score_distributions(universe: dict[str, object]) -> dict[str, dict[
     return stats
 
 
+def _short_json(obj: object, limit: int = 400) -> str:
+    text = json.dumps(obj, separators=(",", ":"), default=str)
+    return text if len(text) <= limit else text[: limit - 3] + "..."
+
+
 def build_t7_report(
     universe: dict[str, object],
     checks_report: dict[str, object],
@@ -909,11 +1301,12 @@ def build_t7_report(
     match_runtime_s: float | None = None,
     export_runtime_s: float | None = None,
     sigma_scale: float = 1.0,
+    olympus: dict[str, object] | None = None,
 ) -> str:
-    """Build the human-readable t7_report.md report specified in plan_t7_t8.md §5."""
+    """Build the human-readable t7_report.md (plan_t7_t8.md 5, extended by plan_t12_t15.md 5.7)."""
     meta = universe["metadata"]
     lines: list[str] = [
-        "# T7/T8 Matching & Export Report",
+        "# T15 Matching & Export Report (7 dimensions, 5 presets)",
         "",
         f"- **Source:** `{meta.get('source')}`",
         f"- **Commit:** `{meta.get('commit')}`",
@@ -923,15 +1316,17 @@ def build_t7_report(
         "",
         "## Hard Checks Summary",
         "",
-        f"**Passed:** `{checks_report['summary']['hard_passed']}/{checks_report['summary']['hard_total']}`",
+        f"**Hard passed:** `{checks_report['summary']['hard_passed']}/{checks_report['summary']['hard_total']}`; "
+        f"**soft passed:** `{checks_report['summary']['soft_passed']}/{checks_report['summary']['soft_total']}`",
         "",
-        "| # | Check | Status | Details |",
-        "| --- | --- | --- | --- |",
+        "| # | Check | Kind | Status | Details |",
+        "| --- | --- | --- | --- | --- |",
     ]
     for chk in checks_report["checks"]:
         status = "PASS" if chk["passed"] else "FAIL"
         lines.append(
-            f"| {chk['id']} | `{chk['name']}` | {status} | `{json.dumps(chk['observed'], separators=(',', ':'))}` |"
+            f"| {chk['id']} | `{chk['name']}` | {chk['kind']} | {status} | "
+            f"`{_short_json(chk['observed'])}` |"
         )
 
     # 1. Score distribution per body (curated targets)
@@ -955,38 +1350,44 @@ def build_t7_report(
             continue
         lines.append(f"### {t['id']} — {t['name']} ({t['body']})")
         lines.append("")
-        lines.append("| Rank | Earth ID | Country | Known region | MSI | S_topo | S_rough | S_env | S_therm | Mismatches |")
-        lines.append("| ---: | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: |")
-        for rank_i, a in enumerate(t.get("analogs", [])[:5], start=1):
+        lines.append(
+            "| Rank | Earth ID | Country | Known region | Geo class | MSI | S_topo | S_rough | S_env | S_therm | S_geo | Mismatches |"
+        )
+        lines.append("| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- | ---: |")
+        for rank_i, a in enumerate(_preset_top(t, "mobility_and_traction", 5), start=1):
             ss = a["sub_scores"]
             st_str = f"{ss['thermal']:.3f}" if ss["thermal"] is not None else "null"
+            sg_str = f"{ss['geology']:.3f}" if ss.get("geology") is not None else "null"
             lines.append(
                 f"| {rank_i} | `{a['id']}` | {a['country'] or '-'} | {a['known_region'] or '-'} | "
+                f"{a.get('geology', {}).get('geo_class') or '-'} | "
                 f"{a['msi_by_preset']['mobility_and_traction']:.3f} | {ss['topography']:.3f} | "
-                f"{ss['roughness']:.3f} | {ss['environment']:.3f} | {st_str} | {len(a['mismatches'])} |"
+                f"{ss['roughness']:.3f} | {ss['environment']:.3f} | {st_str} | {sg_str} | {len(a['mismatches'])} |"
             )
         lines.append("")
 
-    # 3. Olympus Mons sanity check
-    lines.extend(["## 3. Olympus Mons Sanity Check (`18.65°N, -133.80°E`)", ""])
-    olympus = _olympus_mons_sanity_check(earth_df=earth_df, mars_t3=mars_t3, sigma_scale=sigma_scale)
+    # 3. Olympus Mons sanity check (geology_and_materials)
+    lines.extend(["## 3. Olympus Mons Sanity Check (`18.65°N, -133.80°E`, preset `geology_and_materials`)", ""])
     if olympus is None:
-        lines.append("Skipped (no Mars T3 feature table available).")
+        lines.append("Skipped (no Mars T3 feature table or T14 geology table available).")
     else:
         lines.append(
             f"- **Nearest T3 Mars patch:** `({olympus['target_lat']}, {olympus['target_lon']})` "
-            f"({olympus['offset_mars_km']} km from reference coordinates)"
+            f"({olympus['offset_mars_km']} km from reference coordinates), "
+            f"unit `{olympus.get('target_geo_unit')}`, class `{olympus.get('target_geo_class')}`"
         )
         lines.append(f"- **Mars features:** `{json.dumps(olympus['features'], separators=(',', ':'))}`")
         lines.append("")
-        lines.append("| Rank | Earth ID | Country | Known region | Classification | MSI | S_topo | S_rough | S_env | S_therm | Mismatches |")
-        lines.append("| ---: | --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- | ---: |")
+        lines.append(
+            "| Rank | Earth ID | Country | Known region | GLiM | Geo class | Ice sheet | MSI | S_topo | S_rough | S_env | S_geo | Mismatches |"
+        )
+        lines.append("| ---: | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |")
         for row in olympus["top10"]:
-            st_str = f"{row['S_thermal']:.3f}" if row["S_thermal"] is not None else "null"
             lines.append(
                 f"| {row['rank']} | `{row['earth_id']}` | {row['country'] or '-'} | {row['known_region'] or '-'} | "
-                f"{row['classification'] or '-'} | {row['msi_mobility']:.3f} | {row['S_topography']:.3f} | "
-                f"{row['S_roughness']:.3f} | {row['S_environment']:.3f} | {st_str} | {row['mismatch_count']} |"
+                f"{row['glim_code'] or '-'} | {row['geo_class'] or '-'} | {'yes' if row['ice_surface'] else 'no'} | "
+                f"{row['msi_geology_preset']:.3f} | {row['S_topography']:.3f} | {row['S_roughness']:.3f} | "
+                f"{row['S_environment']:.3f} | {row['S_geology']:.3f} | {row['mismatch_count']} |"
             )
 
     # 4. Exported analog counts
@@ -1010,7 +1411,7 @@ def build_t7_report(
 
     lines.append(f"- **Total exported (target, analog) pairs:** `{total_analogs}`")
     lines.append(f"- **Classification counts:** `{json.dumps(cls_counts, sort_keys=True)}`")
-    lines.append(f"- **`polar_cold` analogs:** `{polar_cold_total}`")
+    lines.append(f"- **`polar_cold` analogs (lst_day < -10 C, informational):** `{polar_cold_total}`")
     lines.append(f"- **`ndvi_missing` analogs:** `{ndvi_missing_total}`")
     lines.append("")
     lines.append("### Top 15 Countries among Exported Analogs")
@@ -1021,8 +1422,79 @@ def build_t7_report(
     for rank_i, (c_name, cnt) in enumerate(top_countries, start=1):
         lines.append(f"| {rank_i} | {c_name} | {cnt} |")
 
-    # 5. Runtime
-    lines.extend(["", "## 5. Runtime", ""])
+    # 5. T15 review tables (checks 8-11)
+    by_name = {c["name"]: c for c in checks_report["checks"]}
+    lines.extend(["", "## 5. T15 Review Tables (checks 8-11)", ""])
+
+    spread = by_name.get("mars_plains_spread")
+    if spread:
+        lines.extend(["### 5.1 Mars plains: spread top 1 → top 30 (`mobility_and_traction`)", ""])
+        obs = spread["observed"]
+        lines.append(
+            f"Median spread: `{obs['median_spread']}` (expected > `{PLAINS_SPREAD_MIN}`, the T7 value) — "
+            f"**{'PASS' if spread['passed'] else 'FAIL'}**"
+        )
+        lines.append("")
+        lines.append("| Target | Analogs | MSI 1st | MSI last | Spread |")
+        lines.append("| --- | ---: | ---: | ---: | ---: |")
+        for r in obs["per_target"]:
+            lines.append(f"| `{r['id']}` | {r['n']} | {r['msi_1st']:.4f} | {r['msi_nth']:.4f} | {r['spread']:.4f} |")
+
+    dust_chk = by_name.get("dust_and_seasons_mars_top5")
+    if dust_chk:
+        lines.extend(["", "### 5.2 `dust_and_seasons`: top 5 per Mars curated target", ""])
+        for rec in dust_chk["observed"]:
+            td = rec.get("target_dust") or {}
+            lines.append(
+                f"**`{rec['id']}`** — target dust ranks: level `{td.get('level_rank')}`, "
+                f"seasonality `{td.get('seasonality_rank')}`, peak phase `{td.get('peak_phase_deg')}`°"
+            )
+            lines.append("")
+            lines.append("| Rank | Earth ID | Country | MSI | S_dust | Level rank | Season rank | Peak phase |")
+            lines.append("| ---: | --- | --- | ---: | ---: | ---: | ---: | ---: |")
+            for i, a in enumerate(rec["top5"], start=1):
+                d = a.get("dust") or {}
+                sd = f"{a['S_dust']:.3f}" if a.get("S_dust") is not None else "null"
+                lines.append(
+                    f"| {i} | `{a['id']}` | {a['country'] or '-'} | {a['msi']:.3f} | {sd} | "
+                    f"{d.get('level_rank')} | {d.get('seasonality_rank')} | {d.get('peak_phase_deg')} |"
+                )
+            lines.append("")
+
+    isru_chk = by_name.get("isru_and_ice_moon_top5")
+    if isru_chk:
+        lines.extend(["### 5.3 `isru_and_ice`: top 5 per lunar curated target", ""])
+        for rec in isru_chk["observed"]:
+            ti = rec.get("target_ice") or {}
+            lines.append(
+                f"**`{rec['id']}`** — target cold rank `{ti.get('cold_rank')}`, ice_T `{ti.get('ice_T')}` "
+                f"(`{ti.get('ice_source')}`)"
+            )
+            lines.append("")
+            lines.append("| Rank | Earth ID | Country | Geo class | MSI | S_ice | Cold rank | ice_E |")
+            lines.append("| ---: | --- | --- | --- | ---: | ---: | ---: | ---: |")
+            for i, a in enumerate(rec["top5"], start=1):
+                ic = a.get("ice") or {}
+                si = f"{a['S_ice']:.3f}" if a.get("S_ice") is not None else "null"
+                lines.append(
+                    f"| {i} | `{a['id']}` | {a['country'] or '-'} | {a.get('geo_class') or '-'} | "
+                    f"{a['msi']:.3f} | {si} | {ic.get('cold_rank')} | {ic.get('ice_E')} |"
+                )
+            lines.append("")
+
+    shares = by_name.get("geo_class_shares")
+    if shares:
+        lines.extend(["### 5.4 Exported analogs per `geo_class`", ""])
+        so = shares["observed"]
+        lines.append(f"- **Total pairs:** `{so['total_pairs']}`; **with `lava_tube_terrain`:** `{so['lava_tube_terrain_pairs']}`")
+        lines.append("")
+        lines.append("| geo_class | Pairs | Share |")
+        lines.append("| --- | ---: | ---: |")
+        for k, v in so["count_by_geo_class"].items():
+            lines.append(f"| {k} | {v} | {so['share_by_geo_class'][k]:.4f} |")
+
+    # 6. Runtime
+    lines.extend(["", "## 6. Runtime", ""])
     lines.append(f"- **Match (`pipeline.match`):** `{match_runtime_s if match_runtime_s is not None else 'n/a'} s`")
     lines.append(f"- **Export (`pipeline.export`):** `{round(export_runtime_s, 3) if export_runtime_s is not None else 'n/a'} s`")
     lines.append("")
@@ -1034,6 +1506,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--t3-dir", type=Path, default=YUCA_PROJECT_DIR / "runs" / "2242278")
     p.add_argument("--t4-dir", type=Path, default=YUCA_PROJECT_DIR / "runs" / "2242423")
     p.add_argument("--t5-dir", type=Path, required=True)
+    p.add_argument("--t12-dir", type=Path, required=True, help="T12 ice run directory")
+    p.add_argument("--t13-dir", type=Path, required=True, help="T13 dust run directory")
+    p.add_argument("--t14-dir", type=Path, required=True, help="T14 geology run directory")
     p.add_argument("--out-dir", type=Path, required=True)
     p.add_argument("--limits", type=Path, default=DEFAULT_LIMITS_JSON)
     p.add_argument("--sample-json", type=Path, default=DEFAULT_SAMPLE_JSON)
@@ -1064,10 +1539,14 @@ def main(argv: list[str] | None = None) -> None:
     matches_meta.setdefault("t3_dir", str(args.t3_dir))
     matches_meta.setdefault("t4_dir", str(args.t4_dir))
     matches_meta.setdefault("t5_dir", str(args.t5_dir))
+    matches_meta.setdefault("t12_dir", str(args.t12_dir))
+    matches_meta.setdefault("t13_dir", str(args.t13_dir))
+    matches_meta.setdefault("t14_dir", str(args.t14_dir))
 
     targets_df = pd.read_parquet(targets_path)
     earth_df = pd.read_parquet(earth_path)
     mars_t3 = pd.read_parquet(mars_path) if mars_path.exists() else None
+    earth_df, targets_df = load_layers(earth_df, targets_df, args.t12_dir, args.t13_dir, args.t14_dir)
 
     universe = build_universe_dict(
         matches_df=matches_df,
@@ -1079,11 +1558,19 @@ def main(argv: list[str] | None = None) -> None:
     )
     written_files = write_universe_json(universe, args.out_dir)
 
+    olympus = _olympus_mons_sanity_check(
+        earth_df=earth_df,
+        mars_t3=mars_t3,
+        t13_dir=args.t13_dir,
+        t14_dir=args.t14_dir,
+        sigma_scale=float(matches_meta.get("sigma_scale", 1.0)),
+    )
     checks_report = run_t7_checks(
         matches_df=matches_df,
         targets_df=targets_df,
         universe=universe,
         written_files=written_files,
+        olympus=olympus,
     )
     export_elapsed_s = time.perf_counter() - t0
     report_md = build_t7_report(
@@ -1094,6 +1581,7 @@ def main(argv: list[str] | None = None) -> None:
         match_runtime_s=matches_meta.get("match_runtime_s"),
         export_runtime_s=export_elapsed_s,
         sigma_scale=float(matches_meta.get("sigma_scale", 1.0)),
+        olympus=olympus,
     )
 
     checks_out = args.out_dir / "t7_checks.json"

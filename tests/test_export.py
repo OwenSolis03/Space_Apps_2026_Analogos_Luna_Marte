@@ -17,6 +17,7 @@ from pipeline.export import (
     run_t7_checks,
     write_universe_json,
 )
+from pipeline.export import _olympus_mons_sanity_check, build_t7_report
 from pipeline.match import EARTH_RADIUS_KM, match_all
 
 
@@ -52,6 +53,15 @@ def _synthetic_earth_40() -> pd.DataFrame:
                 "known_region": None if i % 2 else "atacama",
                 "classification": "NEW_CANDIDATE" if i % 2 else "KNOWN_ANALOG",
                 "ndvi_missing": bool(i == 0),
+                "glim_code": "ig" if i == 0 else ("vb" if i % 3 == 0 else "ss"),
+                "geo_class": "ICE" if i == 0 else ("VOLCANIC_BASIC" if i % 3 == 0 else "SEDIMENTARY"),
+                "ice_surface": bool(i == 0),
+                "lava_tube_terrain": bool(i % 3 == 0 and i != 0),
+                "dust_level_rank": (i + 1) / 40.0,
+                "dust_seasonality_rank": ((i * 7) % 40 + 1) / 40.0,
+                "dust_peak_phase_deg": float((i * 37) % 360),
+                "cold_rank_E": 1.0 if i == 0 else (i + 1) / 80.0,
+                "ice_E": 1.0 if i == 0 else 0.0,
             }
         )
     return pd.DataFrame(rows)
@@ -92,6 +102,15 @@ def _synthetic_targets() -> pd.DataFrame:
                 "ice_stable_frac": 1.0,
                 "iau_label": "Haworth (Crater, craters)",
                 "cluster_rank": pd.NA,
+                "geo_unit": "Nc",
+                "geo_class": "IMPACT",
+                "geo_class_share": 1.0,
+                "dust_level_rank": np.nan,
+                "dust_seasonality_rank": np.nan,
+                "dust_peak_phase_deg": np.nan,
+                "cold_rank_T": 0.97,
+                "ice_T": 1.0,
+                "ice_source": "diviner_prp",
             },
             {
                 "target_id": "mars-perseverance-jezero",
@@ -125,6 +144,15 @@ def _synthetic_targets() -> pd.DataFrame:
                 "ice_stable_frac": np.nan,
                 "iau_label": "Jezero (Crater, craters)",
                 "cluster_rank": pd.NA,
+                "geo_unit": "lHv",
+                "geo_class": "VOLCANIC_BASIC",
+                "geo_class_share": 0.75,
+                "dust_level_rank": 0.6,
+                "dust_seasonality_rank": 0.5,
+                "dust_peak_phase_deg": 225.0,
+                "cold_rank_T": np.nan,
+                "ice_T": 0.0,
+                "ice_source": "none",
             },
         ]
     )
@@ -199,10 +227,40 @@ def test_json_no_nan_and_schema(tmp_path: Path) -> None:
                 assert analog["sub_scores"]["thermal"] is not None
             if analog["earth_env"]["ndvi_missing"]:
                 assert analog["earth_env"]["ndvi_max"] is None
+            if tgt["body"] == "Moon":
+                assert analog["sub_scores"]["dust"] is None
+                assert analog["sub_scores"]["ice"] is not None
+            else:
+                assert analog["sub_scores"]["dust"] is not None
+            assert set(analog["geology"]) == {"glim_code", "geo_class", "lava_tube_terrain", "ice_surface"}
+            assert set(analog["dust"]) == {"level_rank", "seasonality_rank", "peak_phase_deg"}
+            assert set(analog["ice"]) == {"cold_rank", "ice_E"}
+            if analog["subsurface_note"] is not None:
+                assert tgt["geology"]["geo_class"] == "VOLCANIC_BASIC"
+                assert analog["geology"]["lava_tube_terrain"] is True
+        assert tgt["geology"]["geo_class"] in {"IMPACT", "VOLCANIC_BASIC"}
+        assert (tgt["dust"] is None) == (tgt["body"] == "Moon")
+        assert tgt["ice"]["ice_source"] in {"diviner_prp", "none"}
 
-    checks = run_t7_checks(matches, targets, universe, written)
-    assert checks["summary"]["hard_passed"] == 5
-    assert checks["summary"]["hard_total"] == 5
+    meta = parsed["metadata"]
+    assert [d["key"] for d in meta["dimensions"]] == [
+        "topography", "roughness", "environment", "thermal", "geology", "dust", "ice",
+    ]
+    assert meta["geology_similarity"]["VOLCANIC_BASIC"]["PYROCLASTIC"] == 0.6
+    assert meta["runs"]["T12"] == meta["runs"]["T13"] == meta["runs"]["T14"] == "unknown"
+    assert {n["item"] for n in meta["not_modelled"]} == {"mineralogy (spectral)", "biology", "caves (mapped)"}
+    assert parsed["mission_presets"]["dust_and_seasons"]["applies_to"] == ["Mars"]
+    assert len(parsed["mission_presets"]) == 5
+
+    olympus_stub = {"top10": [{"geo_class": "SEDIMENTARY"}, {"geo_class": "VOLCANIC_BASIC"}]}
+    checks = run_t7_checks(matches, targets, universe, written, olympus=olympus_stub)
+    assert checks["summary"]["hard_total"] == 7
+    assert checks["summary"]["hard_passed"] == 7
+    assert [c["id"] for c in checks["checks"]] == list(range(1, 12))
+
+    no_olympus = run_t7_checks(matches, targets, universe, written, olympus=None)
+    assert no_olympus["summary"]["hard_passed"] == 6
+    assert not [c for c in no_olympus["checks"] if c["id"] == 7][0]["passed"]
 
 
 def test_limits_fallback(tmp_path: Path, caplog) -> None:
@@ -216,3 +274,66 @@ def test_limits_fallback(tmp_path: Path, caplog) -> None:
     assert limits["Moon"][0]["factor"] == "gravity"
     assert limits["Mars"][0]["target"] == "0.38 g"
     assert any("provisional" in rec.message.lower() for rec in caplog.records)
+
+
+def test_olympus_check_and_report(tmp_path: Path) -> None:
+    earth = _synthetic_earth_40()
+    targets = _synthetic_targets()
+    t13, t14 = tmp_path / "t13", tmp_path / "t14"
+    t13.mkdir()
+    t14.mkdir()
+    km = math.radians(1.0) * EARTH_RADIUS_KM
+    mars_rows = []
+    for i, (lat, lon) in enumerate([(18.65, -133.8), (18.65 + 400.0 / km, -133.8), (-30.0, 20.0), (5.0, 80.0)]):
+        mars_rows.append(
+            {
+                "lat": lat,
+                "lon": lon,
+                "mean_slope_deg": 3.0 + i,
+                "p90_slope_deg": 6.0 + i,
+                "relief_m": 400.0 + 50 * i,
+                "hypsometric_integral": 0.5,
+                "detrended_std_m": 90.0 + 10 * i,
+                "tri_m": 50.0 + 5 * i,
+                "mean_elev_m": 1000.0,
+                "themis_delta": 20.0 + 10 * i,
+            }
+        )
+    mars_t3 = pd.DataFrame(mars_rows)
+    pd.DataFrame(
+        {"lat": mars_t3["lat"], "lon": mars_t3["lon"], "unit": "Ave", "geo_class": "VOLCANIC_BASIC"}
+    ).to_parquet(t14 / "geology_mars.parquet")
+    pd.DataFrame(
+        {
+            "lat": mars_t3["lat"],
+            "lon": mars_t3["lon"],
+            "dust_level_rank": 0.5,
+            "dust_seasonality_rank": 0.5,
+            "dust_peak_phase_deg": 200.0,
+        }
+    ).to_parquet(t13 / "dust_mars.parquet")
+
+    oly = _olympus_mons_sanity_check(earth, mars_t3, t13, t14)
+    assert oly is not None
+    assert oly["preset"] == "geology_and_materials"
+    assert oly["target_geo_class"] == "VOLCANIC_BASIC"
+    assert 1 <= len(oly["top10"]) <= 10
+    assert any(r["geo_class"] == "VOLCANIC_BASIC" for r in oly["top10"])
+
+    meta: dict[str, object] = {}
+    matches = match_all(earth, targets, pd.DataFrame({"themis_delta": [20.0, 40.0, 60.0]}), meta_out=meta)
+    sample = _write_synthetic_sample(tmp_path / "sample.json")
+    universe = build_universe_dict(
+        matches_df=matches,
+        targets_df=targets,
+        earth_df=earth,
+        matches_meta=meta,
+        limits_path=tmp_path / "none.json",
+        sample_json_path=sample,
+    )
+    written = write_universe_json(universe, tmp_path / "out")
+    checks = run_t7_checks(matches, targets, universe, written, olympus=oly)
+    assert checks["summary"]["hard_passed"] == checks["summary"]["hard_total"] == 7
+    report = build_t7_report(universe, checks, earth, mars_t3, olympus=oly)
+    assert "Olympus Mons" in report and "geology_and_materials" in report
+    assert "## 5. T15 Review Tables" in report

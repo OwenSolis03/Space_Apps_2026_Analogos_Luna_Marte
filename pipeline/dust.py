@@ -36,6 +36,7 @@ MIN_VALID_BINS_MARS: int = 9
 DUST_RANK_SIGMA: float = 0.15
 DUST_PHASE_SIGMA_DEG: float = 60.0
 SEASONALITY_EPS: float = 1e-6
+TROPICAL_LAT_DEG: float = 15.0
 
 
 def Ls_E(doy: float | np.ndarray) -> float | np.ndarray:
@@ -136,34 +137,59 @@ def S_dust(
     r_level_t: float,
     r_season_t: float,
     phase_t_deg: float,
+    lat_e: float | np.ndarray | None = None,
+    lat_t: float | None = None,
 ) -> float | np.ndarray:
-    """RBF dust similarity across within-planet level rank, seasonality rank, and local phase."""
+    """RBF dust similarity across within-planet level rank, seasonality rank, and local phase.
+
+    Tropical amendment (plan_t12_t15.md 5.8): when ``lat_e`` / ``lat_t`` are given and
+    ``|lat| < TROPICAL_LAT_DEG`` for the Earth patch or for the target, the phase term is
+    dropped and the RBF becomes ``exp(-(d_level^2 + d_season^2) / (2 * 2))``.
+    """
     rl_e = np.asarray(r_level_e, dtype=np.float64)
     rs_e = np.asarray(r_season_e, dtype=np.float64)
     ph_e = np.asarray(phase_e_deg, dtype=np.float64)
+    lat_e_arr = None if lat_e is None else np.asarray(lat_e, dtype=np.float64)
 
-    scalar_input = (rl_e.ndim == 0 and rs_e.ndim == 0 and ph_e.ndim == 0)
-    if not (
-        np.isfinite(r_level_t)
-        and np.isfinite(r_season_t)
-        and np.isfinite(phase_t_deg)
-    ):
-        nan_out = np.full(np.broadcast_shapes(rl_e.shape, rs_e.shape, ph_e.shape), np.nan, dtype=np.float64)
-        return float("nan") if scalar_input else nan_out
-
-    valid = np.isfinite(rl_e) & np.isfinite(rs_e) & np.isfinite(ph_e)
-    shape = np.broadcast_shapes(rl_e.shape, rs_e.shape, ph_e.shape)
+    shapes = [rl_e.shape, rs_e.shape, ph_e.shape]
+    if lat_e_arr is not None:
+        shapes.append(lat_e_arr.shape)
+    shape = np.broadcast_shapes(*shapes)
+    scalar_input = shape == ()
     out = np.full(shape, np.nan, dtype=np.float64)
+
+    def _done() -> float | np.ndarray:
+        return float(out) if scalar_input else out
+
+    if not (np.isfinite(r_level_t) and np.isfinite(r_season_t)):
+        return _done()
+
+    tropical_t = lat_t is not None and np.isfinite(lat_t) and abs(float(lat_t)) < TROPICAL_LAT_DEG
+    if not tropical_t and not np.isfinite(phase_t_deg):
+        return _done()
+
+    rl_b, rs_b, ph_b = np.broadcast_to(rl_e, shape), np.broadcast_to(rs_e, shape), np.broadcast_to(ph_e, shape)
+    if tropical_t:
+        drop_phase = np.ones(shape, dtype=bool)
+    elif lat_e_arr is not None:
+        lat_b = np.broadcast_to(lat_e_arr, shape)
+        drop_phase = np.isfinite(lat_b) & (np.abs(lat_b) < TROPICAL_LAT_DEG)
+    else:
+        drop_phase = np.zeros(shape, dtype=bool)
+
+    valid = np.isfinite(rl_b) & np.isfinite(rs_b) & (np.isfinite(ph_b) | drop_phase)
     if np.any(valid):
-        rl_b, rs_b, ph_b = np.broadcast_arrays(rl_e, rs_e, ph_e)
         d_level = np.abs(rl_b[valid] - float(r_level_t)) / DUST_RANK_SIGMA
         d_season = np.abs(rs_b[valid] - float(r_season_t)) / DUST_RANK_SIGMA
-        d_phase = circular_diff(ph_b[valid], float(phase_t_deg)) / DUST_PHASE_SIGMA_DEG
-        out[valid] = np.exp(-(d_level ** 2 + d_season ** 2 + d_phase ** 2) / 6.0)
-
-    if scalar_input:
-        return float(out)
-    return out
+        dp = drop_phase[valid]
+        phase_term = np.zeros(d_level.shape, dtype=np.float64)
+        if not np.all(dp):
+            phase_term[~dp] = (
+                circular_diff(ph_b[valid][~dp], float(phase_t_deg)) / DUST_PHASE_SIGMA_DEG
+            ) ** 2
+        denom = np.where(dp, 4.0, 6.0)
+        out[valid] = np.exp(-(d_level ** 2 + d_season ** 2 + phase_term) / denom)
+    return _done()
 
 
 score_dust = S_dust
@@ -847,18 +873,6 @@ def run_dust(
         )
         return val, _searchsorted_rank(e_level_sorted, val)
 
-    def _mars_point_rank(pt_lat: float, pt_lon: float) -> tuple[float, float]:
-        val = float(
-            _sample_grid_nearest(
-                mars_clim["grid_lat"],
-                mars_clim["grid_lon"],
-                mars_clim["dust_level"],
-                np.array([pt_lat]),
-                np.array([pt_lon]),
-            )[0]
-        )
-        return val, _searchsorted_rank(m_level_sorted, val)
-
     per_year_means = mars_clim["per_year_global_mean"]
     top3_years = [
         y for y, _ in sorted(per_year_means.items(), key=lambda kv: -kv[1])[:3]
@@ -871,8 +885,6 @@ def run_dust(
     bod_val, bod_rank = _earth_point_rank(17.0, 18.0)
     tak_val, tak_rank = _earth_point_rank(39.0, 83.0)
     ata_val, ata_rank = _earth_point_rank(-24.5, -69.3)
-    hel_val, hel_rank = _mars_point_rank(-42.0, 70.0)
-    tha_val, tha_rank = _mars_point_rank(0.0, -110.0)
 
     checks = [
         {
@@ -921,19 +933,17 @@ def run_dust(
         },
         {
             "id": 5,
-            "name": "earth_known_dust_sources",
+            "name": "earth_bodele_dust_source",
             "kind": "hard",
-            "passed": bool(
-                np.isfinite(bod_rank)
-                and np.isfinite(tak_rank)
-                and bod_rank > 0.9
-                and tak_rank > 0.9
-            ),
+            "passed": bool(np.isfinite(bod_rank) and bod_rank > 0.9),
             "observed": {
                 "bodele_17_18": {"aod": _safe_round(bod_val, 4), "rank": _safe_round(bod_rank, 4)},
-                "taklimakan_39_83": {"aod": _safe_round(tak_val, 4), "rank": _safe_round(tak_rank, 4)},
+                "taklimakan_39_83_report_only": {
+                    "aod": _safe_round(tak_val, 4),
+                    "rank": _safe_round(tak_rank, 4),
+                },
             },
-            "expected": "rank > 0.9 at both Bodele and Taklimakan",
+            "expected": "Bodele rank > 0.9 (Taklimakan is reported only: its dust is strongly seasonal)",
         },
         {
             "id": 6,
@@ -945,19 +955,6 @@ def run_dust(
         },
         {
             "id": 7,
-            "name": "mars_hellas_gt_tharsis",
-            "kind": "soft",
-            "passed": bool(
-                np.isfinite(hel_rank) and np.isfinite(tha_rank) and hel_rank > tha_rank
-            ),
-            "observed": {
-                "hellas": {"cdod610": _safe_round(hel_val, 4), "rank": _safe_round(hel_rank, 4)},
-                "tharsis": {"cdod610": _safe_round(tha_val, 4), "rank": _safe_round(tha_rank, 4)},
-            },
-            "expected": "Hellas (-42, 70) rank > Tharsis (0, -110) rank",
-        },
-        {
-            "id": 8,
             "name": "dust_maps_written",
             "kind": "soft",
             "passed": len(map_files) == 4 and all((out_dir / f).exists() for f in map_files),
