@@ -30,7 +30,7 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 | **T9** tests | `tests/` | Ongoing | 81 synthetic tests pass (job `2242488`) |
 | **T10** app | `app/`, `tools/v1_to_sample.py` | **Skeleton on `main`** (`9325dea`, PR #2) | Runs on `app/public/data/sample.json` (v1 converted) |
 | **T12–T15** geology, dust and seasons, water and ice | `pipeline/geology.py`, `geology_rules.py`, `pipeline/data/geology_overrides.json`, `dust.py`, `ice.py`, `pipeline/data/ice_hints.json` | **Done and run** (`bda0acf`) | Downloads `2242481` (60 `MOD08_M3` v6.1 + GLiM/SIM3292/Moon/Montabone); `T14=runs/2242486` (overrides applied, 0.0% null/default, 6/6 hard, 2/3 soft), `T13=runs/2242484` (cdod610 + Deep Blue AOD, all parquets + 4 PNGs), `T12=runs/2242487` (ice parquets, 1/1 hard, 3/3 soft); feed into T15 `runs/2242489` |
-| **T11** limits and content | `pipeline/data/limits.json` | Pending (team) | Format in `plan_t7_t8.md` §4.2; provisional fallback from `sample.json` |
+| **T11** limits | `pipeline/data/limits.json` | **Done** (`e24162e`) | 6 sourced limits per body; used by the final export (job 2242490) |
 
 **T0 data verified on Yuca:**
 
@@ -141,9 +141,11 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 
 ## 5. Next steps
 
-1. **Review `runs/2242489/t7_report.md` and `t7_checks.json`:** Claude reviews report (including 10/10 volcanic basic Olympus Mons top 10, Mars plains spread, dust top 5, and ISRU ice top 5) before copying `runs/2242489/analogs_universe.json` into `app/public/data/`.
-2. **App:** once approved, publish `analogs_universe.json` to `app/public/data/`, verify in web UI, switch `DATA_URL` in `app/src/App.tsx`, and deploy.
-3. **T11 content and the submission items** in [submission.md](submission.md).
+**The analog model is complete.** Final run: job 2242490, `runs/2242490/analogs_universe.json`, published to `app/public/data/analogs_universe.json`. It has 7 dimensions, 5 presets, 76 targets and 5,010 pairs, and passed 7/7 hard and 4/4 soft checks.
+
+1. **App (T10, app developer):** switch `DATA_URL`, support 7 dimensions from `metadata.dimensions`, and deploy.
+2. **Submission items** in [submission.md](submission.md).
+3. **Optional:** translate the code comments to English; the refinements listed in [HISTORY.md](HISTORY.md) "Next".
 
 ---
 

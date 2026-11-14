@@ -208,12 +208,38 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 - **T13 Dust & Seasons (`2242484`, 3/4 hard, 3/4 soft):** Printed NetCDF3 variable metadata selected Montabone `cdod610` (`Pa/Pa`, `MY24`–`MY36`, perihelion peak at `Ls=225°`, storm years `[25, 34, 28]` highest), and printed HDF4 metadata selected MODIS Terra `MOD08_M3` v6.1 `Deep_Blue_Aerosol_Optical_Depth_550_Land_Mean_Mean` (`scale_factor=0.001`, `add_offset=0.0`, summer Sahara `0.4546`). Ranks and hemisphere-shifted local peak phase enable honest cross-body comparison. Check #5 failed only at Taklimakan `(39, 83)` (`rank=0.7281` vs `> 0.9`) because year-round annual mean 550 nm AOD across non-ice land peaks in the Indo-Gangetic Plain and Sahel/Sahara while Taklimakan's dust is strongly seasonal; paused at §5.6 for review.
 - **T12 Water & Ice (`2242485`, 1/1 hard, 3/3 soft):** Uses T14 `ice_surface` (`12,742`), winter-frozen `lst_day_c < 0` (`ice_E=0.5`, including 9/9 Dry Valleys patches), and `pipeline/data/ice_hints.json` (`mars-arcadia-swim`), plus within-body `cold_rank` (Haworth `0.9734`, Slater Plain `0.9574`).
 
+## 15. T15 and T11: seven dimensions and physical limits — the model is complete
+
+**Commits:** `d3a255f` (review and amendments), `bda0acf` (T15 code, written by Gemini 3.8 Flash from Claude's plan), `16db5db` (geology overrides), `e24162e` (`limits.json`, by Claude), `899cd0d` and the final data commit. **Jobs:** `2242486` (T14 re-run with overrides), `2242487` (T12 re-run), `2242488` (81 tests), `2242489` (T15), `2242490` (final export with `limits.json`).
+
+- **Review before integration.** Claude approved T12–T14 with corrections (plan_t12_t15.md §5.8):
+  - lunar terra → crystalline crust, basin formations → impact, Mars polar dunes → sedimentary;
+  - two dust checks were badly specified and were corrected (the Taklimakan is ranked among arid peers; Hellas ≈ Tharsis is expected under the 610 Pa normalisation);
+  - **why the equator rule:** the dust phase term is dropped within 15° of the equator, where seasons are weak and the hemisphere switch would flip the local phase by 180°.
+- **Integration.** Seven dimensions and five presets: mobility, construction, geology and materials, dust and seasons, and ice and ISRU.
+  - **Why score the whole Earth:** every Earth patch is now scored. The old terrain-only candidate pool would have hidden the best process analogs.
+  - **Why the ice cap:** the polar cap became an ice-sheet cap based on GLiM `ig`, so ice-free cold deserts such as the Dry Valleys are no longer penalised. It does not apply to the ice preset.
+- **Result (2242489/2242490), all 7 hard and 4 soft checks passed:**
+  - **Olympus Mons:** 10 of its top 10 Earth analogs are basaltic volcanic terrain. Terrain alone had found none.
+  - **Mars plains:** the top-1 to top-30 spread grew from 0.012 to 0.059, so the flat plains are no longer ties.
+  - **Dust and seasons:** Jezero's best analog is Yemen (0.93), then Algeria, China and Sudan.
+  - **Ice:** Arcadia's shallow ice matches the Antarctic and Greenland ice sheets (0.85). The Artemis regions reach 0.55, because rugged crater rims are not flat ice sheets.
+  - **Lava tubes:** 656 analogs carry the "basaltic terrain, lava tubes possible" note.
+- **Physical limits (T11).** `pipeline/data/limits.json` has six sourced limits per body, from NASA fact sheets and measured surface doses (Curiosity RAD, Chang'e-4 LND), plus Diviner cold traps, Phoenix perchlorates, Apollo dust reports and the Montabone dust climatology. They replace the provisional limits.
+- **Known limits of the model.** They are stated in `metadata.not_modelled` and in [value_proposition.md](value_proposition.md):
+  - no spectral mineralogy and no biology;
+  - geology is regional (GLiM 0.5°, Mars map 1:20M), so Gale and Meridiani appear as impact or highland and not as their sedimentary fill;
+  - Deep Blue AOD includes some non-dust aerosols outside the arid filter;
+  - the Moon has no dust dimension, because it has no atmosphere.
+- **Published:** `app/public/data/analogs_universe.json` (6.2 MB, 76 targets, 5,010 analog pairs). The app has to switch `DATA_URL` and support 7 dimensions (T10, owned by the app developer).
+
 ---
 
 ## Next
 
-- **§5.6 Review stop (before T15):** Claude and Owen review `runs/2242484/t13_checks.json` + the 4 dust maps (notably hard check #5 at Taklimakan `0.7281`), `runs/2242485/t12_checks.json`, and confirm re-running `jobs/t14_geology.slurm` with `pipeline/data/geology_overrides.json` (`16db5db`).
-- **T15:** Integrate `geology`, `dust` and `ice` into `pipeline/match.py` and `pipeline/export.py` (7-dimension MSI + ice-sheet cap + extended `analogs_universe.json`), then publish to `app/public/data/`.
-- **T11:** physical limits per body (`pipeline/data/limits.json`) and verified dataset URLs.
-- **App (T10):** connect `app/` (`DATA_URL`) to `analogs_universe.json` and deploy.
-- **Code in English:** finish translating older Spanish docstrings/comments in `pipeline/` (T1–T6).
+- **App (T10):** switch `DATA_URL` to `analogs_universe.json`, build the sliders from `metadata.dimensions` (7 dimensions, 5 presets) and deploy.
+- **Code in English:** translate the older Spanish docstrings and comments in `pipeline/` (T1–T6), without behaviour changes.
+- **Optional refinements**, not needed for the submission:
+  - keep only dust-dominated months using the Deep Blue Ångström exponent;
+  - finer geology for landing sites (HiRISE/CTX-scale maps);
+  - spectral mineralogy (CRISM/M³ against ASTER/Sentinel-2).
