@@ -47,3 +47,18 @@ MOON_RAW_FILES: dict[str, str] = {
 }
 
 DIVINER_PARQUET_REL: str = "diviner_prp_south.parquet"
+
+EARTH_RAW_FILES: dict[str, str] = {
+    "ndvi_dir": "earth/modis/ndvi",
+    "lst_dir": "earth/modis/lst",
+    "roads": "earth/naturalearth/ne_10m_roads/ne_10m_roads.shp",
+    "airports": "earth/naturalearth/ne_10m_airports/ne_10m_airports.shp",
+    "countries": "earth/naturalearth/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp",
+}
+
+EARTH_DERIVED_FILES: dict[str, str] = {
+    "ndvi_max": "ndvi_max_2023.tif",
+    "lst": "lst_2023.tif",
+}
+
+MODIS_CMG_RES_DEG: float = 0.05

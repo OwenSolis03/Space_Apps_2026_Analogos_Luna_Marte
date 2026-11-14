@@ -9,3 +9,4 @@ geopandas>=0.13
 shapely>=2.0
 matplotlib>=3.7
 pytest>=7.0
+pyhdf>=0.10  # solo para construir la caché de T6 (Yuca)
