@@ -25,8 +25,8 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 | **T3** Mars and Moon sweep | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm` | **Done and run** (`19e3899`…`57f4f36`) | Jobs 2242278 (array 0–15) and 2242279 (merge): 140,916 Mars patches and 36,741 Moon patches. Visual check passed |
 | **T4** targets | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm` | **Done and run** (`115e0c3`) | Job 2242423: 76 targets (16 curated, all ok; 60 clusters) |
 | **T6** Earth layers | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `jobs/t6_earth_layers.slurm` | **Done and run** (`29fbb88`, `84888cd`) | Jobs 2242426 (cache) and 2242430 (checks): 8/8 hard, 5/5 soft |
-| **T5** Earth sweep | `pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh` | **Implemented, smoke test passed** (`52bf3d7`) | Jobs 2242432–2242434: 44,375 candidates, 445/500 valid, 5/5 hard checks. **Full run not launched yet** |
-| **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Plan ready** ([plan_t7_t8.md](plan_t7_t8.md)) | Develop against the T5 smoke run `runs/2242432` |
+| **T5** Earth sweep | `pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh` | **Done and run** (`52bf3d7`) | Jobs 2242438 (prepare), 2242439 (array 0–31), 2242440 (merge): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard checks, 4/5 soft checks (`runs/2242438/features_earth.parquet`, kit `t5_2242438.tar.gz`) |
+| **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Plan ready** ([plan_t7_t8.md](plan_t7_t8.md)) | Input ready: `runs/2242438/features_earth.parquet` (or offline `kit/t5_2242438.tar.gz`) |
 | **T9** tests | `tests/` | Ongoing | 49 synthetic tests pass (job 2242431) |
 | **T10** app | `app/`, `tools/v1_to_sample.py` | **Skeleton on `main`** (`9325dea`, PR #2) | Runs on `app/public/data/sample.json` (v1 converted) |
 | **T11** limits and content | `pipeline/data/limits.json` | Pending (team) | Format in `plan_t7_t8.md` §4.2; provisional fallback from `sample.json` |
@@ -100,6 +100,7 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 | T4, `runs/2242423/` | `targets.parquet`, `targets.json`, `targets_patches.parquet`, `clusters_{mars,moon}.parquet`, `map_targets_{mars,moon}.png` |
 | T6, `runs/2242430/` | `t6_checks.json` and the control maps; cache in `data/derived/` |
 | T5 smoke, `runs/2242432/` | `candidates.parquet` (500), `prefilter_stats.json` (44,375 candidates worldwide), `features_earth.parquet` (445), `t5_checks.json`, maps |
+| T5 full, `runs/2242438/` | `features_earth.parquet` (40,244 valid patches of 44,375 candidates, 3.3 MB), `prefilter_stats.json`, `t5_checks.json` (6/6 hard, 4/5 soft), `map_earth_*.png`; kit `kit/t5_2242438.tar.gz` (3.7 MB) |
 
 **Raster scales** (checked with rasterio on the real files; more in [pipeline.md](pipeline.md)):
 
@@ -127,10 +128,9 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 
 ## 5. Next steps
 
-1. **Full T5 run:** `bash jobs/t5_submit.sh`, then review `t5_merge_<id>.log` against `plan_t5.md` §6.3.
-2. **T7/T8:** implement [plan_t7_t8.md](plan_t7_t8.md). Smoke-test it on `runs/2242432`, then do the real run on the full T5 output.
-3. **App:** publish `analogs_universe.json` to `app/public/data/`, switch `DATA_URL` in the app, and deploy.
-4. **T11 content and the submission items** in [submission.md](submission.md).
+1. **T7/T8:** implement [plan_t7_t8.md](plan_t7_t8.md). Smoke-test it on `runs/2242432`, then run against `runs/2242438/features_earth.parquet`.
+2. **App:** publish `analogs_universe.json` to `app/public/data/`, switch `DATA_URL` in the app, and deploy.
+3. **T11 content and the submission items** in [submission.md](submission.md).
 
 ---
 
@@ -145,6 +145,6 @@ Commands waiting to be run on Yuca, in order. Whoever works without SSH (MODE B)
 | 3 | ~~T4 full: `sbatch jobs/t4_targets.slurm`~~ (job 2242423) | 76 targets |
 | 4 | ~~T6: `sbatch jobs/t6_earth_layers.slurm`~~ (jobs 2242426, 2242430) | 8/8 hard checks |
 | 5 | ~~T5 smoke: `bash jobs/t5_submit.sh --limit 500`~~ (jobs 2242432–2242434) | 5/5 hard checks |
-| 6 | T5 full: `bash jobs/t5_submit.sh` | `plan_t5.md` §6.3 |
+| 6 | ~~T5 full: `bash jobs/t5_submit.sh`~~ (jobs 2242438–2242440) | 40,244 valid patches, 6/6 hard checks |
 | 7 | T7/T8 smoke: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slurm` (once the code exists) | `plan_t7_t8.md` §5 |
-| 8 | T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/<T5_RUN> jobs/t7_match.slurm` | `plan_t7_t8.md` §5 |
+| 8 | T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm` | `plan_t7_t8.md` §5 |

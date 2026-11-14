@@ -13,12 +13,12 @@ T4: pipeline/targets.py + targets.json ───┴─► runs/2242423/targets.p
 
 T6: pipeline/earth_layers.py + known_analogs.json ─► data/derived/{ndvi_max_2023,lst_2023}.tif (checks: runs/2242430/)
                                           │
-T5: pipeline/earth_features.py ───────────┴─► runs/<prepare_jobid>/features_earth.parquet (smoke test: runs/2242432/)
+T5: pipeline/earth_features.py ───────────┴─► runs/2242438/features_earth.parquet (40,244 valid patches; smoke: runs/2242432/)
                                           │
 T7/T8: pipeline/match.py, export.py ──────┴─► runs/<jobid>/analogs_universe.json ─► app/public/data/
 ```
 
-**Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (`plan_t5.md` §2).
+**Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (e.g., jobs `2242438`–`2242440` write into `runs/2242438/`, `plan_t5.md` §2).
 
 ### v1 prototype (repo root, kept as reference)
 
@@ -66,7 +66,7 @@ Paths on Yuca, under `/lustre/proyectos/p089/data/raw/`.
 | `diviner_prp_south.parquet` | 61 MB | Diviner PRP south cache |
 | `ndvi_max_2023.tif` | 18 MB | 2 float32 bands: `ndvi_max`, `n_months` |
 | `lst_2023.tif` | 56 MB | 3 float32 bands: `lst_day_c`, `lst_night_c`, `lst_amplitude_c` |
-| `copernicus_90m.vrt` | — | Mosaic of every Copernicus tile, with the sea masked (T5) |
+| `copernicus_90m.vrt` | 13 MB | `432004×208800` mosaic of 26,475 Copernicus tiles (`-srcnodata 0 -vrtnodata -9999`, T5) |
 
 **The GDAL build in `spaceapps_2026` has no HDF4 driver**, so the original MODIS `.hdf` files are read with `pyhdf`. Rasters are not committed to the repository (see `.gitignore`).
 
@@ -134,6 +134,7 @@ Logs in `/lustre/proyectos/p089/output/` (v2) and `logs/slurm/` (v1).
 | 2242430 | `jobs/t6_earth_layers.slurm` | T6 checks (commit `84888cd`): 8/8 hard, 5/5 soft, 3 maps; sampling 10k points takes 1.2 s |
 | 2242431 | `pytest -q tests` | v2 tests (T1–T6): 49 passed |
 | 2242432–2242434 | `bash jobs/t5_submit.sh --limit 500` | T5 smoke test: 44,375 candidates worldwide, 445/500 valid, 5/5 hard checks |
+| 2242438–2242440 | `bash jobs/t5_submit.sh` | T5 full 32-stripe sweep (commit `52bf3d7`): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard and 4/5 soft checks, control maps in `runs/2242438/` |
 
 ## Exploring the data
 

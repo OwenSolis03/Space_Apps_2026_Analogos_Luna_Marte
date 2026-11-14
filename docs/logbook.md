@@ -2,6 +2,43 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13 (night): T5 — Earth global sweep (Copernicus GLO-90 + T6 layers)
+
+**What was done and why (code written by Gemini from Claude's [`docs/plan_t5.md`](plan_t5.md))**
+
+- Added Copernicus settings (`copernicus_dir`, `copernicus_vrt`) in `pipeline/config.py`, implemented `pipeline/earth_features.py`, Slurm jobs (`jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm`, `jobs/t5_merge.slurm`, launcher `jobs/t5_submit.sh`), and 7 synthetic unit tests in `tests/test_earth_features.py` (covering `gdalbuildvrt` sea masking and latitude-varying tile widths).
+- Reused `pipeline/geo.py` (T1) and `pipeline/features.py` (T2) unmodified so Earth patches share the exact 64 × 64 (500 m/px) AEQD scale used on Mars and the Moon.
+- Applied `plan_t5.md` §2.5.3 prefilter rule (`ndvi_max <= 0.25`, keeping `ndvi_max == NaN` only when `lst_day_c` is finite) to retain ice-covered regions omitted south of −59.45°S by MOD13C2 (including Antarctica and McMurdo Dry Valleys).
+
+**Verification on Yuca (via Slurm, env `spaceapps_2026`, commit `52bf3d7`)**
+
+- **Unit test suite (`job 2242431`, `pytest -q tests`):** **`49 passed, 73 warnings in 4.08s`** (0 skipped, 0 warnings from T5/T6 modules).
+- **Smoke test (`bash jobs/t5_submit.sh --limit 500`, `jobs 2242432` prepare / `2242433` array / `2242434` merge, `/lustre/proyectos/p089/runs/2242432/`):** built `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt` (`13M`, `432004×208800`, `res=(0.0008333333333333334, 0.0008333333333333334)`, `26,475` tiles in `00:04:35`), prefiltered `44,375` candidates from `497,818` grid points (`179,663` with tiles); stripe `0/1` yielded `445/500` valid patches (`89.0%`) in `5.0s` (`mean_elev_m ∈ [-28.00, 5244.27]`, median slope `0.504°`; `5/5` hard, `4/5` soft).
+- **Full 32-stripe run (`bash jobs/t5_submit.sh`, `jobs 2242438` prepare / `2242439` array `0-31%30` / `2242440` merge, shared run directory `/lustre/proyectos/p089/runs/2242438/`):**
+  - Reused existing `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt`; loaded `1,650,450` road vertices.
+  - **`prefilter_stats.json`:** `grid=497,818`, `no_tile=318,155` (`with_tile=179,663`), `vegetated=113,935`, `no_land_data=21,353` (`south_lt_minus60: 1878`, `mid_minus60_to_60: 17573`, `north_gt_60: 1902`), `ndvi_missing=14,130` (`south_lt_minus60: 13081`, `mid_minus60_to_60: 837`, `north_gt_60: 212`), `kept=44,375` (`NEW_CANDIDATE=43,596`, `KNOWN_ANALOG=779`).
+  - **Merge (`32/32` stripes):** `/lustre/proyectos/p089/runs/2242438/features_earth.parquet` (`3.3M`), **`40,244` valid patches** (`90.69%`), `elev_min_m=-112.91`, `elev_max_m=5922.13`, `slope_median_deg=0.464`.
+  - **Visual map inspection:** reviewed `/lustre/proyectos/p089/runs/2242438/map_earth_mean_slope_deg.png` (`572K`) and `map_earth_classification.png` (`204K`) — expected topographic contrast across the Andes, Himalaya/Tibet, flat Sahara, and Antarctic plateau, and clean separation of `ndvi_missing`, `KNOWN_ANALOG`, and `NEW_CANDIDATE`.
+  - **Offline kit packaged:** `/lustre/proyectos/p089/kit/t5_2242438.tar.gz` (`3.7M`, `sha256: 8396d59ab029c2dab1059326791f84f86c46f97fa23eb917a6a08ee934e0b76f`).
+
+| # | Type | Check | Observed | Expected | Status |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Hard | `valid_patch_count` | `40244` | `[30000, 80000]` | PASS |
+| 2 | Hard | `amazon_le_5` | `0` | `<= 5` | PASS |
+| 3 | Hard | `congo_le_5` | `0` | `<= 5` | PASS |
+| 4 | Hard | `indonesia_le_5` | `0` | `<= 5` | PASS |
+| 5 | Hard | `arid_regions_present` | `atacama=324, sahara=6542, sonora=78, central_australia=508, mcmurdo-dry-valleys=14` | `>= 1` in all regions | PASS |
+| 6 | Hard | `join_and_t6_columns` | `orphan_rows=0, all_nan_t6_cols=[]` | No orphan rows or all-NaN T6 column | PASS |
+| 7 | Soft | `known_region_counts` | `atacama=324, mojave=76, pilbara=49, devon-island=42, svalbard=27, iceland=26, mcmurdo-dry-valleys=14, utah-mdrs=9, meteor-crater=4`; `0` in `hawaii-big-island`, `rio-tinto`, `lanzarote` | Informative count (12 regions) | PASS |
+| 8 | Soft | `new_candidate_ratio` | `0.9858` (`NEW_CANDIDATE=39673`, `KNOWN_ANALOG=571`) | `> 0.95 NEW_CANDIDATE` | PASS |
+| 9 | Soft | `top15_countries` | `Antarctica=12125, China=2816, Algeria=2158, Australia=1945, Greenland=1843, Saudi Arabia=1805, Libya=1552, Iran=1158, Sudan=1138, Egypt=905, Niger=898, Mauritania=859, Argentina=790, Kazakhstan=776, Mali=745` (`Mexico` outside top 15; Sonora contributes `78` in #5) | `Mexico` in top 15 | FAIL (soft) |
+| 10 | Soft | `ndvi_missing_valid_count` | `12412` | Valid count with `ndvi_missing` | PASS |
+| 11 | Soft | `control_maps_written` | `map_earth_mean_slope_deg.png`, `map_earth_classification.png` | Both PNGs written | PASS |
+
+**What is left**
+
+- Implement and run T7/T8 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`) against `runs/2242438/features_earth.parquet`, author T11 content (`pipeline/data/limits.json`), publish `app/public/data/analogs_universe.json`, and complete the English code cleanup.
+
 ## 2026-11-13 (noche): T6 — capas terrestres (NDVI, LST, logística, país y análogos conocidos)
 
 **Qué se hizo (código escrito por Gemini a partir de `docs/plan_t6.md` de Claude)**

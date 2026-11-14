@@ -106,6 +106,15 @@ Curated targets **cannot** be computed on the laptop, because they need the rast
 cd /lustre/proyectos/p089 && tar -czf kit/t5_<PREP>.tar.gz runs/<PREP>/features_earth.parquet runs/<PREP>/prefilter_stats.json runs/<PREP>/t5_checks.json runs/<PREP>/map_earth_*.png
 ```
 
+Already packed for T5 (`runs/2242438/`, 40,244 valid Earth patches):
+
+| Property | Value |
+| --- | --- |
+| File | `/lustre/proyectos/p089/kit/t5_2242438.tar.gz` |
+| Size | 3.7 MB |
+| sha256 (prefix) | `8396d59ab029c2da` (`8396d59ab029c2dab1059326791f84f86c46f97fa23eb917a6a08ee934e0b76f`) |
+| Contents | `runs/2242438/features_earth.parquet`, `prefilter_stats.json`, `t5_checks.json`, `map_earth_*.png` |
+
 A `tar` of a few MB takes seconds and is allowed on the login node. Anything over 1 GB goes in a job.
 
 ---
@@ -114,8 +123,8 @@ A `tar` of a few MB takes seconds and is allowed on the login node. Anything ove
 
 | Task | On the laptop (Gemini) | On Yuca (Owen through OOD) |
 | --- | --- | --- |
-| T5 | Done | Full run |
-| T7 and T8 | Code and tests; develop with the T5 smoke output or a T5 kit | Smoke test and real run; download `analogs_universe.json` through OOD |
+| T5 | Done | Done (`runs/2242438/`, kit `t5_2242438.tar.gz`) |
+| T7 and T8 | Code and tests; develop with the T5 smoke output or `t5_2242438.tar.gz` | Smoke test and real run; download `analogs_universe.json` through OOD |
 | T10 app | Complete, with `sample.json` and then the real JSON | — |
 | T11 content | Complete | — |
 | Code in English | Complete | Run the tests in a job |
