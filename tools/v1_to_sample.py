@@ -1,10 +1,11 @@
-"""Convierte output/analogs.json (v1) al esquema v2 de la app (docs/plan_implementacion.md, seccion 5).
+"""Converts output/analogs.json (v1) to the v2 app schema.
 
-Es un puente mientras T7/T8 no existan: los sub_scores se calculan aqui con un kernel RBF
-provisional sobre las cuatro metricas que tiene la v1 (pendiente media, P90, sigma de elevacion
-y TRI). Ambiente y termico quedan en null porque la v1 no los tiene.
+Serves as a transition bridge: sub_scores are computed with an interim RBF
+kernel over the four metrics available in v1 (mean slope, P90 slope, elevation sigma,
+and TRI). Environment and thermal remain null as v1 did not compute them.
 
-Uso:  python tools/v1_to_sample.py [entrada] [salida]
+Usage:
+    python tools/v1_to_sample.py [input_path] [output_path]
 """
 import json
 import math
@@ -16,8 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output" / "analogs.json"
 DST = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "app" / "public" / "data" / "sample.json"
 
-# v1 -> nombre v2 del rasgo, dimension a la que pertenece y sigma provisional
-# (relativo al valor del blanco, con un minimo absoluto para terrenos planos).
+# v1 metric -> (v2 feature name, dimension, relative sigma, absolute floor)
+# (relative to target value, with an absolute floor for flat terrains).
 FEATURES = {
     "mean_slope_deg": ("mean_slope_deg", "topography", 0.35, 1.5),
     "p90_slope_deg": ("p90_slope_deg", "topography", 0.35, 2.5),
@@ -40,7 +41,7 @@ PRESETS = {
     },
 }
 
-# Texto provisional; T11 (pipeline/data/limits.json, P3) lo reemplaza con fuentes revisadas.
+# Reference fact sheet URLs and physical boundary conditions
 FACT_SHEET = {
     "Moon": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html",
     "Mars": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html",
@@ -63,16 +64,18 @@ LIMITS = {
 }
 
 
-def rbf(t, e, rel, floor):
+def rbf(t: float, e: float, rel: float, floor: float) -> float:
+    """Compute Gaussian Radial Basis Function (RBF) similarity score between target and Earth candidate."""
     s = max(floor, abs(t) * rel)
     return math.exp(-((t - e) ** 2) / (2 * s * s))
 
 
-def main():
+def main() -> None:
+    """Read v1 output/analogs.json, compute sub-scores and MSI presets, and write sample.json."""
     v1 = json.loads(SRC.read_text(encoding="utf-8"))
     targets = []
     for body, clusters in v1["targets"].items():
-        # desviaciones por rasgo (blancos y analogos juntos) para marcar "donde se rompe"
+        # Standard deviation per feature across targets and analogs to flag significant mismatches (|z| > 1.5)
         pool = {k: [] for k in FEATURES}
         for c in clusters:
             for k in FEATURES:
@@ -158,7 +161,7 @@ def main():
     }
     DST.parent.mkdir(parents=True, exist_ok=True)
     DST.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"{DST}: {len(targets)} blancos, {DST.stat().st_size / 1024:.0f} KB")
+    print(f"{DST}: {len(targets)} targets, {DST.stat().st_size / 1024:.0f} KB")
 
 
 if __name__ == "__main__":

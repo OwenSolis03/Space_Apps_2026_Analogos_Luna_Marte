@@ -1,4 +1,4 @@
-"""Pruebas unitarias para pipeline/geo.py (T1)."""
+"""Unit tests for pipeline/geo.py (T1 patch extraction, reprojection, and edge handling)."""
 
 from __future__ import annotations
 
@@ -59,13 +59,13 @@ def _create_vrt(vrt_path: Path, tile_paths: list[Path], bounds: tuple[float, flo
 
 
 def test_moon_equirectangular_slope_invariance_lat0_vs_lat70(tmp_path: Path) -> None:
-    """Plano inclinado de 10° en Luna equirectangular da la misma pendiente en lat 0° y 70°."""
+    """10° inclined plane in lunar equirectangular yields the same physical slope at lat 0° and 70°."""
     radius_m = 1737400.0
     res_m = 200.0
     slope_target_deg = 10.0
     tan_slope = math.tan(math.radians(slope_target_deg))
 
-    # Franja continua en equirectangular desde lat -1.5° hasta +72° y ±60 km en X.
+    # Continuous strip in equirectangular projection from lat -1.5° to +72° and ±60 km in X.
     x_min = -60000.0
     x_max = 60000.0
     y_min = math.radians(-1.5) * radius_m
@@ -81,7 +81,7 @@ def test_moon_equirectangular_slope_invariance_lat0_vs_lat70(tmp_path: Path) -> 
     lon_rad = xs[None, :] / radius_m
     lat_rad = ys[:, None] / radius_m
 
-    # Plano físico con pendiente de 10° hacia el este sobre la esfera.
+    # Physical planar ramp with 10° slope dipping eastward on the lunar sphere.
     elev = (tan_slope * radius_m * np.cos(lat_rad) * np.sin(lon_rad)).astype(np.float32)
 
     dem_path = tmp_path / "moon_eqc_slope10.tif"
@@ -103,7 +103,7 @@ def test_moon_equirectangular_slope_invariance_lat0_vs_lat70(tmp_path: Path) -> 
         patch_0 = extract_patch(src, lat=0.0, lon=0.0, body="Moon")
         patch_70 = extract_patch(src, lat=70.0, lon=0.0, body="Moon")
 
-        # Verificar que sin reproyección (enfoque v1) la latitud alta falla severamente.
+        # Verify that unprojected extraction (v1 naive window approach) fails severely at high latitude.
         row_70, col_70 = src.index(0.0, math.radians(70.0) * radius_m)
         raw_win = src.read(
             1,
@@ -132,8 +132,8 @@ def test_moon_equirectangular_slope_invariance_lat0_vs_lat70(tmp_path: Path) -> 
 
 
 def test_earth_vrt_seam_no_holes(tmp_path: Path) -> None:
-    """Un parche de la Tierra que cruza el borde entre dos tiles en VRT no tiene huecos."""
-    res_deg = 1.0 / 1200.0  # ~92 m en el ecuador (Copernicus GLO-90)
+    """Earth patch crossing the boundary between two adjacent Copernicus tiles in a VRT has no nodata holes."""
+    res_deg = 1.0 / 1200.0  # ~92 m at the equator (Copernicus GLO-90)
     tile_size = 1200  # 1° x 1°
 
     tile_specs = [
@@ -172,7 +172,7 @@ def test_earth_vrt_seam_no_holes(tmp_path: Path) -> None:
 
 
 def test_ocean_and_nodata_returns_none(tmp_path: Path) -> None:
-    """Un parche en océano (todo nodata, valores >1e5 o <90% válidos) devuelve None."""
+    """Ocean patch (all nodata, values > 1e5, or < 90% valid pixels) returns None."""
     res_deg = 0.005
     size = 200  # 1° x 1°
     nodata_path = tmp_path / "ocean_nodata.tif"
@@ -194,13 +194,13 @@ def test_ocean_and_nodata_returns_none(tmp_path: Path) -> None:
 
     with rasterio.open(nodata_path) as src:
         assert extract_patch(src, lat=0.5, lon=0.5, body="Earth") is None
-        # Fuera de los límites del raster también devuelve None.
+        # Outside raster bounds also returns None.
         assert extract_patch(src, lat=15.0, lon=15.0, body="Earth") is None
 
-    # Raster con valores > 1e5 (centinelas no declarados como nodata) y < 90% válidos.
+    # Raster with values > 1e5 (unmasked sentinel nodata values) and < 90% valid pixels.
     extreme_path = tmp_path / "extreme_partial.tif"
     partial = np.full((size, size), 1e9, dtype=np.float32)
-    partial[: size // 2, :] = 250.0  # solo ~50% válido
+    partial[: size // 2, :] = 250.0  # only ~50% valid
     with rasterio.open(
         extreme_path,
         "w",
@@ -219,7 +219,7 @@ def test_ocean_and_nodata_returns_none(tmp_path: Path) -> None:
 
 
 def test_antimeridian_crossing_returns_none(tmp_path: Path) -> None:
-    """Un parche que cruza el antimeridiano ±180° se omite, cuenta y devuelve None."""
+    """A patch crossing the antimeridian (±180°) is skipped, counted, and returns None."""
     reset_antimeridian_skipped_count()
     res_deg = 0.005
     size = 400
@@ -249,7 +249,7 @@ def test_antimeridian_crossing_returns_none(tmp_path: Path) -> None:
 
 
 def test_radius_mismatch_raises_value_error(tmp_path: Path) -> None:
-    """Si el radio del CRS fuente no coincide con el cuerpo pedido, lanza ValueError."""
+    """If the source raster CRS radius does not match the target celestial body, raises ValueError."""
     path = tmp_path / "wrong_body.tif"
     data = np.zeros((100, 100), dtype=np.float32)
     with rasterio.open(
@@ -271,7 +271,7 @@ def test_radius_mismatch_raises_value_error(tmp_path: Path) -> None:
 
 
 def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
-    """GeoTIFF int16 con scale=0.5 y offset!=0 devuelve elevación y pendiente en metros reales."""
+    """Int16 GeoTIFF with scale=0.5 and offset!=0 returns physical elevations and slopes in true meters."""
     from pipeline.features import compute_features
 
     radius_m = 1737400.0
@@ -280,14 +280,14 @@ def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
     eqc_crs = f"+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R={radius_m} +units=m +no_defs"
     transform = from_origin(-24000.0, 24000.0, res_m, res_m)
 
-    # Queremos pendiente física de 10° en metros tras aplicar scale=0.5 y offset=100.0.
+    # Target physical slope of 10° in meters after applying scale=0.5 and offset=100.0.
     slope_target_deg = 10.0
     xs = -24000.0 + (np.arange(width, dtype=np.float64) + 0.5) * res_m
     elev_m = (math.tan(math.radians(slope_target_deg)) * xs)[None, :].repeat(height, axis=0)
     offset_m = 100.0
     scale = 0.5
     raw_int16 = np.rint((elev_m - offset_m) / scale).astype(np.int16)
-    # Incluir algunos píxeles nodata (< 1 %) para verificar que se enmascaran antes de escalar.
+    # Include sparse nodata pixels (< 1%) to verify masking occurs prior to scaling.
     raw_int16[10:12, 10:12] = -32768
 
     path = tmp_path / "moon_int16_scaled.tif"
@@ -315,13 +315,11 @@ def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
     assert patch.dtype == np.float32
 
     feats = compute_features(patch, res_m=500.0)
-    # Centro x=0 -> elev_m promedio debe quedar centrado cerca de 0 m (no -100 m ni 2*elev),
-    # así que si la rampa en metros tenía media 0 antes de offset, con offset=100 m raw tendría media -200
-    # y tras scale=0.5 + offset=100 vuelve a ~0 m; validemos con un offset distinto en la rampa:
+    # Center x=0 -> mean elevation remains centered near 0 m (not offset by -100 m or scaled by 2).
     assert abs(float(feats["mean_slope_deg"]) - slope_target_deg) <= 0.2
     assert abs(float(feats["mean_elev_m"])) < 25.0
 
-    # Caso directo: parche plano con valor crudo 400 -> 400 * 0.5 + 100 = 300 m exactos.
+    # Flat patch benchmark: raw count 400 -> 400 * 0.5 + 100 = 300.0 m exact.
     flat_path = tmp_path / "moon_int16_flat_scaled.tif"
     flat_raw = np.full((height, width), 400, dtype=np.int16)
     flat_raw[0:5, 0:5] = -32768
@@ -349,12 +347,12 @@ def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
 
 
 def test_uint8_wac_scale_offset_and_giant_float32_nodata(tmp_path: Path) -> None:
-    """Aplica scale/offset de WAC (uint8 a 100 m) y filtra nodata=-3.4e38 sin overflow."""
+    """Applies WAC scale/offset (uint8 at 100 m) and filters large float32 nodata=-3.4e38 without overflow warnings."""
     import warnings
 
     from pipeline.geo import _clean_nodata
 
-    # (a) Caso LROC WAC: uint8 a 100 m/px (activa out_shape), nodata=0, scale=1.00395, offset=-0.00395.
+    # (a) LROC WAC case: uint8 at 100 m/px (triggers out_shape), nodata=0, scale=1.00395, offset=-0.00395.
     radius_m = 1737400.0
     res_m = 100.0
     width, height = 400, 400
@@ -362,7 +360,7 @@ def test_uint8_wac_scale_offset_and_giant_float32_nodata(tmp_path: Path) -> None
     transform = from_origin(-20000.0, 20000.0, res_m, res_m)
 
     raw_wac = np.full((height, width), 128, dtype=np.uint8)
-    raw_wac[0:10, 0:10] = 0  # nodata=0 (< 1 % del parche)
+    raw_wac[0:10, 0:10] = 0  # nodata=0 (< 1% of patch)
     wac_path = tmp_path / "moon_wac_uint8.tif"
     with rasterio.open(
         wac_path,
@@ -388,7 +386,7 @@ def test_uint8_wac_scale_offset_and_giant_float32_nodata(tmp_path: Path) -> None
     expected_wac = 128.0 * 1.00395 - 0.00395
     assert np.allclose(wac_patch[np.isfinite(wac_patch)], expected_wac, atol=1e-2)
 
-    # (b) Caso IceFavorabilityIndex: float32 con nodata=-3.4e38 sin RuntimeWarning de overflow.
+    # (b) IceFavorabilityIndex case: float32 with nodata=-3.4e38 without RuntimeWarning overflow.
     ice_arr = np.array([[0.0, 0.45, -3.4e38, -3.4028235e38]], dtype=np.float32)
     with warnings.catch_warnings():
         warnings.simplefilter("error", RuntimeWarning)
@@ -438,7 +436,7 @@ def _create_polar_eqc_moon_raster(
 
 
 def test_polar_patch_constant(tmp_path: Path) -> None:
-    """Un parche lunar que contiene el polo sur lee banda completa y devuelve 64x64 constante."""
+    """Lunar patch containing the south pole reads full longitudinal width and returns uniform 64x64 patch."""
     path = tmp_path / "moon_south_const.tif"
     _create_polar_eqc_moon_raster(
         path,
@@ -455,7 +453,7 @@ def test_polar_patch_constant(tmp_path: Path) -> None:
 
 
 def test_polar_patch_plane(tmp_path: Path) -> None:
-    """Un parche polar sobre un plano en coordenadas EQC devuelve >=90% píxeles finitos."""
+    """Polar patch over an EQC planar gradient returns >=90% finite pixels."""
     path = tmp_path / "moon_south_plane.tif"
     tan5 = math.tan(math.radians(5.0))
     _create_polar_eqc_moon_raster(
@@ -472,7 +470,7 @@ def test_polar_patch_plane(tmp_path: Path) -> None:
 
 
 def test_antimeridian_count_unchanged(tmp_path: Path) -> None:
-    """El cruce del antimeridiano fuera de los polos sigue devolviendo None y sumando 1."""
+    """Antimeridian crossing outside the polar caps continues to return None and increments the skip counter."""
     reset_antimeridian_skipped_count()
     path = tmp_path / "moon_lat60.tif"
     _create_polar_eqc_moon_raster(

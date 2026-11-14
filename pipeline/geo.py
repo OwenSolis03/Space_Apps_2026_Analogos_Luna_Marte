@@ -1,12 +1,28 @@
-"""Extracción de parches locales sin distorsión en proyección AEQD."""
+"""Local distortion-free patch extraction in Azimuthal Equidistant (AEQD) projection.
+
+This module extracts square elevation patches (by default 32x32 km at 500 m/px, 64x64)
+centered at arbitrary planetary coordinates (lat, lon) for Earth, Moon, and Mars.
+To prevent latitude-dependent distortions inherent to cylindrical/equirectangular projections,
+each patch is reprojected into a local Azimuthal Equidistant (AEQD) projection centered
+directly on the target point.
+
+Key features:
+- Geodesically correct projection per celestial body using spherical radius approximations.
+- Antimeridian crossing detection to drop discontinuous patches across +/- 180 deg.
+- Dedicated polar window reading to prevent distortion or clipping near celestial poles.
+- Windowed reads with decimation/subsampling for high-resolution rasters (e.g. LOLA 118 m).
+- Strict nodata filtering, extreme float32 sentinel handling, and scale/offset application
+  (e.g., LOLA half-meter integer encoding).
+- Minimum valid pixel fraction threshold (>= 90%) to discard invalid/boundary patches.
+"""
 
 from __future__ import annotations
 
 import math
 import os
 
-# Permite que PROJ transforme entre definiciones WKT/PROJ4 de cuerpos celestes
-# cuando el radio coincide pero difiere el nombre del datum.
+# Allow PROJ to transform between celestial body WKT/PROJ4 definitions
+# when the radius matches but datum names differ.
 os.environ.setdefault("PROJ_IGNORE_CELESTIAL_BODY", "YES")
 
 import numpy as np
@@ -44,21 +60,22 @@ _CYLINDRICAL_METHOD_KEYWORDS = (
 
 
 def get_antimeridian_skipped_count() -> int:
-    """Devuelve el conteo acumulado de parches omitidos por cruce de antimeridiano."""
+    """Return the cumulative count of patches skipped due to antimeridian crossing."""
     return ANTIMERIDIAN_SKIPPED_COUNT
 
 
 def reset_antimeridian_skipped_count() -> None:
-    """Reinicia el contador de parches omitidos por cruce de antimeridiano."""
+    """Reset the cumulative count of patches skipped due to antimeridian crossing."""
     global ANTIMERIDIAN_SKIPPED_COUNT
     ANTIMERIDIAN_SKIPPED_COUNT = 0
 
 
 def _normalize_body(body: str) -> str:
+    """Normalize body name and validate against supported planetary bodies."""
     norm = body.strip().capitalize()
     if norm not in BODY_RADII_M:
         raise ValueError(
-            f"Cuerpo no soportado: {body!r}. Valores esperados: Earth, Moon o Mars."
+            f"Unsupported celestial body: {body!r}. Expected Earth, Moon, or Mars."
         )
     return norm
 
@@ -66,8 +83,22 @@ def _normalize_body(body: str) -> str:
 def _resolve_crs_and_radius(
     src, lat: float, lon: float, body_norm: str
 ) -> tuple[CRS, CRS, float]:
+    """Resolve source CRS, construct local AEQD target CRS, and determine planetary radius.
+
+    Parameters:
+        src: Rasterio dataset reader.
+        lat: Center latitude in degrees.
+        lon: Center longitude in degrees.
+        body_norm: Normalized celestial body name ('Earth', 'Moon', 'Mars').
+
+    Returns:
+        tuple of (src_crs, dst_crs, r_sphere):
+            src_crs: Coordinate Reference System of source raster.
+            dst_crs: Local AEQD CRS centered on (lat, lon).
+            r_sphere: Planetary radius in meters used for the projection.
+    """
     if src.crs is None:
-        raise ValueError("El raster fuente no tiene CRS definido.")
+        raise ValueError("Source raster has no CRS defined.")
 
     src_crs = pyproj.CRS.from_user_input(src.crs)
     ellipsoid = src_crs.ellipsoid
@@ -80,7 +111,7 @@ def _resolve_crs_and_radius(
                 and abs(r_src - WGS84_SEMI_MAJOR_M) / WGS84_SEMI_MAJOR_M >= 0.01
             ):
                 raise ValueError(
-                    f"El radio del CRS fuente ({r_src} m) no coincide con WGS84 "
+                    f"Source CRS radius ({r_src} m) deviates significantly from WGS84 "
                     f"({WGS84_SEMI_MAJOR_M} m)."
                 )
         r_sphere = WGS84_SEMI_MAJOR_M
@@ -95,7 +126,7 @@ def _resolve_crs_and_radius(
         if math.isfinite(r_src):
             if abs(r_src - expected_r) / expected_r >= 0.01:
                 raise ValueError(
-                    f"El radio del CRS fuente ({r_src} m) no coincide con {body_norm} "
+                    f"Source CRS radius ({r_src} m) deviates significantly from {body_norm} "
                     f"({expected_r} m)."
                 )
             r = r_src
@@ -111,6 +142,7 @@ def _resolve_crs_and_radius(
 
 
 def _has_antimeridian_cut(src_crs: CRS) -> bool:
+    """Check if the source CRS has an antimeridian seam (e.g. cylindrical or geographic)."""
     if src_crs.is_geographic:
         return True
     op = src_crs.coordinate_operation
@@ -128,6 +160,7 @@ def _patch_crosses_antimeridian(
     lat: float,
     lon_norm: float,
 ) -> bool:
+    """Determine whether the AEQD patch boundary crosses the antimeridian (+/-180 deg)."""
     if abs(lon_norm) <= 90.0:
         return False
 
@@ -154,9 +187,9 @@ def _patch_crosses_antimeridian(
 
 
 def _patch_contains_pole(lat: float, half_m: float, r_sphere: float) -> int:
-    """Devuelve -1 si el parche contiene el polo sur, +1 si contiene el norte y 0 si no.
+    """Determine whether patch footprint encloses the South Pole (-1), North Pole (+1), or neither (0).
 
-    Criterio: distancia angular del centro al polo <= semidiagonal angular del parche.
+    Criterion: angular distance from center to pole <= patch half-diagonal angular radius.
     """
     half_diag_deg = math.degrees(half_m * math.sqrt(2.0) / r_sphere)
     if 90.0 - lat <= half_diag_deg:
@@ -172,10 +205,11 @@ def _clean_nodata(
     scale: float | None = 1.0,
     offset: float | None = 0.0,
 ) -> np.ndarray:
+    """Mask nodata values, non-finite entries, and extreme sentinels, then apply scale/offset."""
     arr = data.astype(np.float32, copy=True)
     arr[~np.isfinite(arr)] = np.nan
-    # Filtrar centinelas gigantes (p. ej. nodata=-3.4e38 en float32) antes de np.isclose
-    # para evitar overflow en float32 y antes de aplicar scale/offset.
+    # Filter extreme sentinels (e.g. nodata = -3.4e38 in float32) before np.isclose
+    # to avoid float32 overflow, and prior to applying scale and offset.
     arr[np.abs(arr) > MAX_ABS_ELEV_M] = np.nan
     if nodata is not None:
         nodata_f = float(nodata)
@@ -200,11 +234,21 @@ def extract_patch(
     res_m: float = PATCH_RES_M,
     resampling: Resampling = Resampling.average,
 ) -> np.ndarray | None:
-    """Extrae un parche cuadrado de elevación en proyección AEQD local centrada en (lat, lon).
+    """Extract a square elevation patch in local AEQD projection centered at (lat, lon).
 
-    Devuelve un arreglo float32 de forma (N, N) (por defecto 64x64 a 500 m/px),
-    o None si el parche cruza el antimeridiano, cae fuera del raster o tiene menos
-    del 90 % de píxeles válidos.
+    Parameters:
+        src: Rasterio dataset reader.
+        lat: Latitude of patch center in degrees.
+        lon: Longitude of patch center in degrees (-180 to 180 or 0 to 360).
+        body: Planetary body ('Earth', 'Moon', 'Mars').
+        size_km: Extent of square patch side in kilometers (default: 32 km).
+        res_m: Resolution of patch cells in meters (default: 500 m).
+        resampling: Resampling algorithm for reprojection (default: average).
+
+    Returns:
+        float32 2D array of shape (N, N) (e.g. 64x64) with elevation in meters,
+        or None if patch crosses antimeridian, falls outside raster coverage,
+        or has < 90% valid pixels.
     """
     global ANTIMERIDIAN_SKIPPED_COUNT
 
@@ -216,7 +260,7 @@ def extract_patch(
 
     n_px = int(round((size_km * 1000.0) / res_m))
     if n_px <= 0:
-        raise ValueError("El tamaño del parche y la resolución deben producir > 0 píxeles.")
+        raise ValueError("Patch size and resolution must produce > 0 pixels.")
 
     half_m = size_km * 500.0
     dst_shape = (n_px, n_px)
@@ -227,6 +271,7 @@ def extract_patch(
     pole_sign = _patch_contains_pole(lat_f, half_m, r_sphere) if has_cut else 0
 
     if pole_sign != 0:
+        # Polar handling: read full longitude band across pole to avoid seam artifacts
         half_diag_deg = math.degrees(half_m * math.sqrt(2.0) / r_sphere)
         if pole_sign == -1:
             lat_lim = min(90.0, -90.0 + (90.0 + lat_f) + half_diag_deg + 0.05)
@@ -342,7 +387,7 @@ def extract_patch(
 
         read_win = Window(c0, r0, c1 - c0, r1 - r0)
 
-        # Estimar resolución fuente en metros para reducir lectura en rasters muy finos.
+        # Estimate source resolution in meters to subsample reads on very fine rasters.
         if src_crs.is_geographic:
             res_y_m = abs(src.res[1]) * math.radians(1.0) * r_sphere
             res_x_m = (
@@ -374,6 +419,35 @@ def extract_patch(
         else:
             raw = src.read(1, window=read_win, out_dtype="float32", masked=False)
             win_transform = src.window_transform(read_win)
+
+    scales = getattr(src, "scales", None)
+    offsets = getattr(src, "offsets", None)
+    scale = scales[0] if scales else 1.0
+    offset = offsets[0] if offsets else 0.0
+    data = _clean_nodata(raw, src.nodata, scale=scale, offset=offset)
+    if not np.any(np.isfinite(data)):
+        return None
+
+    dst = np.full(dst_shape, np.nan, dtype=np.float32)
+    reproject(
+        source=data,
+        destination=dst,
+        src_transform=win_transform,
+        src_crs=src.crs,
+        src_nodata=np.nan,
+        dst_transform=dst_transform,
+        dst_crs=dst_crs,
+        dst_nodata=np.nan,
+        resampling=resampling,
+    )
+
+    dst[~np.isfinite(dst)] = np.nan
+    dst[np.abs(dst) > MAX_ABS_ELEV_M] = np.nan
+
+    if float(np.isfinite(dst).mean()) < MIN_VALID_FRAC:
+        return None
+
+    return dst.astype(np.float32, copy=False)
 
     scales = getattr(src, "scales", None)
     offsets = getattr(src, "offsets", None)

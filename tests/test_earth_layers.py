@@ -1,4 +1,4 @@
-"""Pruebas unitarias sintéticas de T6 (sin HDF4 ni pyhdf)."""
+"""Synthetic unit tests for T6 Earth environmental and logistical layers (without HDF4/pyhdf dependencies)."""
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ def test_running_ops() -> None:
     assert np.isnan(mean_arr[0, 1])
     assert np.isnan(mean_arr[1, 0])
 
-    # Exactamente 2 meses válidos con min_count=3 -> NaN
+    # Exactly 2 valid months with min_count=3 -> NaN
     s2, c2 = running_sum_count(None, None, np.array([[10.0]], dtype=np.float32))
     s2, c2 = running_sum_count(s2, c2, np.array([[20.0]], dtype=np.float32))
     s2, c2 = running_sum_count(s2, c2, np.array([[np.nan]], dtype=np.float32))

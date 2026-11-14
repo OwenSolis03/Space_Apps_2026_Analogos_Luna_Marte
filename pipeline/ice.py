@@ -1,4 +1,15 @@
-"""Water, cold traps, and ice (T12): Earth cold/ice ranks, Moon Diviner PRP, Mars ice hints."""
+"""Cryospheric and cold-trap analog dimension (T12).
+
+This module computes thermal cold-trap percentiles, ground/surface ice indicators, and
+Gaussian RBF ice similarity scores across Earth, Moon, and Mars:
+- Earth: Cold rank derived from MODIS Land Surface Temperature (LST day/night mean)
+  and ice indicators from GLiM ice sheets and permafrost/freezing conditions.
+- Moon: Polar cold-trap ranks derived from LRO Diviner Polar Resource Product (dlre_prp)
+  temperatures and USGS Lunar Ice Favorability Index.
+- Mars: Subsurface/surface ice indicators derived from curated literature hints
+  (SHARAD, neutron spectrometer, and Phoenix/Viking ground truth).
+- Matching: Multi-component Gaussian RBF kernels comparing cold-trap ranks and ice levels.
+"""
 
 from __future__ import annotations
 

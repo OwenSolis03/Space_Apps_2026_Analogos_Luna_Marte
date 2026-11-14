@@ -1,4 +1,10 @@
-"""Cálculo de rasgos geomorfométricos sobre parches AEQD de 64x64."""
+"""Computation of geomorphometric features on 64x64 AEQD elevation patches.
+
+This module provides the single unified implementation for extracting terrain morphology
+metrics across Earth, Moon, and Mars. Evaluating patches at an identical metric scale
+(32x32 km at 500 m/pixel) ensures that slope, roughness, and relief are directly comparable
+without scale-dependent bias.
+"""
 
 from __future__ import annotations
 
@@ -11,25 +17,42 @@ def compute_features(
     z: np.ndarray,
     res_m: float = PATCH_RES_M,
 ) -> dict[str, np.float32]:
-    """Calcula los 7 rasgos geomorfométricos de un parche de elevación (metros).
+    """Calculate the 7 canonical geomorphometric features of an elevation patch (meters).
 
-    Antes de calcular, rellena cualquier NaN/no finito restante con la mediana del parche.
-    Todos los rasgos se devuelven como np.float32 con los nombres exactos de la v2.
+    Before feature calculation, any remaining non-finite / NaN values are imputed with the
+    patch median elevation. All computed metrics are returned as np.float32 values.
+
+    Parameters:
+        z: 2D numpy array containing patch elevation data in meters.
+        res_m: Grid cell spatial resolution in meters (default: 500 m).
+
+    Returns:
+        dict containing the 7 terrain metrics:
+            - mean_slope_deg: Mean terrain slope in degrees.
+            - p90_slope_deg: 90th percentile slope in degrees (steepness metric).
+            - relief_m: Vertical relief (95th - 5th percentile) in meters.
+            - hypsometric_integral: Dimensionless hypsometry ratio (mean-min)/(max-min).
+            - detrended_std_m: Roughness standard deviation after subtracting planar trend.
+            - tri_m: Riley's Terrain Ruggedness Index over 8-neighborhood interior pixels.
+            - mean_elev_m: Mean elevation in meters (stored for context, not matched across bodies).
+
+    Raises:
+        ValueError: If array is not 2D, smaller than 3x3, res_m <= 0, or contains no finite pixels.
     """
     arr = np.asarray(z, dtype=np.float64)
     if arr.ndim != 2:
-        raise ValueError(f"Se esperaba un arreglo 2D, se recibió ndim={arr.ndim}.")
+        raise ValueError(f"Expected 2D array, got ndim={arr.ndim}.")
     h, w = arr.shape
     if h < 3 or w < 3:
         raise ValueError(
-            f"El parche debe ser de al menos 3x3 píxeles para calcular TRI, recibido {arr.shape}."
+            f"Patch must be at least 3x3 pixels to compute TRI, received {arr.shape}."
         )
     if res_m <= 0:
-        raise ValueError(f"res_m debe ser positivo, recibido {res_m}.")
+        raise ValueError(f"res_m must be strictly positive, received {res_m}.")
 
     valid = np.isfinite(arr)
     if not np.any(valid):
-        raise ValueError("El parche no contiene píxeles finitos.")
+        raise ValueError("Patch contains no finite pixels.")
 
     med = float(np.median(arr[valid]))
     z_clean = np.where(valid, arr, med)
@@ -53,7 +76,7 @@ def compute_features(
         hypso = (z_mean - z_min) / (z_max - z_min)
     hypsometric_integral = np.float32(hypso)
 
-    # Ajuste de plano z ≈ a*x + b*y + c por mínimos cuadrados.
+    # 2D planar trend fitting: z ~ a*x + b*y + c via ordinary least squares.
     x_coords = (np.arange(w, dtype=np.float64) - (w - 1) / 2.0) * res
     y_coords = (np.arange(h, dtype=np.float64) - (h - 1) / 2.0) * res
     xx, yy = np.meshgrid(x_coords, y_coords)
@@ -62,7 +85,7 @@ def compute_features(
     plane = (design @ coeffs).reshape(h, w)
     detrended_std_m = np.float32(np.std(z_clean - plane))
 
-    # TRI de Riley: sqrt(sum((z_vecino - z_centro)^2)) sobre los 8 vecinos en píxeles interiores.
+    # Riley's Terrain Ruggedness Index: sqrt(sum((z_neighbor - z_center)^2)) across 8 neighbors.
     center = z_clean[1:-1, 1:-1]
     sq_sum = np.zeros_like(center, dtype=np.float64)
     for dr in (-1, 0, 1):

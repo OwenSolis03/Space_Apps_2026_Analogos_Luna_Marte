@@ -1,4 +1,15 @@
-"""Geology and surface materials (T14): Earth GLiM 0.5 deg, Moon unified map, and Mars SIM 3292."""
+"""Geological mapping, lithological classification, and surface materials (T14).
+
+This module manages lithological and stratigraphic datasets across all three celestial bodies:
+- Earth: Global Lithological Map (GLiM) 0.5-degree gridded database, sampled at candidate
+  coordinates with a robust 3x3 nearest-neighbor fallback for coastal and island pixels.
+- Moon: USGS Unified Geologic Map of the Moon (Fortezzo et al., 2020), querying GIS shapefile
+  polygons or falling back to nearest polygon centroid within 150 km.
+- Mars: USGS Global Geologic Map of Mars (SIM 3292, Tanaka et al., 2014), performing point-in-polygon
+  spatial intersections against regional geologic units.
+- Expert overrides: Explicit manual overrides from `pipeline/data/geology_overrides.json` for
+  well-studied mission landing sites and field analog stations.
+"""
 
 from __future__ import annotations
 

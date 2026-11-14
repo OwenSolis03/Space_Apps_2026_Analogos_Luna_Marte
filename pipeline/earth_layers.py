@@ -1,4 +1,23 @@
-"""Capas terrestres globales y locales (T6): MODIS NDVI/LST, logística, país y análogos conocidos."""
+"""Global and local Earth layers (T6): MODIS NDVI/LST, logistics, country, and known analog catalog.
+
+This module provides environmental and logistics feature extraction for Earth analog sites:
+1. Vegetation Index (MODIS MOD13C2 0.05° CMG):
+   - Computes annual Maximum Value Composite (MVC) NDVI across 12 monthly composites.
+   - Evaluates vegetation masks (NDVI <= 0.25) to isolate arid/barren surfaces.
+2. Land Surface Temperature (MODIS MOD11C3 0.05° CMG):
+   - Calculates annual mean daytime LST, nighttime LST, and seasonal diurnal amplitude (°C).
+3. Terrestrial Logistics Proximity:
+   - Evaluates geodesic distance (km) to nearest roadway from Natural Earth 10m roads
+     (densified to 0.02° segment intervals, excluding ferry routes) via BallTree spatial index.
+   - Evaluates geodesic distance (km) and attributes (IATA code, name) of nearest commercial
+     civilian airport from Natural Earth 10m airports (excluding military and spaceport sites).
+4. Sovereign Border Attribution:
+   - Points-in-polygon spatial join with Natural Earth 10m administrative country boundaries,
+     with a 25 km coastal buffer for maritime/island analog sites.
+5. Known Planetary Analogs Catalog:
+   - Validates coordinates against curated field analog stations (Atacama, McMurdo Dry Valleys,
+     Iceland volcanic fields, Hawaii basalt flows, Utah MDRS, etc.) to tag KNOWN_ANALOG vs NEW_CANDIDATE.
+"""
 
 from __future__ import annotations
 
@@ -93,7 +112,7 @@ TEXT_ENV_COLUMNS: tuple[str, ...] = (
 
 
 def ndvi_from_raw(raw: np.ndarray) -> np.ndarray:
-    """Convierte MOD13C2 crudo int16 a NDVI float32; valores inválidos o < -0.3 pasan a NaN."""
+    """Convert raw int16 MOD13C2 NDVI counts to float32 NDVI in [-0.3, 1.0]; mask fill values as NaN."""
     arr = np.asarray(raw)
     valid = (arr != NDVI_FILL) & (arr >= NDVI_RAW_MIN) & (arr <= NDVI_RAW_MAX)
     out = np.full(arr.shape, np.nan, dtype=np.float32)
@@ -105,7 +124,7 @@ def ndvi_from_raw(raw: np.ndarray) -> np.ndarray:
 
 
 def lst_c_from_raw(raw: np.ndarray) -> np.ndarray:
-    """Convierte MOD11C3 crudo uint16 a temperatura en °C float32; fill o < 7500 pasan a NaN."""
+    """Convert raw uint16 MOD11C3 counts to Celsius float32; mask fill and uncalibrated values as NaN."""
     arr = np.asarray(raw)
     valid = (arr != LST_FILL) & (arr >= LST_MIN_RAW) & np.isfinite(arr)
     out = np.full(arr.shape, np.nan, dtype=np.float32)
@@ -116,7 +135,7 @@ def lst_c_from_raw(raw: np.ndarray) -> np.ndarray:
 
 
 def running_nanmax(acc: np.ndarray | None, x: np.ndarray) -> np.ndarray:
-    """Máximo acumulado ignorando NaN (np.fmax). Si acc is None devuelve copia de x."""
+    """Compute cumulative element-wise maximum ignoring NaN (np.fmax)."""
     arr = np.asarray(x, dtype=np.float32)
     if acc is None:
         return arr.copy()
@@ -128,7 +147,7 @@ def running_sum_count(
     cnt: np.ndarray | None,
     x: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Acumula suma (float64) y conteo (uint8) de valores finitos (actualiza in-place si existen)."""
+    """Accumulate sum (float64) and count (uint8) of finite values in-place."""
     arr = np.asarray(x, dtype=np.float64)
     finite = np.isfinite(arr)
     if sum_ is None:
@@ -150,7 +169,7 @@ def finalize_mean(
     cnt: np.ndarray,
     min_count: int = MIN_MONTHS_LST,
 ) -> np.ndarray:
-    """Devuelve sum_/cnt como float32; celdas con cnt < min_count quedan en NaN."""
+    """Compute mean array as float32; cells with count < min_count are set to NaN."""
     sum_arr = np.asarray(sum_, dtype=np.float64)
     cnt_arr = np.asarray(cnt)
     out = np.full(sum_arr.shape, np.nan, dtype=np.float32)
@@ -161,7 +180,7 @@ def finalize_mean(
 
 
 def _normalize_lon(lon: np.ndarray) -> np.ndarray:
-    """Normaliza longitudes al intervalo semiabierto [-180, 180)."""
+    """Normalize longitudes to the semi-open interval [-180, 180)."""
     return ((lon + 180.0) % 360.0) - 180.0
 
 
@@ -170,7 +189,7 @@ def cell_index(
     lon: np.ndarray | float,
     res: float = MODIS_CMG_RES_DEG,
 ) -> tuple[np.ndarray | int, np.ndarray | int]:
-    """Fila y columna de la celda CMG que contiene (lat, lon); lon se normaliza a [-180, 180)."""
+    """Return row and column indices of CMG grid cell containing (lat, lon)."""
     scalar = np.ndim(lat) == 0 and np.ndim(lon) == 0
     lat_arr = np.asarray(lat, dtype=np.float64)
     lon_arr = _normalize_lon(np.asarray(lon, dtype=np.float64))
@@ -191,18 +210,18 @@ def patch_window_stat(
     stat: str,
     res: float = MODIS_CMG_RES_DEG,
 ) -> np.ndarray:
-    """Calcula 'median', 'mean' o 'max' en la ventana cuadrada del parche sobre la malla global."""
+    """Compute patch-level spatial statistic ('median', 'mean', or 'max') over CMG raster window."""
     if stat not in {"median", "mean", "max"}:
-        raise ValueError(f"stat inválido: {stat!r} (esperado 'median', 'mean' o 'max')")
+        raise ValueError(f"Invalid stat: {stat!r} (expected 'median', 'mean', or 'max')")
     grid_arr = np.asarray(grid)
     if grid_arr.ndim != 2:
-        raise ValueError(f"grid debe ser 2D, tiene forma {grid_arr.shape}")
+        raise ValueError(f"grid must be 2D, has shape {grid_arr.shape}")
     _, n_cols = grid_arr.shape
 
     lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
     lon_arr = _normalize_lon(np.atleast_1d(np.asarray(lon, dtype=np.float64)))
     if lat_arr.shape != lon_arr.shape:
-        raise ValueError("lat y lon deben tener la misma forma")
+        raise ValueError("lat and lon arrays must have identical shape")
 
     dlat = math.degrees(half_km / EARTH_RADIUS_KM)
     cos_lat = np.maximum(np.cos(np.radians(lat_arr)), MIN_COS_LAT)
@@ -227,7 +246,7 @@ def patch_window_stat(
         if c0 <= c1:
             block = grid_arr[r0 : r1 + 1, c0 : c1 + 1]
         else:
-            # Cruce de antimeridiano: la ventana envuelve columna n_cols - 1 -> 0.
+            # Antimeridian wrap-around: patch crosses column n_cols - 1 -> 0
             span = (c1 - c0) % n_cols
             cols = (c0 + np.arange(span + 1, dtype=np.int64)) % n_cols
             block = grid_arr[r0 : r1 + 1, cols]
@@ -246,23 +265,23 @@ def patch_window_stat(
 
 
 def _list_monthly_hdfs(hdf_dir: Path, expected_count: int = 12) -> list[Path]:
-    """Lista y valida los 12 archivos HDF mensuales ordenados por nombre."""
+    """List and validate the 12 monthly MODIS HDF4 files sorted by filename."""
     directory = Path(hdf_dir)
     if not directory.is_dir():
-        raise FileNotFoundError(f"Directorio MODIS no encontrado: {directory}")
+        raise FileNotFoundError(f"MODIS directory not found: {directory}")
     files = sorted(
         p for p in directory.iterdir() if p.is_file() and p.suffix.lower() == ".hdf"
     )
     if len(files) != expected_count:
         raise ValueError(
-            f"Se esperaban {expected_count} archivos .hdf en {directory}, encontrados {len(files)}"
+            f"Expected {expected_count} .hdf files in {directory}, found {len(files)}"
         )
     return files
 
 
 def _read_hdf_sds(hdf_path: Path, sds_names: tuple[str, ...]) -> dict[str, np.ndarray]:
-    """Lee uno o más SDS de un HDF4 MODIS usando pyhdf (importado de forma diferida)."""
-    from pyhdf.SD import SD, SDC  # lazy import: tests sintéticos no requieren pyhdf
+    """Read one or more Science Data Sets (SDS) from a MODIS HDF4 file using pyhdf."""
+    from pyhdf.SD import SD, SDC  # lazy import: synthetic tests do not require pyhdf
 
     sd = SD(str(hdf_path), SDC.READ)
     try:
@@ -271,7 +290,7 @@ def _read_hdf_sds(hdf_path: Path, sds_names: tuple[str, ...]) -> dict[str, np.nd
             arr = sd.select(name).get()
             if arr.shape != MODIS_GRID_SHAPE:
                 raise ValueError(
-                    f"Forma inesperada para SDS {name!r} en {hdf_path.name}: "
+                    f"Unexpected shape for SDS {name!r} in {hdf_path.name}: "
                     f"{arr.shape} != {MODIS_GRID_SHAPE}"
                 )
             out[name] = arr
@@ -284,7 +303,7 @@ def _write_cmg_geotiff(
     out_tif: Path,
     bands: list[tuple[str, np.ndarray]],
 ) -> Path:
-    """Escribe un GeoTIFF EPSG:4326 CMG 0.05° de forma atómica (.tmp.tif -> os.replace)."""
+    """Write an EPSG:4326 CMG 0.05° GeoTIFF atomically (.tmp.tif -> os.replace)."""
     out_path = Path(out_tif)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = out_path.with_suffix(".tmp.tif")
@@ -317,7 +336,7 @@ def _write_cmg_geotiff(
 
 
 def build_ndvi_max(ndvi_dir: Path, out_tif: Path) -> Path:
-    """Construye GeoTIFF de 2 bandas (ndvi_max, n_months) desde 12 HDF MOD13C2."""
+    """Build 2-band GeoTIFF (ndvi_max, n_months) from 12 monthly MOD13C2 HDF files."""
     files = _list_monthly_hdfs(ndvi_dir)
     ndvi_max: np.ndarray | None = None
     n_months = np.zeros(MODIS_GRID_SHAPE, dtype=np.uint8)
@@ -336,7 +355,7 @@ def build_ndvi_max(ndvi_dir: Path, out_tif: Path) -> Path:
 
 
 def build_lst(lst_dir: Path, out_tif: Path) -> Path:
-    """Construye GeoTIFF de 3 bandas (lst_day_c, lst_night_c, lst_amplitude_c) desde 12 HDF MOD11C3."""
+    """Build 3-band GeoTIFF (lst_day_c, lst_night_c, lst_amplitude_c) from 12 monthly MOD11C3 HDF files."""
     files = _list_monthly_hdfs(lst_dir)
     sum_day: np.ndarray | None = None
     cnt_day: np.ndarray | None = None
@@ -367,7 +386,7 @@ def build_lst(lst_dir: Path, out_tif: Path) -> Path:
 
 
 def ensure_cache(project_dir: Path, force: bool = False) -> dict[str, Path]:
-    """Construye las cachés faltantes en data/derived/. Nunca sobrescribe archivos existentes."""
+    """Construct missing cache GeoTIFFs in data/derived/. Never overwrites existing files unless forced."""
     proj = Path(project_dir)
     raw_dir = proj / "data" / "raw"
     derived_dir = proj / "data" / "derived"
@@ -379,27 +398,27 @@ def ensure_cache(project_dir: Path, force: bool = False) -> dict[str, Path]:
         if existing:
             to_del = proj / "_to_delete"
             raise FileExistsError(
-                f"Caché existente ({', '.join(str(p) for p in existing)}). "
-                f"No se sobrescribe por regla de Yuca: mueve los archivos viejos a {to_del}/ manualmente."
+                f"Existing cache files ({', '.join(str(p) for p in existing)}). "
+                f"Cluster policy requires moving old files to {to_del}/ manually."
             )
 
     if not ndvi_out.exists():
-        print(f"[T6] Construyendo caché NDVI máximo -> {ndvi_out}", flush=True)
+        print(f"[T6] Building maximum NDVI cache -> {ndvi_out}", flush=True)
         build_ndvi_max(raw_dir / EARTH_RAW_FILES["ndvi_dir"], ndvi_out)
     else:
-        print(f"[T6] Caché NDVI ya existe, reutilizando: {ndvi_out}", flush=True)
+        print(f"[T6] NDVI cache already exists, reusing: {ndvi_out}", flush=True)
 
     if not lst_out.exists():
-        print(f"[T6] Construyendo caché LST media anual -> {lst_out}", flush=True)
+        print(f"[T6] Building mean annual LST cache -> {lst_out}", flush=True)
         build_lst(raw_dir / EARTH_RAW_FILES["lst_dir"], lst_out)
     else:
-        print(f"[T6] Caché LST ya existe, reutilizando: {lst_out}", flush=True)
+        print(f"[T6] LST cache already exists, reusing: {lst_out}", flush=True)
 
     return {"ndvi_max": ndvi_out, "lst": lst_out}
 
 
 def _read_vector(source: Path | str | gpd.GeoDataFrame) -> gpd.GeoDataFrame:
-    """Carga un GeoDataFrame desde ruta o copia defensiva si ya está en memoria."""
+    """Load GeoDataFrame from path or return defensive copy, standardizing to EPSG:4326."""
     gdf = source.copy() if isinstance(source, gpd.GeoDataFrame) else gpd.read_file(source)
     if gdf.crs is None:
         gdf = gdf.set_crs("EPSG:4326")
@@ -409,7 +428,7 @@ def _read_vector(source: Path | str | gpd.GeoDataFrame) -> gpd.GeoDataFrame:
 
 
 def _clean_iata(val: object) -> str | None:
-    """Normaliza iata_code de aeropuertos; vacío, NaN o '-' pasan a None."""
+    """Normalize airport IATA code; empty, NaN or '-' become None."""
     if val is None or pd.isna(val):
         return None
     s = str(val).strip()
@@ -426,7 +445,7 @@ def _clean_str(val: object) -> str | None:
 
 
 class Logistics:
-    """Índices espaciales BallTree (haversine) de carreteras (sin ferries) y aeropuertos civiles."""
+    """Spatial BallTree indices (Haversine metric) for road networks and commercial airports."""
 
     def __init__(
         self,
@@ -441,10 +460,10 @@ class Logistics:
         densified = shapely.segmentize(roads.geometry.to_numpy(), ROAD_DENSIFY_DEG)
         road_xy = shapely.get_coordinates(densified)
         if road_xy.size == 0:
-            raise ValueError("No quedaron vértices de carreteras tras filtrar ferries")
+            raise ValueError("No road vertices remained after filtering ferries")
         road_xy = road_xy[np.isfinite(road_xy).all(axis=1)]
         print(
-            f"[Logistics] vértices de carreteras tras densificar ({ROAD_DENSIFY_DEG}°): "
+            f"[Logistics] road vertices after segmentizing ({ROAD_DENSIFY_DEG}°): "
             f"{len(road_xy):,}",
             flush=True,
         )
@@ -466,7 +485,7 @@ class Logistics:
             airports = airports[~ap_types.isin(AIRPORT_EXCLUDE_TYPES)]
         airports = airports.reset_index(drop=True)
         if len(airports) == 0:
-            raise ValueError("No quedaron aeropuertos tras filtrar tipos militares/spaceport")
+            raise ValueError("No airports remained after filtering military and spaceport categories")
 
         if (airports.geometry.geom_type == "Point").all():
             ap_lat = airports.geometry.y.to_numpy()
@@ -501,7 +520,7 @@ class Logistics:
         )
 
     def dist_road_km(self, lat: np.ndarray | float, lon: np.ndarray | float) -> np.ndarray:
-        """Distancia haversine (km, float32) al vértice de carretera densificada más cercano."""
+        """Haversine distance (km, float32) to nearest densified road vertex."""
         lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
         lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
         out = np.full(lat_arr.shape[0], np.nan, dtype=np.float32)
@@ -519,7 +538,7 @@ class Logistics:
         lat: np.ndarray | float,
         lon: np.ndarray | float,
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """Devuelve (dist_km float32, iata object, name object); iata vacío o '-' -> None."""
+        """Return (dist_km float32, iata object, name object); empty IATA or '-' becomes None."""
         lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
         lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
         n = lat_arr.shape[0]
@@ -540,12 +559,12 @@ class Logistics:
 
 
 class Countries:
-    """Búsqueda de país (ADMIN) con índice espacial y tolerancia costera de <= 25 km."""
+    """Sovereign country polygon lookup with spatial index and coastal tolerance buffer (<= 25 km)."""
 
     def __init__(self, countries_shp: Path | str | gpd.GeoDataFrame) -> None:
         gdf = _read_vector(countries_shp)
         if "ADMIN" not in gdf.columns:
-            raise ValueError("La capa de países debe contener la columna 'ADMIN'")
+            raise ValueError("Country vector layer must contain 'ADMIN' attribute column")
         gdf = gdf[["ADMIN", "geometry"]]
         gdf = gdf[gdf.geometry.notna() & ~gdf.geometry.is_empty].reset_index(drop=True)
         self._gdf = gdf
@@ -559,7 +578,7 @@ class Countries:
         lon: np.ndarray | float,
         max_coast_km: float = 25.0,
     ) -> np.ndarray:
-        """ADMIN del polígono que contiene cada punto o el más cercano dentro de max_coast_km."""
+        """Return sovereign country ADMIN string for points within polygon or within max_coast_km offshore."""
         lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
         lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
         n = lat_arr.shape[0]
@@ -598,41 +617,41 @@ class Countries:
 
 
 class KnownRegions:
-    """Catálogo curado de regiones análogas conocidas por bbox aproximado."""
+    """Curated planetary analog field station catalog indexed by bounding boxes."""
 
     def __init__(self, json_path: Path = KNOWN_ANALOGS_JSON) -> None:
         path = Path(json_path)
         payload = json.loads(path.read_text(encoding="utf-8"))
         regions = payload.get("regions")
         if not isinstance(regions, list) or len(regions) == 0:
-            raise ValueError(f"Lista 'regions' inválida o vacía en {path}")
+            raise ValueError(f"Invalid or empty 'regions' list in {path}")
 
         seen_ids: set[str] = set()
         validated: list[dict] = []
         for reg in regions:
             reg_id = reg.get("id")
             if not isinstance(reg_id, str) or not reg_id.strip():
-                raise ValueError(f"Región sin 'id' válido: {reg}")
+                raise ValueError(f"Region missing valid 'id': {reg}")
             if reg_id in seen_ids:
-                raise ValueError(f"id de región duplicado: {reg_id!r}")
+                raise ValueError(f"Duplicate region id: {reg_id!r}")
             seen_ids.add(reg_id)
 
             bbox = reg.get("bbox")
             if not isinstance(bbox, list) or len(bbox) != 4:
-                raise ValueError(f"bbox inválido en región {reg_id!r}: {bbox}")
+                raise ValueError(f"Invalid bbox in region {reg_id!r}: {bbox}")
             lon_min, lat_min, lon_max, lat_max = (float(v) for v in bbox)
             if not (-180.0 <= lon_min < lon_max <= 180.0):
                 raise ValueError(
-                    f"Longitud fuera de rango o invertida en {reg_id!r}: [{lon_min}, {lon_max}]"
+                    f"Longitude out of bounds or inverted in {reg_id!r}: [{lon_min}, {lon_max}]"
                 )
             if not (-90.0 <= lat_min < lat_max <= 90.0):
                 raise ValueError(
-                    f"Latitud fuera de rango o invertida en {reg_id!r}: [{lat_min}, {lat_max}]"
+                    f"Latitude out of bounds or inverted in {reg_id!r}: [{lat_min}, {lat_max}]"
                 )
 
             source_url = reg.get("source_url")
             if not isinstance(source_url, str) or not source_url.strip():
-                raise ValueError(f"source_url vacío en región {reg_id!r}")
+                raise ValueError(f"Empty source_url in region {reg_id!r}")
 
             validated.append(reg)
 
@@ -640,10 +659,9 @@ class KnownRegions:
         self._by_id = {reg["id"]: reg for reg in validated}
 
     def lookup(self, lat: np.ndarray | float, lon: np.ndarray | float) -> np.ndarray:
-        """Devuelve el id de la primera región cuyo bbox contiene el centro (lat, lon), o None."""
+        """Return the id of the first known region whose bounding box contains (lat, lon), or None."""
         lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
         lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
-        # Mantener exactamente ±180 dentro del intervalo sin envolverlo si ya está en [-180, 180].
         lon_wrapped = np.where(
             (lon_arr < -180.0) | (lon_arr > 180.0),
             _normalize_lon(lon_arr),
@@ -670,18 +688,12 @@ class KnownRegions:
         return out
 
     def name_of(self, region_id: str) -> str:
-        """Devuelve el nombre legible de una región conocida."""
+        """Return human-readable display name of a known analog region."""
         return str(self._by_id[region_id]["name"])
 
 
 class EarthLayers:
-    """Fachada unificada de capas terrestres para prefiltro y muestreo en T5.
-
-    Uso de memoria en T5: una instancia completa ocupa ~420 MB (4 mallas float32 de ~104 MB
-    más índices espaciales BallTree y GeoPandas). T5 debe construirla **una sola vez antes
-    del `fork`** de `multiprocessing.Pool` para que los workers la compartan por copy-on-write
-    sin duplicar RAM.
-    """
+    """Unified facade of Earth environmental layers for pre-filtering and sampling in T5."""
 
     def __init__(
         self,
@@ -710,10 +722,14 @@ class EarthLayers:
         project_dir: Path = YUCA_PROJECT_DIR,
         need: set[str] | None = None,
     ) -> "EarthLayers":
-        """Carga las capas terrestres desde `data/derived/` y `data/raw/`.
+        """Load Earth environmental layers from data/derived/ and data/raw/.
 
-        `need` permite cargar solo un subconjunto (ej. `{'ndvi'}` para el prefiltro de T5).
-        Falla con FileNotFoundError indicando correr `jobs/t6_earth_layers.slurm` si falta caché.
+        Parameters:
+            project_dir: Base directory on filesystem.
+            need: Optional subset of layers to load (e.g. {'ndvi'} for T5 candidate pre-filtering).
+
+        Raises:
+            FileNotFoundError: If cache files are missing from data/derived/.
         """
         proj = Path(project_dir)
         raw_dir = proj / "data" / "raw"
@@ -729,7 +745,7 @@ class EarthLayers:
             ndvi_path = derived_dir / EARTH_DERIVED_FILES["ndvi_max"]
             if not ndvi_path.exists():
                 raise FileNotFoundError(
-                    f"Falta caché NDVI ({ndvi_path}). Corre primero jobs/t6_earth_layers.slurm"
+                    f"Missing NDVI cache ({ndvi_path}). Run jobs/t6_earth_layers.slurm first."
                 )
             with rasterio.open(ndvi_path) as ds:
                 ndvi_max = ds.read(1).astype(np.float32, copy=False)
@@ -739,7 +755,7 @@ class EarthLayers:
             lst_path = derived_dir / EARTH_DERIVED_FILES["lst"]
             if not lst_path.exists():
                 raise FileNotFoundError(
-                    f"Falta caché LST ({lst_path}). Corre primero jobs/t6_earth_layers.slurm"
+                    f"Missing LST cache ({lst_path}). Run jobs/t6_earth_layers.slurm first."
                 )
             with rasterio.open(lst_path) as ds:
                 lst_day_c = ds.read(1).astype(np.float32, copy=False)
@@ -785,7 +801,7 @@ class EarthLayers:
         known_regions: KnownRegions | None = None,
         res: float | None = None,
     ) -> "EarthLayers":
-        """Constructor con arreglos en memoria para pruebas unitarias."""
+        """In-memory constructor for unit tests."""
         ndvi_arr = np.asarray(ndvi_max, dtype=np.float32)
         day_arr = np.asarray(lst_day_c, dtype=np.float32)
         night_arr = np.asarray(lst_night_c, dtype=np.float32)
@@ -816,9 +832,9 @@ class EarthLayers:
         lon: np.ndarray | float,
         half_km: float = 16.0,
     ) -> np.ndarray:
-        """Mediana de ndvi_max en la ventana del parche; T5 descarta > 0.25."""
+        """Median ndvi_max across the patch footprint; T5 pre-filtering discards values > 0.25."""
         if self.ndvi_max is None:
-            raise RuntimeError("Capa ndvi_max no cargada en esta instancia")
+            raise RuntimeError("ndvi_max layer not loaded in this instance")
         return patch_window_stat(
             self.ndvi_max, lat, lon, half_km=half_km, stat="median", res=self.res
         )
@@ -829,14 +845,14 @@ class EarthLayers:
         lon: np.ndarray | float,
         half_km: float = 16.0,
     ) -> pd.DataFrame:
-        """Muestra todas las columnas EARTH_ENV_COLUMNS en el orden dado de los puntos."""
+        """Sample all EARTH_ENV_COLUMNS in the specified point order."""
         if (
             self.ndvi_max is None
             or self.lst_day_c is None
             or self.lst_night_c is None
             or self.lst_amplitude_c is None
         ):
-            raise RuntimeError("Faltan mallas NDVI/LST para muestrear")
+            raise RuntimeError("Missing NDVI/LST grids for sampling")
 
         lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
         lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
@@ -913,7 +929,7 @@ def _check_raster_metadata(tif_path: Path, expected_bands: int) -> tuple[bool, d
 
 
 def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
-    """Genera los 3 PNG de control descritos en la sección 6.3."""
+    """Generates the 3 diagnostic control PNG maps described in section 6.3."""
     out_dir.mkdir(parents=True, exist_ok=True)
     extent = (-180.0, 180.0, -90.0, 90.0)
     ndvi_sub = layers.ndvi_max[::4, ::4]
@@ -941,10 +957,10 @@ def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
         extent=extent,
         origin="upper",
     )
-    fig.colorbar(im, ax=ax, shrink=0.72, label="MODIS MOD13C2 2023 NDVI máx")
-    ax.set_title("NDVI máximo anual 2023 (submuestreo ×4) + contorno 0.25 en rojo")
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
+    fig.colorbar(im, ax=ax, shrink=0.72, label="MODIS MOD13C2 2023 Max NDVI")
+    ax.set_title("2023 Annual Maximum NDVI (4× subsampled) + 0.25 contour in red")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
     p1 = out_dir / "map_ndvi_max.png"
     fig.tight_layout()
     fig.savefig(p1)
@@ -964,10 +980,10 @@ def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
         origin="upper",
         interpolation="nearest",
     )
-    fig.colorbar(im, ax=ax, shrink=0.72, label="LST amplitud media diaria (°C)")
-    ax.set_title("Amplitud térmica superficial MODIS MOD11C3 2023 (día − noche, ×4)")
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
+    fig.colorbar(im, ax=ax, shrink=0.72, label="LST Mean Diurnal Amplitude (°C)")
+    ax.set_title("MODIS MOD11C3 2023 Surface Thermal Amplitude (Day − Night, 4× subsampled)")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
     p2 = out_dir / "map_lst_amplitude.png"
     fig.tight_layout()
     fig.savefig(p2)
@@ -987,7 +1003,7 @@ def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
         origin="upper",
         interpolation="nearest",
     )
-    # Desplazamientos pequeños para evitar solape en el suroeste de EE. UU. / Atlántico Norte.
+    # Small label offsets to prevent collision in SW US / North Atlantic.
     label_offsets = {
         "utah-mdrs": (1.5, 2.2),
         "meteor-crater": (1.8, -3.2),
@@ -1018,9 +1034,9 @@ def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
         )
     ax.set_xlim(-180.0, 180.0)
     ax.set_ylim(-90.0, 90.0)
-    ax.set_title("Regiones análogas conocidas (12 bbox aproximados sobre NDVI gris)")
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
+    ax.set_title("Known Planetary Analog Regions (12 bounding boxes over grayscale NDVI)")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
     p3 = out_dir / "map_known_analogs.png"
     fig.tight_layout()
     fig.savefig(p3)
@@ -1031,7 +1047,7 @@ def _render_control_plots(layers: EarthLayers, out_dir: Path) -> list[Path]:
 
 
 def run_checks(project_dir: Path, out_dir: Path) -> dict:
-    """Ejecuta las 13 verificaciones de la sección 6, escribe t6_checks.json y los 3 PNG."""
+    """Executes the 13 verification checks of section 6, writes t6_checks.json and 3 PNG maps."""
     proj = Path(project_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -1069,7 +1085,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
     grid_le_025_frac = float(np.mean(finite_mask & (ndvi_grid <= 0.25)))
     land_le_025_frac = float(np.mean(ndvi_grid[finite_mask] <= 0.25)) if np.any(finite_mask) else 0.0
 
-    # Benchmark de 10,000 puntos aleatorios en tierra (check 13)
+    # Benchmark of 10,000 random land points (check 13)
     rng = np.random.default_rng(42)
     land_rows, land_cols = np.where(finite_mask)
     n_bench = min(10_000, len(land_rows))
@@ -1104,7 +1120,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
                 and (_val("sahara_eg", "ndvi_max") is not None and _val("sahara_eg", "ndvi_max") < 0.12)
             ),
             "observed": {"dz": _val("sahara_dz", "ndvi_max"), "eg": _val("sahara_eg", "ndvi_max")},
-            "expected": "< 0.12 en ambos",
+            "expected": "< 0.12 for both",
         },
         {
             "id": 3,
@@ -1125,7 +1141,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
                 and (_val("congo", "ndvi_max") is not None and _val("congo", "ndvi_max") > 0.70)
             ),
             "observed": {"amazonia": _val("amazonia", "ndvi_max"), "congo": _val("congo", "ndvi_max")},
-            "expected": "> 0.70 en ambos",
+            "expected": "> 0.70 for both",
         },
         {
             "id": 5,
@@ -1177,7 +1193,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
                 "cos_weighted": round(finite_frac_cos, 4),
                 "unweighted": round(finite_frac, 4),
             },
-            "expected": "> 0.25 (ponderado por cos(lat))",
+            "expected": "> 0.25 (cos(lat)-weighted)",
         },
         {
             "id": 9,
@@ -1204,7 +1220,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
                 "sahara_dz": _val("sahara_dz", "lst_amplitude_c"),
                 "amazonia": _val("amazonia", "lst_amplitude_c"),
             },
-            "expected": "sahara > 15 °C y sahara > amazonia",
+            "expected": "sahara > 15 °C and sahara > amazonia",
         },
         {
             "id": 11,
@@ -1226,7 +1242,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
                 "grid_frac_le_025": round(grid_le_025_frac, 4),
                 "land_frac_le_025": round(land_le_025_frac, 4),
             },
-            "expected": "reporte informativo (~40k-120k parches esperados en T5)",
+            "expected": "informative report (~40k-120k patches expected in T5)",
         },
         {
             "id": 13,
@@ -1272,7 +1288,7 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
     checks_path = out / "t6_checks.json"
     checks_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    print("\n=== T6 Verificaciones ===")
+    print("\n=== T6 Verification Checks ===")
     for c in checks:
         status = "PASS" if c["passed"] else "FAIL"
         print(
@@ -1280,20 +1296,20 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
             f"obs={c['observed']} | exp={c['expected']}"
         )
     print(
-        f"Resumen: duros {hard_passed}/{len(hard_checks)}, "
-        f"blandos {soft_passed}/{len(soft_checks)} -> {checks_path}"
+        f"Summary: hard {hard_passed}/{len(hard_checks)}, "
+        f"soft {soft_passed}/{len(soft_checks)} -> {checks_path}"
     )
     return report
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Construcción de cachés terrestres y verificación T6."
+        description="Earth environmental layer caching and T6 verification."
     )
     parser.add_argument("--project-dir", type=Path, default=YUCA_PROJECT_DIR)
     parser.add_argument("--out-dir", type=Path, required=True)
-    parser.add_argument("--build", action="store_true", help="Construye cachés MODIS faltantes.")
-    parser.add_argument("--check", action="store_true", help="Corre verificaciones y genera PNG.")
+    parser.add_argument("--build", action="store_true", help="Build missing MODIS GeoTIFF caches.")
+    parser.add_argument("--check", action="store_true", help="Run acceptance checks and generate control plots.")
     return parser.parse_args(argv)
 
 

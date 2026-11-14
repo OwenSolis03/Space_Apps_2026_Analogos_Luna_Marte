@@ -1,4 +1,18 @@
-"""Definición de blancos curados y clusters globales para Marte y la Luna (T4)."""
+"""Definition of curated mission targets and unsupervised global terrain archetypes for Mars and the Moon (T4).
+
+This module defines planetary reference targets for matching against Earth analogs:
+1. Curated Mission Targets:
+   - Specific sites of scientific interest loaded from `pipeline/data/targets.json`
+     (e.g., Artemis III candidate regions, Apollo landing sites, Jezero Crater, Gale Crater).
+   - Sampled across multiple patches: either center + 4 cardinal offsets (16 km) for point
+     anchors, or 8 points along crater rims for impact features.
+2. Unsupervised Global Archetypes (Clusters):
+   - 30 K-Means clusters per body fitted on the 6 scale-invariant morphometric features
+     (with log-transform on relief, roughness std, and TRI).
+   - Medoid patches closest to the cluster centroids serve as global morphological archetypes.
+3. IAU Nomenclature:
+   - Official USGS/IAU gazetteer names, feature types, and nearest landmarks attached to each target.
+"""
 
 from __future__ import annotations
 
@@ -116,57 +130,61 @@ def _nanmean32(values: list[object]) -> np.float32:
 
 
 def load_curated(path: Path = TARGETS_JSON) -> list[dict]:
-    """Lee y valida `targets.json`. Lanza ValueError indicando el id que falla."""
+    """Read and validate targets.json, ensuring valid coordinates and anchor specifications.
+
+    Raises:
+        ValueError: If file structure is invalid or required attributes are malformed.
+    """
     with open(path, "r", encoding="utf-8") as fh:
         payload = json.load(fh)
 
     targets = payload.get("targets")
     if not isinstance(targets, list):
-        raise ValueError(f"El archivo {path} debe contener una lista 'targets'.")
+        raise ValueError(f"File {path} must contain a 'targets' list.")
 
     seen_ids: set[str] = set()
     for idx, item in enumerate(targets):
         if not isinstance(item, dict):
-            raise ValueError(f"Blanco en índice {idx} no es un objeto JSON.")
+            raise ValueError(f"Target at index {idx} is not a JSON object.")
         tid = item.get("id")
         if not isinstance(tid, str) or not tid.strip():
-            raise ValueError(f"Blanco sin id válido en índice {idx}.")
+            raise ValueError(f"Target without valid 'id' at index {idx}.")
         if tid in seen_ids:
-            raise ValueError(f"id duplicado en targets.json: {tid!r}")
+            raise ValueError(f"Duplicate id in targets.json: {tid!r}")
         seen_ids.add(tid)
 
         body = item.get("body")
         if body not in ("Moon", "Mars"):
-            raise ValueError(f"Blanco {tid!r}: body inválido {body!r} (esperado Moon o Mars).")
+            raise ValueError(f"Target {tid!r}: invalid body {body!r} (expected Moon or Mars).")
 
         lat = item.get("lat")
         lon = item.get("lon")
         if not isinstance(lat, (int, float)) or not math.isfinite(float(lat)) or not (-90.0 <= float(lat) <= 90.0):
-            raise ValueError(f"Blanco {tid!r}: lat fuera de [-90, 90]: {lat!r}")
+            raise ValueError(f"Target {tid!r}: lat outside [-90, 90]: {lat!r}")
         if not isinstance(lon, (int, float)) or not math.isfinite(float(lon)) or not (-180.0 <= float(lon) <= 180.0):
-            raise ValueError(f"Blanco {tid!r}: lon fuera de [-180, 180]: {lon!r}")
+            raise ValueError(f"Target {tid!r}: lon outside [-180, 180]: {lon!r}")
 
         anchor = item.get("anchor")
         if not isinstance(anchor, dict):
-            raise ValueError(f"Blanco {tid!r}: falta objeto 'anchor'.")
+            raise ValueError(f"Target {tid!r}: missing 'anchor' object.")
         atype = anchor.get("type")
         if atype not in ("point", "rim"):
-            raise ValueError(f"Blanco {tid!r}: anchor.type inválido {atype!r}.")
+            raise ValueError(f"Target {tid!r}: invalid anchor.type {atype!r}.")
         if atype == "rim":
             rad = anchor.get("radius_km")
             if not isinstance(rad, (int, float)) or not math.isfinite(float(rad)) or float(rad) <= 0.0:
-                raise ValueError(f"Blanco {tid!r}: anchor rim requiere radius_km > 0 (recibido {rad!r}).")
+                raise ValueError(f"Target {tid!r}: anchor rim requires radius_km > 0 (received {rad!r}).")
 
         for url_key in ("source_url", "coord_source_url"):
             url_val = item.get(url_key)
             if not isinstance(url_val, str) or not url_val.strip():
-                raise ValueError(f"Blanco {tid!r}: {url_key} vacío o faltante.")
+                raise ValueError(f"Target {tid!r}: {url_key} is empty or missing.")
 
     return targets
 
 
 def anchor_points(target: dict) -> list[tuple[float, float]]:
-    """Calcula los centros (lat, lon) de los parches del blanco con pyproj.Geod."""
+    """Compute center (lat, lon) coordinates of patch samples using pyproj.Geod forward geodesics."""
     body = str(target["body"])
     r_m = BODY_RADII_M[body]
     geod = Geod(a=r_m, b=r_m)
@@ -191,18 +209,18 @@ def anchor_points(target: dict) -> list[tuple[float, float]]:
             lon2_norm = ((float(lon2) + 180.0) % 360.0) - 180.0
             pts.append((float(lat2), lon2_norm))
     else:
-        raise ValueError(f"Tipo de ancla no soportado: {atype!r}")
+        raise ValueError(f"Unsupported anchor type: {atype!r}")
 
     return pts
 
 
 def aggregate_patches(rows: list[dict | None], anchor_type: str, body: str) -> dict[str, object]:
-    """Agrega las filas de PointSampler.sample para un blanco curado."""
+    """Aggregate patch sample dictionaries from PointSampler for a curated target."""
     if anchor_type not in MIN_OK:
-        raise ValueError(f"Tipo de ancla no soportado: {anchor_type!r}")
+        raise ValueError(f"Unsupported anchor type: {anchor_type!r}")
     body_norm = body.strip().capitalize()
     if body_norm not in AUX_COLS:
-        raise ValueError(f"Cuerpo no soportado: {body!r}")
+        raise ValueError(f"Unsupported celestial body: {body!r}")
 
     n_patches = len(rows)
     valid_rows = [r for r in rows if r is not None]
@@ -306,7 +324,7 @@ def curated_features(
     derived_dir: Path,
     t3_dir: Path,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Calcula rasgos T1+T2+T3 de los blancos curados promediando sus parches de ancla."""
+    """Compute T1+T2+T3 features across anchor patches for all curated mission targets."""
     moon_pq = t3_dir / "features_moon.parquet"
     wac_ref: np.ndarray | None = None
     if moon_pq.exists():
@@ -413,12 +431,12 @@ def build_clusters(
     seed: int = KMEANS_SEED,
     return_labels: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame] | tuple[pd.DataFrame, pd.DataFrame, np.ndarray]:
-    """Agrupa parches T3 de `body` con k-means sobre 6 rasgos estandarizados."""
+    """Group global T3 patches of `body` using k-means over 6 standardized morphometric features."""
     body_norm = body.strip().capitalize()
     if df.empty:
-        raise ValueError(f"DataFrame vacío para clustering de {body_norm}.")
+        raise ValueError(f"Empty DataFrame for clustering on {body_norm}.")
     if k <= 0 or k > len(df):
-        raise ValueError(f"k={k} inválido para {len(df)} filas en {body_norm}.")
+        raise ValueError(f"Invalid k={k} for {len(df)} rows on {body_norm}.")
 
     work_df = df.reset_index(drop=True).copy()
     if body_norm == "Moon" and "wac_percentile" not in work_df.columns:
@@ -495,7 +513,7 @@ def cluster_targets(
     body: str,
     gaz: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Convierte representantes de clusters en blancos con el esquema común."""
+    """Convert cluster medoid representatives into canonical target records."""
     body_norm = body.strip().capitalize()
     radius_km = BODY_RADII_M[body_norm] / 1000.0
 
@@ -573,7 +591,7 @@ def plot_targets_map(
     body: str,
     png_path: Path,
 ) -> Path:
-    """Genera mapa scatter de clusters T3, representantes y blancos curados."""
+    """Generate geographic scatter map of cluster assignments, medoids, and curated mission targets."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
     colors = list(plt.get_cmap("tab20").colors) + list(plt.get_cmap("tab10").colors)
     cmap = mcolors.ListedColormap(colors[:30])
@@ -649,9 +667,9 @@ def plot_targets_map(
 
     ax.set_xlim(-180, 180)
     ax.set_ylim(-90, 90)
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
-    ax.set_title(f"{body} — clusters ({len(clusters_sub)}) y blancos curados ({len(curated_sub)})")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
+    ax.set_title(f"{body} — Clusters ({len(clusters_sub)}) and Curated Targets ({len(curated_sub)})")
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
     if not clusters_sub.empty or not curated_sub.empty:
         ax.legend(loc="upper right", fontsize=8)
@@ -841,7 +859,7 @@ def run(
             slope_txt = f"{float(row['mean_slope_deg']):.2f}°" if _is_finite(row["mean_slope_deg"]) else "NaN"
             relief_txt = f"{float(row['relief_m']):.0f} m" if _is_finite(row["relief_m"]) else "NaN"
             print(
-                f"[CURADO] {tid}  {row['anchor_type']}  {int(row['n_ok'])}/{int(row['n_patches'])} {row['status']}  "
+                f"[CURATED] {tid}  {row['anchor_type']}  {int(row['n_ok'])}/{int(row['n_patches'])} {row['status']}  "
                 f"slope={slope_txt} relief={relief_txt}  "
                 f"iau={row['iau_label']} d={float(row['iau_distance_km']):.1f} km{aux_txt}{iau_warn}"
             )
@@ -854,7 +872,7 @@ def run(
             summary_parts.append(f"{body} {ok_cnt}/{len(b_cur)} ok")
             bad_ids.extend(list(b_cur.loc[b_cur["status"] != "ok", "target_id"]))
         extra = f" (insufficient_coverage: {', '.join(bad_ids)})" if bad_ids else ""
-        print(f"[CURADO] resumen: {', '.join(summary_parts)}{extra}")
+        print(f"[CURATED] Summary: {', '.join(summary_parts)}{extra}")
     else:
         patches_df = pd.DataFrame(
             columns=["target_id", "body", "k", "lat", "lon", "ok", *FEATURE_NAMES, "valid_frac"]
@@ -870,7 +888,7 @@ def run(
         body_lower = body.lower()
         t3_path = t3_dir / f"features_{body_lower}.parquet"
         if not t3_path.exists():
-            raise FileNotFoundError(f"No se encontró salida de T3 para {body}: {t3_path}")
+            raise FileNotFoundError(f"T3 output not found for {body}: {t3_path}")
         t3_df = pd.read_parquet(t3_path)
         t3_dfs[body] = t3_df
 
@@ -888,8 +906,8 @@ def run(
         inertia = float(summary_df.attrs.get("inertia", float("nan")))
         print(
             f"[CLUSTER] {body}: N={len(t3_df):,}  k={k}  "
-            f"tamaño min/mediana/max = {int(sizes.min())}/{int(np.median(sizes))}/{int(sizes.max())}  "
-            f"inercia={inertia:.1f}"
+            f"size min/median/max = {int(sizes.min())}/{int(np.median(sizes))}/{int(sizes.max())}  "
+            f"inertia={inertia:.1f}"
         )
         sum_by_rank = summary_df.set_index("cluster_rank")
         for _, crow in c_targets_df.iterrows():
@@ -927,20 +945,20 @@ def run(
 
     n_cur = int((targets_df["type"] == "CURATED").sum())
     n_clu = int((targets_df["type"] == "CLUSTER").sum())
-    print(f"[OK] targets.parquet: {len(targets_df)} blancos ({n_cur} curados + {n_clu} clusters) -> {targets_parquet}")
+    print(f"[OK] targets.parquet: {len(targets_df)} targets ({n_cur} curated + {n_clu} clusters) -> {targets_parquet}")
     return targets_parquet
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extrae blancos curados y clusters globales de Marte y la Luna (T4)."
+        description="Extract curated targets and global K-Means archetypes for Mars and Moon (T4)."
     )
-    parser.add_argument("--t3-dir", type=Path, required=True, help="Directorio con salidas de T3 (features_*.parquet).")
-    parser.add_argument("--out-dir", type=Path, required=True, help="Directorio de salida para T4.")
-    parser.add_argument("--project-dir", type=Path, default=YUCA_PROJECT_DIR, help="Raíz de datos en Yuca.")
-    parser.add_argument("--body", choices=["Mars", "Moon", "all"], default="all", help="Cuerpo a procesar.")
-    parser.add_argument("--k", type=int, default=N_CLUSTERS, help="Número de clusters k-means por cuerpo.")
-    parser.add_argument("--skip-curated", action="store_true", help="Omite extracción de blancos curados.")
+    parser.add_argument("--t3-dir", type=Path, required=True, help="Directory with T3 outputs (features_*.parquet).")
+    parser.add_argument("--out-dir", type=Path, required=True, help="Output directory for T4.")
+    parser.add_argument("--project-dir", type=Path, default=YUCA_PROJECT_DIR, help="Project root on Yuca.")
+    parser.add_argument("--body", choices=["Mars", "Moon", "all"], default="all", help="Planetary body to process.")
+    parser.add_argument("--k", type=int, default=N_CLUSTERS, help="Number of k-means clusters per body.")
+    parser.add_argument("--skip-curated", action="store_true", help="Skip curated target extraction.")
     return parser.parse_args(argv)
 
 

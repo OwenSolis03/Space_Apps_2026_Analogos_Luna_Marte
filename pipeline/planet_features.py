@@ -1,4 +1,18 @@
-"""Barrido global de Marte y la Luna en parches AEQD de 32x32 km (T3)."""
+"""Global geomorphometric and environmental feature extraction for Mars and the Moon (T3).
+
+This module conducts a global planetary sweep over Mars and the Moon by evaluating
+quasi-equiareal grids of 32x32 km patches resampled to 500 m/pixel in local AEQD projections.
+
+Datasets extracted:
+- Digital Elevation Models (DEM): MOLA (Mars, 463 m) and LOLA (Moon, 118 m, half-meter scaled).
+- Geomorphometric metrics: 7 canonical features computed via `pipeline.features`.
+- Thermal/albedo layers:
+  - Mars: THEMIS daytime infrared and nighttime thermal infrared mosaics (60°N–60°S).
+  - Moon: LROC-WAC global 100 m mosaic, evaluated as percentile rank across lunar surface.
+- Cryosphere / volatile proxies:
+  - Moon: USGS Lunar Ice Favorability Index (polar regions >= 70°).
+  - Moon South Pole: LRO Diviner Polar Resource Product (dlre_prp) spatial triangular mesh.
+"""
 
 from __future__ import annotations
 
@@ -70,10 +84,20 @@ def generate_grid(
     lat_min: float = -88.0,
     lat_max: float = 88.0,
 ) -> list[tuple[float, float]]:
-    """Genera una grilla casi equiareal de centros (lat, lon) para un cuerpo."""
+    """Generate a quasi-equiareal grid of center coordinates (lat, lon) for a celestial body.
+
+    Parameters:
+        body: Celestial body name ('Mars' or 'Moon').
+        size_km: Patch side length in kilometers (determines latitude step).
+        lat_min: Minimum latitude bound (default: -88.0 deg).
+        lat_max: Maximum latitude bound (default: 88.0 deg).
+
+    Returns:
+        List of (lat, lon) tuples in degrees.
+    """
     body_norm = body.strip().capitalize()
     if body_norm not in BODY_RADII_M:
-        raise ValueError(f"Cuerpo no soportado: {body!r}")
+        raise ValueError(f"Unsupported planetary body: {body!r}")
 
     radius_m = BODY_RADII_M[body_norm]
     dlat = math.degrees((size_km * 1000.0) / radius_m)
@@ -97,12 +121,12 @@ def select_stripe(
     stripe_idx: int,
     num_stripes: int,
 ) -> list[tuple[float, float]]:
-    """Devuelve la franja `stripe_idx` de `num_stripes` particiones contiguas."""
+    """Select the contiguous stripe `stripe_idx` out of `num_stripes` partitions for Slurm job arrays."""
     if num_stripes <= 1:
         return points
     if stripe_idx < 0 or stripe_idx >= num_stripes:
         raise ValueError(
-            f"stripe_idx={stripe_idx} fuera de rango [0, {num_stripes - 1}]."
+            f"stripe_idx={stripe_idx} out of range [0, {num_stripes - 1}]."
         )
     if not points:
         return []
@@ -117,7 +141,7 @@ def apply_limit(
     points: list[tuple[float, float]],
     limit: int | None,
 ) -> list[tuple[float, float]]:
-    """Submuestrea uniformemente hasta `limit` centros manteniendo cobertura latitudinal."""
+    """Subsample up to `limit` points uniformly across the sequence to preserve latitudinal distribution."""
     if limit is None or limit <= 0 or len(points) <= limit:
         return points
     step = max(1, len(points) // limit)
@@ -128,11 +152,11 @@ def compute_lunar_wac_percentile(
     values: float | np.floating | np.ndarray | pd.Series,
     reference: np.ndarray | pd.Series | None = None,
 ) -> float | np.ndarray | pd.Series:
-    """Convierte valores de brillo LROC WAC a percentil [0, 1] dentro de la Luna.
+    """Convert LROC-WAC reflectance brightness values to a percentile rank in [0, 1] relative to the Moon.
 
-    El mosaico LROC WAC (uint8 con scale=1.00395, offset=-0.00395, nodata=0) representa
-    brillo relativo (~1-256) y no reflectancia física absoluta, por lo que debe compararse
-    por rango/percentil dentro de la propia distribución lunar.
+    The global LROC WAC mosaic (uint8 with scale=1.00395, offset=-0.00395, nodata=0) stores
+    relative brightness counts (~1-256) rather than absolute physical reflectance. Thus,
+    it must be compared across sites by its empirical percentile within the global lunar distribution.
     """
     is_scalar = np.isscalar(values)
     is_series = isinstance(values, pd.Series)
@@ -169,7 +193,7 @@ def _diviner_transformer() -> Transformer:
 
 
 def prepare_diviner_parquet(tab_path: Path, parquet_path: Path) -> Path | None:
-    """Convierte dlre_prp_south.tab (CSV con encabezado) a parquet en data/derived/."""
+    """Convert dlre_prp_south.tab (CSV with header) to an optimized parquet file in data/derived/."""
     if parquet_path.exists():
         return parquet_path
 
@@ -201,7 +225,7 @@ def prepare_diviner_parquet(tab_path: Path, parquet_path: Path) -> Path | None:
     xs, ys = transformer.transform(lons, lats)
     df["x_m"] = np.asarray(xs, dtype=np.float64)
     df["y_m"] = np.asarray(ys, dtype=np.float64)
-    # -999 indica ausencia de hielo estable -> NaN para la mediana.
+    # -999 indicates absence of stable subsurface ice -> set to NaN for median calculation.
     df.loc[df["ice_depth"] <= -900.0, "ice_depth"] = np.float32(np.nan)
     df = df[["x_m", "y_m", "temp_avg", "temp_max", "ice_depth"]]
 
@@ -209,7 +233,7 @@ def prepare_diviner_parquet(tab_path: Path, parquet_path: Path) -> Path | None:
     tmp_path = parquet_path.with_name(f".{parquet_path.name}.{os.getpid()}.tmp")
     df.to_parquet(tmp_path, index=False)
     os.replace(tmp_path, parquet_path)
-    print(f"[INFO] Diviner PRP cacheado en {parquet_path} ({len(df):,} triángulos)")
+    print(f"[INFO] Cached Diviner PRP table at {parquet_path} ({len(df):,} triangles)")
     return parquet_path
 
 
@@ -217,7 +241,7 @@ def load_diviner_prp(
     tab_path: Path,
     parquet_path: Path | None = None,
 ) -> dict[str, object] | None:
-    """Carga la tabla Diviner PRP desde parquet derivado (o desde .tab si aún no existe)."""
+    """Load the Diviner PRP spatial KD-Tree from derived parquet (or generate from .tab if absent)."""
     target_parquet = parquet_path if parquet_path is not None else tab_path.with_suffix(".parquet")
     resolved = prepare_diviner_parquet(tab_path, target_parquet)
     if resolved is None or not resolved.exists():
@@ -316,7 +340,7 @@ def _query_diviner_patch(
     lon: float,
     size_km: float,
 ) -> tuple[np.float32, np.float32, np.float32]:
-    """Calcula la mediana dentro del parche polar sobre triángulos Diviner PRP."""
+    """Calculate the patch-interior median over polar Diviner PRP triangular facets."""
     nan32 = np.float32(np.nan)
     half_m = size_km * 500.0
     x, y = diviner["transformer"].transform(lon, lat)  # type: ignore[union-attr]
@@ -374,11 +398,11 @@ def _process_point(point: tuple[float, float]) -> dict[str, object] | None:
     }
 
     if body == "Mars":
-        # Nota: THEMIS Day/Night se guardan en valores crudos del mosaico (no son temperatura física).
+        # Note: THEMIS Day/Night are stored in raw mosaic units (brightness counts, not Kelvin).
         themis_day = _sample_aux_median(
             aux_srcs.get("themis_day"), lat, lon, body, size_km, res_m
         )
-        # El mosaico THEMIS Night cubre aproximadamente 60°N–60°S.
+        # THEMIS Night mosaic covers approximately 60°N to 60°S.
         if abs(lat) <= 61.0:
             themis_night = _sample_aux_median(
                 aux_srcs.get("themis_night"), lat, lon, body, size_km, res_m
@@ -395,8 +419,8 @@ def _process_point(point: tuple[float, float]) -> dict[str, object] | None:
         row["themis_night"] = themis_night
         row["themis_delta"] = themis_delta
     elif body == "Moon":
-        # Nota: LROC WAC (uint8, scale=1.00395, offset=-0.00395, nodata=0) entrega brillo
-        # relativo (~1-256), no reflectancia absoluta; compararlo por percentil dentro de la Luna.
+        # Note: LROC-WAC delivers relative brightness counts (~1-256) rather than absolute
+        # physical reflectance; comparison across sites is performed via percentile rank.
         row["wac_reflectance"] = _sample_aux_median(
             aux_srcs.get("wac_reflectance"), lat, lon, body, size_km, res_m
         )
@@ -414,7 +438,7 @@ def _process_point(point: tuple[float, float]) -> dict[str, object] | None:
         div_tmax = np.float32(np.nan)
         div_tavg = np.float32(np.nan)
         ice_depth = np.float32(np.nan)
-        # La malla polar sur de Diviner PRP cubre desde ~75.9°S hasta 90°S.
+        # The Diviner PRP south polar triangular mesh covers from ~75.9°S to 90°S.
         if isinstance(diviner, dict) and lat <= -75.0:
             div_tmax, div_tavg, ice_depth = _query_diviner_patch(
                 diviner, lat=lat, lon=lon, size_km=size_km
@@ -448,7 +472,7 @@ def _build_dataframe(rows: list[dict[str, object]], body: str) -> pd.DataFrame:
 
 
 def plot_slope_map(df: pd.DataFrame, body: str, png_path: Path) -> Path:
-    """Genera un mapa scatter lat/lon de mean_slope_deg para validación visual rápida."""
+    """Generate a geographic scatter map of mean_slope_deg for rapid visual verification."""
     png_path.parent.mkdir(parents=True, exist_ok=True)
     fig, ax = plt.subplots(figsize=(12, 6))
     if len(df) > 0:
@@ -469,9 +493,9 @@ def plot_slope_map(df: pd.DataFrame, body: str, png_path: Path) -> Path:
         cbar.set_label("mean_slope_deg (°)")
     ax.set_xlim(-180, 180)
     ax.set_ylim(-90, 90)
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
-    ax.set_title(f"{body} — mean_slope_deg ({len(df):,} parches válidos)")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
+    ax.set_title(f"{body} — mean_slope_deg ({len(df):,} valid patches)")
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
     fig.tight_layout()
     fig.savefig(png_path, dpi=180)
@@ -480,11 +504,11 @@ def plot_slope_map(df: pd.DataFrame, body: str, png_path: Path) -> Path:
 
 
 def merge_body_stripes(out_dir: Path, body: str) -> Path | None:
-    """Concatena los parquet de franjas de `body` y genera el PNG global."""
+    """Concatenate stripe parquet files for `body` and output the global summary PNG."""
     body_lower = body.lower()
     stripe_files = sorted(out_dir.glob(f"features_{body_lower}_*.parquet"))
     if not stripe_files:
-        print(f"[WARN] No hay archivos features_{body_lower}_*.parquet en {out_dir}")
+        print(f"[WARN] No features_{body_lower}_*.parquet files found in {out_dir}")
         return None
 
     dfs = [pd.read_parquet(p) for p in stripe_files]
@@ -495,8 +519,8 @@ def merge_body_stripes(out_dir: Path, body: str) -> Path | None:
     png_path = out_dir / f"map_{body_lower}_mean_slope_deg.png"
     plot_slope_map(merged, body=body, png_path=png_path)
     print(
-        f"[MERGE] {body}: {len(stripe_files)} franjas -> {len(merged):,} parches válidos "
-        f"en {merged_path} | mapa {png_path}"
+        f"[MERGE] {body}: {len(stripe_files)} stripes -> {len(merged):,} valid patches "
+        f"in {merged_path} | map {png_path}"
     )
     return merged_path
 
@@ -516,10 +540,10 @@ def resolve_body_paths(
     need_diviner: bool,
     file_overrides: dict[str, Path] | None = None,
 ) -> tuple[Path, dict[str, str], str | None, str | None]:
-    """Devuelve (dem_path, aux_paths, diviner_tab_path, diviner_parquet_path).
+    """Resolve (dem_path, aux_paths, diviner_tab_path, diviner_parquet_path).
 
-    Las capas auxiliares ausentes se omiten con [WARN] y Diviner solo se prepara si
-    `need_diviner` es True y `body == 'Moon'`.
+    Missing optional auxiliary layers are logged with a warning, and Diviner is only prepared
+    if `need_diviner` is True and `body == 'Moon'`.
     """
     body_norm = body.strip().capitalize()
     if body_norm == "Mars":
@@ -527,7 +551,7 @@ def resolve_body_paths(
     elif body_norm == "Moon":
         raw_spec = MOON_RAW_FILES
     else:
-        raise ValueError(f"Cuerpo planetario no soportado: {body!r}")
+        raise ValueError(f"Unsupported planetary body: {body!r}")
 
     resolved: dict[str, Path] = {k: raw_dir / rel for k, rel in raw_spec.items()}
     if file_overrides:
@@ -535,7 +559,7 @@ def resolve_body_paths(
 
     dem_path = resolved["dem"]
     if not dem_path.exists():
-        raise FileNotFoundError(f"No se encontró el DEM de {body_norm}: {dem_path}")
+        raise FileNotFoundError(f"DEM not found for {body_norm}: {dem_path}")
     _log_raster_meta(body_norm, "DEM", dem_path)
 
     aux_paths: dict[str, str] = {}
@@ -546,7 +570,7 @@ def resolve_body_paths(
             _log_raster_meta(body_norm, k, p)
             aux_paths[k] = str(p)
         else:
-            print(f"[WARN] Capa auxiliar opcional ausente para {body_norm} ({k}): {p}")
+            print(f"[WARN] Optional auxiliary layer missing for {body_norm} ({k}): {p}")
 
     diviner_tab_path: str | None = None
     diviner_parquet_path: str | None = None
@@ -558,16 +582,16 @@ def resolve_body_paths(
             diviner_tab_path = str(resolved["diviner_prp"])
             diviner_parquet_path = str(prepared)
         else:
-            print(f"[WARN] Tabla Diviner PRP no encontrada en {resolved['diviner_prp']}")
+            print(f"[WARN] Diviner PRP table not found at {resolved['diviner_prp']}")
 
     return dem_path, aux_paths, diviner_tab_path, diviner_parquet_path
 
 
 class PointSampler:
-    """Abre el DEM y las capas auxiliares de un cuerpo una vez y calcula la fila T3 de un punto.
+    """Opens DEM and auxiliary rasters once and computes the T3 feature row for any target coordinate.
 
-    Nota: `_WORKER_STATE` es global por proceso, por lo que solo puede haber un `PointSampler`
-    abierto a la vez en cada proceso. Abrir un segundo sin cerrar el primero lanza `RuntimeError`.
+    Note: `_WORKER_STATE` is global per process; only one `PointSampler` can be active at a time
+    in each process. Opening a second without closing the first raises `RuntimeError`.
     """
 
     def __init__(
@@ -581,7 +605,7 @@ class PointSampler:
     ) -> None:
         if _WORKER_STATE:
             raise RuntimeError(
-                "Ya existe un PointSampler o worker activo en este proceso; ciérralo antes de abrir otro."
+                "A PointSampler or worker is already active in this process; close it before opening another."
             )
         body_norm = body.strip().capitalize()
         dem_path, aux_paths, diviner_tab_path, diviner_parquet_path = resolve_body_paths(
@@ -603,13 +627,13 @@ class PointSampler:
         )
 
     def sample(self, lat: float, lon: float) -> dict[str, object] | None:
-        """Extrae el parche y calcula los rasgos y auxiliares T3 para (lat, lon)."""
+        """Extract patch and compute T3 features and auxiliary values for (lat, lon)."""
         if self._closed:
-            raise RuntimeError("El PointSampler ya está cerrado.")
+            raise RuntimeError("PointSampler is already closed.")
         return _process_point((float(lat), float(lon)))
 
     def close(self) -> None:
-        """Cierra los datasets abiertos y limpia el estado global del proceso."""
+        """Close opened raster datasets and clean up global process state."""
         if not self._closed:
             _close_worker()
             self._closed = True
@@ -634,7 +658,7 @@ def run_body_extraction(
     res_m: float = PATCH_RES_M,
     file_overrides: dict[str, Path] | None = None,
 ) -> Path:
-    """Ejecuta la extracción para una franja de `body` y escribe su parquet."""
+    """Execute feature extraction for a stripe of `body` and write the resulting parquet."""
     body_norm = body.strip().capitalize()
 
     full_grid = generate_grid(body_norm, size_km=size_km)
@@ -702,11 +726,11 @@ def run_body_extraction(
     stripe_path = out_dir / f"features_{body_norm.lower()}_{stripe_idx}.parquet"
     df.to_parquet(stripe_path, index=False)
 
-    skipped_antimeridian = get_antimeridian_skipped_count() if n_workers == 1 else "N/A (multiproceso)"
+    skipped_antimeridian = get_antimeridian_skipped_count() if n_workers == 1 else "N/A (multiprocessing)"
     print(
-        f"[OK] {body_norm} franja {stripe_idx}/{num_stripes}: "
-        f"{len(df):,}/{len(stripe_points):,} parches válidos "
-        f"(grilla completa={len(full_grid):,}, antimeridiano={skipped_antimeridian}) -> {stripe_path}"
+        f"[OK] {body_norm} stripe {stripe_idx}/{num_stripes}: "
+        f"{len(df):,}/{len(stripe_points):,} valid patches "
+        f"(full grid={len(full_grid):,}, antimeridian skipped={skipped_antimeridian}) -> {stripe_path}"
     )
     if len(df) > 0:
         for col, unit in (
@@ -716,15 +740,15 @@ def run_body_extraction(
         ):
             print(
                 f"     {col}: min={df[col].min():.2f}{unit}, "
-                f"mediana={df[col].median():.2f}{unit}, "
+                f"median={df[col].median():.2f}{unit}, "
                 f"p95={df[col].quantile(0.95):.2f}{unit}, "
                 f"max={df[col].max():.2f}{unit}"
             )
         if body_norm == "Moon" and "wac_reflectance" in df.columns and df["wac_reflectance"].notna().any():
             wac_valid = df["wac_reflectance"].dropna()
             print(
-                f"     wac_reflectance (brillo rel.): min={wac_valid.min():.2f}, "
-                f"mediana={wac_valid.median():.2f}, "
+                f"     wac_reflectance (rel. brightness): min={wac_valid.min():.2f}, "
+                f"median={wac_valid.median():.2f}, "
                 f"p95={wac_valid.quantile(0.95):.2f}, "
                 f"max={wac_valid.max():.2f} (n={len(wac_valid):,})"
             )
@@ -734,8 +758,8 @@ def run_body_extraction(
                 ice_stable = int(df["ice_depth_m"].notna().sum())
                 no_ice = div_cov - ice_stable
                 print(
-                    f"     Diviner polar: {div_cov:,} parches con cobertura "
-                    f"(con hielo estable={ice_stable:,}, sin hielo/-999={no_ice:,})"
+                    f"     Diviner polar: {div_cov:,} patches covered "
+                    f"(with stable ice={ice_stable:,}, without ice/-999={no_ice:,})"
                 )
 
     if num_stripes <= 1:
@@ -746,39 +770,39 @@ def run_body_extraction(
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Extrae rasgos geomorfométricos globales de Marte y la Luna (T3)."
+        description="Extract global geomorphometric features for Mars and the Moon (T3)."
     )
     parser.add_argument(
         "--project-dir",
         type=Path,
         default=YUCA_PROJECT_DIR,
-        help="Directorio raíz del proyecto (contiene data/raw).",
+        help="Root project directory (contains data/raw).",
     )
     parser.add_argument(
         "--out-dir",
         type=Path,
         required=True,
-        help="Directorio de salida para esta corrida (p.ej. runs/<SLURM_JOB_ID>).",
+        help="Output directory for this run (e.g. runs/<SLURM_JOB_ID>).",
     )
     parser.add_argument(
         "--body",
         choices=["Mars", "Moon", "all"],
         default="all",
-        help="Cuerpo a procesar.",
+        help="Planetary body to process.",
     )
-    parser.add_argument("--stripe-idx", type=int, default=0, help="Índice de franja [0..num-stripes-1].")
-    parser.add_argument("--num-stripes", type=int, default=1, help="Total de franjas en el job array.")
-    parser.add_argument("--workers", type=int, default=8, help="Procesos paralelos por franja.")
+    parser.add_argument("--stripe-idx", type=int, default=0, help="Stripe index [0..num-stripes-1].")
+    parser.add_argument("--num-stripes", type=int, default=1, help="Total stripes in the Slurm job array.")
+    parser.add_argument("--workers", type=int, default=8, help="Parallel worker processes per stripe.")
     parser.add_argument(
         "--limit",
         type=int,
         default=None,
-        help="Limita el total de parches candidatos por cuerpo (corrida de prueba).",
+        help="Limit total candidate patches per body (for smoke tests).",
     )
     parser.add_argument(
         "--merge",
         action="store_true",
-        help="Solo combina las franjas existentes en --out-dir y genera los mapas PNG.",
+        help="Merge existing stripe parquets in --out-dir and generate PNG maps.",
     )
     return parser.parse_args(argv)
 

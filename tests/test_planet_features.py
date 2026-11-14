@@ -1,4 +1,4 @@
-"""Pruebas unitarias para pipeline/planet_features.py (T3)."""
+"""Unit tests for pipeline/planet_features.py (T3 global grid and planetary raster extraction)."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from pipeline.planet_features import (
 
 
 def test_generate_grid_counts() -> None:
-    """La grilla de 32 km produce ~141k puntos en Marte y ~37k en la Luna (±5 %)."""
+    """The 32 km grid generates ~141k points on Mars and ~37k on the Moon (±5%)."""
     mars_pts = generate_grid("Mars")
     moon_pts = generate_grid("Moon")
 
@@ -39,7 +39,7 @@ def test_generate_grid_counts() -> None:
 
 
 def test_select_stripe_and_limit_partition_all_points() -> None:
-    """Las franjas particionan la grilla completa sin duplicados ni pérdidas."""
+    """Stripes partition the entire grid without duplicates or missing elements."""
     pts = [(float(i), 0.0) for i in range(103)]
     seen: list[tuple[float, float]] = []
     for k in range(16):
@@ -53,7 +53,7 @@ def test_select_stripe_and_limit_partition_all_points() -> None:
 
 
 def test_run_planet_features_synthetic(tmp_path: Path) -> None:
-    """Corrida sintética de Moon con --limit escribe el parquet esperado y el PNG."""
+    """Synthetic Moon extraction run with --limit writes expected parquet and diagnostic PNG."""
     radius_m = BODY_RADII_M["Moon"]
     res_m = 500.0
     width, height = 300, 300
@@ -100,11 +100,7 @@ def test_run_planet_features_synthetic(tmp_path: Path) -> None:
         dst.write(wac, 1)
 
     out_dir = tmp_path / "runs" / "test_run"
-    # Puntos cercanos al centro (lat=0, lon=0) caen dentro del raster sintético de 150x150 km.
-    # Probamos directamente run_body_extraction usando limit grande sobre una franja o parcheando grid;
-    # aquí usamos monkeypatch implícito vía submuestreo con un raster que cubre varios puntos del ecuador.
-    # Como la grilla global con --limit 10 cubre puntos globales, verificamos también que al menos
-    # el centro (0, 0) sea extraído si restringimos con un test específico de worker + parquet.
+    # Points near center (lat=0, lon=0) fall inside the 150x150 km synthetic raster.
     stripe_path = run_body_extraction(
         body="Moon",
         raw_dir=raw_dir,
@@ -127,13 +123,13 @@ def test_run_planet_features_synthetic(tmp_path: Path) -> None:
 
 
 def test_run_planet_features_valid_moon_and_mars_patches(tmp_path: Path, monkeypatch) -> None:
-    """Extrae parches válidos reales sobre rasters sintéticos de Luna y Marte."""
+    """Extracts valid physical patches over synthetic rasters for Moon and Mars."""
     out_dir = tmp_path / "runs" / "valid_patches"
     raw_dir = tmp_path / "data" / "raw"
     (raw_dir / "moon").mkdir(parents=True)
     (raw_dir / "mars").mkdir(parents=True)
 
-    # Luna: raster alrededor de (0°, 0°)
+    # Moon: raster centered around (0°, 0°)
     r_moon = BODY_RADII_M["Moon"]
     crs_moon = f"+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R={r_moon} +units=m +no_defs"
     moon_dem = raw_dir / "moon" / "dem.tif"
@@ -170,7 +166,7 @@ def test_run_planet_features_valid_moon_and_mars_patches(tmp_path: Path, monkeyp
     assert np.isnan(df_moon["ice_favorability"].iloc[0])
     assert (out_dir / "map_moon_mean_slope_deg.png").exists()
 
-    # Marte: raster alrededor de (0°, 0°) con THEMIS Day y Night
+    # Mars: raster centered around (0°, 0°) with THEMIS Day and Night
     r_mars = BODY_RADII_M["Mars"]
     crs_mars = f"+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R={r_mars} +units=m +no_defs"
     mars_dem = raw_dir / "mars" / "dem.tif"
@@ -216,14 +212,14 @@ def test_run_planet_features_valid_moon_and_mars_patches(tmp_path: Path, monkeyp
 
 
 def test_diviner_prp_csv_parsing_and_polar_patch(tmp_path: Path, monkeypatch) -> None:
-    """Lee dlre_prp_south.tab (CSV con espacios y -999), cachea parquet y consulta mediana polar."""
+    """Parses dlre_prp_south.tab (whitespace-delimited CSV with -999 nodata), caches parquet, and queries polar median."""
     r_moon = BODY_RADII_M["Moon"]
     raw_dir = tmp_path / "data" / "raw"
     derived_dir = tmp_path / "data" / "derived"
     out_dir = tmp_path / "runs" / "diviner_test"
     (raw_dir / "moon" / "diviner").mkdir(parents=True)
 
-    # DEM polar sur en proyección estereográfica lunar cubriendo ±60 km alrededor del polo sur.
+    # Lunar south polar DEM in polar stereographic projection covering ±60 km around the pole.
     stere_crs = f"+proj=stere +lat_0=-90 +lon_0=0 +x_0=0 +y_0=0 +R={r_moon} +units=m +no_defs"
     dem_path = raw_dir / "moon" / "polar_dem.tif"
     arr = np.fromfunction(lambda r, c: (c * 500.0 * 0.1), (240, 240)).astype(np.float32)
@@ -241,9 +237,9 @@ def test_diviner_prp_csv_parsing_and_polar_patch(tmp_path: Path, monkeypatch) ->
     ) as dst:
         dst.write(arr, 1)
 
-    # Tabla sintética con formato real de dlre_prp_south.tab:
-    # Dos triángulos cerca de (-89.5, 0.0) con hielo y uno sin hielo (-999),
-    # más dos cerca de (-89.5, 180.0) todos sin hielo (-999).
+    # Synthetic table matching real dlre_prp_south.tab schema:
+    # Two triangles near (-89.5, 0.0) with ice and one without ice (-999),
+    # plus two near (-89.5, 180.0) both without ice (-999).
     tab_path = raw_dir / "moon" / "diviner" / "dlre_prp_south.tab"
     tab_path.write_text(
         "\n".join(
@@ -280,7 +276,7 @@ def test_diviner_prp_csv_parsing_and_polar_patch(tmp_path: Path, monkeypatch) ->
     row0 = df.iloc[0]
     assert float(row0["diviner_tavg_k"]) == np.float32(50.0)
     assert float(row0["diviner_tmax_k"]) == np.float32(100.0)
-    # -999 ignorado en la mediana -> mediana de [0.20, 0.40] = 0.30
+    # -999 ignored in median calculation -> median of [0.20, 0.40] = 0.30
     assert abs(float(row0["ice_depth_m"]) - 0.30) < 1e-4
 
     row1 = df.iloc[1]
@@ -290,7 +286,7 @@ def test_diviner_prp_csv_parsing_and_polar_patch(tmp_path: Path, monkeypatch) ->
 
 
 def test_compute_lunar_wac_percentile() -> None:
-    """Convierte brillo relativo WAC a percentil [0, 1] dentro de la distribución lunar."""
+    """Converts WAC relative brightness to percentile rank [0, 1] within lunar distribution."""
     series = pd.Series([10.0, 20.0, 30.0, np.nan, 40.0], index=["a", "b", "c", "d", "e"])
     pct = compute_lunar_wac_percentile(series)
 
@@ -299,7 +295,7 @@ def test_compute_lunar_wac_percentile() -> None:
     assert np.isnan(pct.loc["d"])
     assert np.allclose(pct.dropna().to_numpy(), [0.125, 0.375, 0.625, 0.875], atol=1e-6)
 
-    # Referencia separada, empates, extremos y escalar.
+    # Separate reference array, ties, boundary conditions, and scalar inputs.
     ref = np.array([10.0, 20.0, 20.0, 40.0, np.nan], dtype=np.float32)
     assert abs(float(compute_lunar_wac_percentile(20.0, reference=ref)) - 0.5) < 1e-6
     assert float(compute_lunar_wac_percentile(5.0, reference=ref)) == 0.0

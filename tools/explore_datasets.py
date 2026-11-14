@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Explorador de los datasets descargados en Yuca.
+"""Dataset explorer for raw planetary and Earth datasets on Yuca HPC.
 
-Genera un reporte HTML autocontenido (miniaturas, metadatos, estadísticas, histogramas y valores en
-sitios conocidos) más un resumen en Markdown y en JSON. Solo depende de numpy y rasterio; las
-imágenes PNG y las gráficas se generan sin matplotlib. Para MODIS (HDF4) usa GDAL si lo soporta y,
-si no, pyhdf.
+Generates a self-contained HTML report (thumbnails, metadata, summary statistics,
+histograms, and values at known ground-truth landmarks) plus Markdown and JSON summaries.
+Relies solely on numpy and rasterio; PNG previews and histogram plots are synthesized
+without matplotlib. For MODIS (HDF4), uses GDAL subdatasets if supported or falls back to pyhdf.
 
-Uso (dentro de un job, nunca en el login node):
+Usage (inside an HPC batch job, never on login nodes):
     python tools/explore_datasets.py --data-root /lustre/proyectos/p089/data/raw \
         --out-dir /lustre/proyectos/p089/runs/$SLURM_JOB_ID/exploracion --workers 32
 """
@@ -34,85 +34,85 @@ from rasterio.enums import Resampling
 from rasterio.windows import Window
 
 # ---------------------------------------------------------------------------
-# Catálogo: qué es cada dataset y para qué lo usamos
+# Dataset Catalogue: Metadata, specifications, and pipeline use cases
 # ---------------------------------------------------------------------------
 
 RASTERS = [
     {
-        "key": "mars_mola", "body": "Marte", "path": "mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
-        "title": "Elevación MOLA (Mars Global Surveyor)", "kind": "dem", "units": "m",
-        "what": "Modelo digital de elevación global de Marte a 463 m/px, medido con el altímetro láser MOLA. "
-                "Las alturas son relativas al areoide (el 'nivel del mar' marciano).",
-        "use": "Fuente de la topografía de Marte: pendientes, relieve y rugosidad de cada parche.",
-        "samples": [("Cráter Jezero", 18.38, 77.58), ("Cráter Gale", -5.4, 137.8), ("Olympus Mons", 18.65, -133.8)],
+        "key": "mars_mola", "body": "Mars", "path": "mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+        "title": "MOLA Elevation (Mars Global Surveyor)", "kind": "dem", "units": "m",
+        "what": "Global digital elevation model of Mars at 463 m/px, measured by the MOLA laser altimeter. "
+                "Elevations are relative to the martian areoid reference datum.",
+        "use": "Primary topography source for Mars: derives slope, relief, and roughness for each patch.",
+        "samples": [("Jezero Crater", 18.38, 77.58), ("Gale Crater", -5.4, 137.8), ("Olympus Mons", 18.65, -133.8)],
     },
     {
-        "key": "mars_themis_day", "body": "Marte", "path": "mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif",
-        "title": "THEMIS infrarrojo de día (Mars Odyssey)", "kind": "image", "units": "valor crudo del mosaico",
-        "what": "Mosaico global de imágenes infrarrojas térmicas de día a 100 m/px. Lo brillante está más caliente. "
-                "Los valores son niveles de gris del mosaico, no temperaturas en kelvin.",
-        "use": "Contraste térmico día-noche (junto con THEMIS de noche) como proxy de tamaño de grano y roca.",
-        "samples": [("Cráter Jezero", 18.38, 77.58), ("Cráter Gale", -5.4, 137.8)],
+        "key": "mars_themis_day", "body": "Mars", "path": "mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif",
+        "title": "THEMIS Daytime Infrared (Mars Odyssey)", "kind": "image", "units": "raw mosaic counts",
+        "what": "Global daytime thermal infrared mosaic at 100 m/px. Brighter pixels indicate higher temperatures. "
+                "Values are raw mosaic brightness levels, not calibrated Kelvin temperatures.",
+        "use": "Day-night thermal contrast (combined with nighttime THEMIS) as a proxy for grain size and bedrock exposure.",
+        "samples": [("Jezero Crater", 18.38, 77.58), ("Gale Crater", -5.4, 137.8)],
     },
     {
-        "key": "mars_themis_night", "body": "Marte", "path": "mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif",
-        "title": "THEMIS infrarrojo de noche (Mars Odyssey)", "kind": "image", "units": "valor crudo del mosaico",
-        "what": "Mosaico infrarrojo térmico de noche a 100 m/px, solo entre 60°N y 60°S. De noche, la roca expuesta "
-                "conserva calor y se ve brillante; el polvo fino se enfría y se ve oscuro.",
-        "use": "Con el de día da la amplitud térmica; de noche es el mejor indicador de roca contra polvo.",
-        "samples": [("Cráter Jezero", 18.38, 77.58), ("Cráter Gale", -5.4, 137.8)],
+        "key": "mars_themis_night", "body": "Mars", "path": "mars/Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif",
+        "title": "THEMIS Nighttime Infrared (Mars Odyssey)", "kind": "image", "units": "raw mosaic counts",
+        "what": "Nighttime thermal infrared mosaic at 100 m/px spanning 60°N to 60°S. At night, exposed bedrock "
+                "retains heat and appears bright, whereas fine-grained dust cools rapidly and appears dark.",
+        "use": "Provides thermal inertia proxy: best indicator for discriminating exposed bedrock from mantled dust.",
+        "samples": [("Jezero Crater", 18.38, 77.58), ("Gale Crater", -5.4, 137.8)],
     },
     {
-        "key": "moon_lola", "body": "Luna", "path": "moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif",
-        "title": "Elevación LOLA (Lunar Reconnaissance Orbiter)", "kind": "dem", "units": "m",
-        "what": "Modelo digital de elevación global de la Luna a 118 m/px, medido con el altímetro láser LOLA. "
-                "Alturas relativas a una esfera de 1737.4 km.",
-        "use": "Fuente de la topografía lunar para los parches y para los blancos del polo sur.",
-        "samples": [("Apolo 11 (Mar de la Tranquilidad)", 0.674, 23.473), ("Cráter Tycho", -43.31, -11.36)],
+        "key": "moon_lola", "body": "Moon", "path": "moon/Lunar_LRO_LOLA_Global_LDEM_118m.tif",
+        "title": "LOLA Elevation (Lunar Reconnaissance Orbiter)", "kind": "dem", "units": "m",
+        "what": "Global digital elevation model of the Moon at 118 m/px, measured by the LOLA laser altimeter. "
+                "Elevations are relative to a reference sphere of radius 1,737.4 km.",
+        "use": "Lunar topography source for surface patches and south polar Artemis landing candidates.",
+        "samples": [("Apollo 11 (Mare Tranquillitatis)", 0.674, 23.473), ("Tycho Crater", -43.31, -11.36)],
     },
     {
-        "key": "moon_wac", "body": "Luna", "path": "moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif",
-        "title": "Reflectancia LROC WAC (Lunar Reconnaissance Orbiter)", "kind": "image", "units": "reflectancia normalizada",
-        "what": "Mosaico global de la cámara gran angular de LRO a 100 m/px. Los mares (basalto) se ven oscuros y "
-                "las tierras altas (anortosita) claras.",
-        "use": "Reflectancia real de la superficie lunar (reemplaza al falso 'albedo' de la v1).",
-        "samples": [("Apolo 11 (Mar de la Tranquilidad)", 0.674, 23.473), ("Cráter Tycho", -43.31, -11.36)],
+        "key": "moon_wac", "body": "Moon", "path": "moon/Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif",
+        "title": "LROC WAC Reflectance (Lunar Reconnaissance Orbiter)", "kind": "image", "units": "normalized reflectance",
+        "what": "Global monochrome mosaic from the LRO Wide Angle Camera at 100 m/px. Basaltic maria appear dark "
+                "while anorthositic highlands appear bright.",
+        "use": "True lunar surface reflectance (replaces the uncalibrated v1 'albedo' proxy).",
+        "samples": [("Apollo 11 (Mare Tranquillitatis)", 0.674, 23.473), ("Tycho Crater", -43.31, -11.36)],
     },
     {
-        "key": "moon_ice_south", "body": "Luna", "path": "moon/Moon_IceFavorabilityIndex_90S000E_591mp.tif",
-        "title": "Índice de favorabilidad de hielo, polo sur", "kind": "index", "units": "índice",
-        "what": "Índice de USGS que combina temperatura, sombra e iluminación para estimar dónde es más probable "
-                "encontrar hielo de agua cerca de la superficie. Proyección polar.",
-        "use": "Contexto de recursos (ISRU) para los blancos del polo sur y las regiones de Artemis III.",
+        "key": "moon_ice_south", "body": "Moon", "path": "moon/Moon_IceFavorabilityIndex_90S000E_591mp.tif",
+        "title": "Lunar South Polar Ice Favorability Index", "kind": "index", "units": "index",
+        "what": "USGS index combining surface temperature, persistent shadow, and illumination models to predict "
+                "near-surface water ice stability. Polar stereographic projection.",
+        "use": "In-situ resource utilization (ISRU) context for south polar targets and Artemis III exploration zones.",
         "samples": [],
     },
     {
-        "key": "moon_ice_north", "body": "Luna", "path": "moon/Moon_IceFavorabilityIndex_90N000E_591mp.tif",
-        "title": "Índice de favorabilidad de hielo, polo norte", "kind": "index", "units": "índice",
-        "what": "Mismo índice para el polo norte lunar.", "use": "Comparación y contexto.", "samples": [],
+        "key": "moon_ice_north", "body": "Moon", "path": "moon/Moon_IceFavorabilityIndex_90N000E_591mp.tif",
+        "title": "Lunar North Polar Ice Favorability Index", "kind": "index", "units": "index",
+        "what": "USGS ice favorability model for the lunar north polar region.", "use": "Comparative analysis and ISRU context.", "samples": [],
     },
     {
-        "key": "moon_clrshade_obsolete", "body": "Luna", "path": "moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif",
-        "title": "OBSOLETO: LOLA ClrShade (mal nombrado como 'Albedo')", "kind": "image", "units": "RGB",
-        "what": "Relieve sombreado a color. Se bajó por error con nombre de albedo en la v1.",
-        "use": "Ninguno: mover a _to_delete/.", "samples": [], "optional": True,
+        "key": "moon_clrshade_obsolete", "body": "Moon", "path": "moon/Lunar_LRO_LOLA_Albedo_Global_128ppd.tif",
+        "title": "DEPRECATED: LOLA ClrShade (misnamed as 'Albedo')", "kind": "image", "units": "RGB",
+        "what": "Color shaded-relief rendering downloaded erroneously as albedo in v1.",
+        "use": "None: scheduled for deletion in _to_delete/.", "samples": [], "optional": True,
     },
 ]
 
 EARTH_SAMPLE_TILES = [
-    ("Desierto de Sonora / El Pinacate", "N31", "W114"),
-    ("Desierto de Atacama", "S24", "W070"),
-    ("Himalaya", "N28", "E086"),
-    ("Sahara (Argelia)", "N25", "E010"),
-    ("Valles Secos de McMurdo (Antártida)", "S78", "E162"),
-    ("Islandia", "N64", "W019"),
-    ("Amazonía (control con vegetación)", "S03", "W060"),
+    ("Sonoran Desert / El Pinacate", "N31", "W114"),
+    ("Atacama Desert", "S24", "W070"),
+    ("Himalayas", "N28", "E086"),
+    ("Sahara (Algeria)", "N25", "E010"),
+    ("McMurdo Dry Valleys (Antarctica)", "S78", "E162"),
+    ("Iceland", "N64", "W019"),
+    ("Amazon Rainforest (Vegetated Control)", "S03", "W060"),
 ]
 
 TILE_RE = re.compile(r"_([NS])(\d{2})_00_([EW])(\d{3})_00_DEM")
 
 # ---------------------------------------------------------------------------
-# PNG, colores y SVG sin dependencias
+# PNG encoding, color palettes, and SVG generation without dependencies
 # ---------------------------------------------------------------------------
 
 CMAPS = {
@@ -168,7 +168,7 @@ def img_tag(rgba: np.ndarray, alt: str) -> str:
 def hist_svg(values: np.ndarray, units: str) -> str:
     v = values[np.isfinite(values)]
     if v.size < 10:
-        return '<p class="muted">Sin datos suficientes para histograma.</p>'
+        return '<p class="muted">Insufficient valid data for histogram.</p>'
     lo, hi = np.percentile(v, [0.5, 99.5])
     if hi <= lo:
         hi = lo + 1
@@ -179,7 +179,7 @@ def hist_svg(values: np.ndarray, units: str) -> str:
     bars = "".join(
         f'<rect x="{pad + i * bw:.1f}" y="{h - pad - (c / top) * (h - 2 * pad):.1f}" width="{max(bw - 1, 1):.1f}" '
         f'height="{(c / top) * (h - 2 * pad):.1f}" class="bar"/>' for i, c in enumerate(counts))
-    return (f'<svg class="hist" viewBox="0 0 {w} {h}" role="img" aria-label="Histograma">{bars}'
+    return (f'<svg class="hist" viewBox="0 0 {w} {h}" role="img" aria-label="Histogram">{bars}'
             f'<text x="{pad}" y="{h - 3}" class="axis">{fmt(lo)}</text>'
             f'<text x="{w - pad}" y="{h - 3}" class="axis" text-anchor="end">{fmt(hi)} {html.escape(units)}</text></svg>')
 
@@ -219,7 +219,7 @@ def table(rows: list[tuple[str, str]]) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Rasters planetarios
+# Planetary Rasters
 # ---------------------------------------------------------------------------
 
 def masked_read(src, out_shape, band=1) -> np.ndarray:
@@ -235,7 +235,7 @@ def masked_read(src, out_shape, band=1) -> np.ndarray:
 
 
 def sample_point(src, lat: float, lon: float):
-    """Valor del raster (banda 1, mediana 3x3) en una coordenada lat/lon del propio cuerpo."""
+    """Sample 3x3 median raster value (band 1) at body geodetic lat/lon coordinates."""
     try:
         from pyproj import CRS, Transformer
         crs = CRS.from_wkt(src.crs.to_wkt())
@@ -304,7 +304,7 @@ def explore_raster(spec: dict, data_root: str, max_px: int) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Copernicus
+# Copernicus DEM
 # ---------------------------------------------------------------------------
 
 def tile_latlon(name: str):
@@ -317,7 +317,7 @@ def tile_latlon(name: str):
 
 
 def check_tile(path: str):
-    """Abre el tile y lee un bloque central de 64x64. Devuelve (nombre, ok, error, tamaño)."""
+    """Open raster tile and read a central 64x64 block. Returns (name, ok, error, file_size)."""
     name = os.path.basename(path)
     try:
         size = os.path.getsize(path)
@@ -332,7 +332,7 @@ def check_tile(path: str):
 def explore_copernicus(data_root: str, workers: int, max_px: int, validate: bool) -> dict:
     base = os.path.join(data_root, "earth")
     d = os.path.join(base, "copernicus_90m")
-    res = {"key": "earth_copernicus", "body": "Tierra", "title": "Copernicus DEM GLO-90 (ESA)", "exists": os.path.isdir(d)}
+    res = {"key": "earth_copernicus", "body": "Earth", "title": "Copernicus DEM GLO-90 (ESA)", "exists": os.path.isdir(d)}
     if not res["exists"]:
         return res
     names = sorted(os.listdir(d))
@@ -361,7 +361,7 @@ def explore_copernicus(data_root: str, workers: int, max_px: int, validate: bool
     else:
         sizes = [os.path.getsize(os.path.join(d, n)) for n in tifs]
 
-    # Mapa de cobertura 1°: verde = tile OK, rojo = no abre, naranja = en la lista pero falta
+    # 1-degree coverage map: green = tile valid, red = failed to open, orange = in catalogue but missing
     cov = np.zeros((180, 360, 4), dtype=np.uint8)
     cov[..., :3] = (30, 40, 60)
     cov[..., 3] = 255
@@ -422,9 +422,9 @@ def explore_copernicus(data_root: str, workers: int, max_px: int, validate: bool
 # ---------------------------------------------------------------------------
 
 MODIS_SPECS = {
-    "ndvi": {"title": "MODIS NDVI mensual (MOD13C2, 0.05°)", "dir": "earth/modis/ndvi",
+    "ndvi": {"title": "Monthly MODIS NDVI (MOD13C2, 0.05°)", "dir": "earth/modis/ndvi",
              "layers": {"NDVI": ("CMG 0.05 Deg Monthly NDVI", lambda a: np.where(a < -2000, np.nan, a / 10000.0))}},
-    "lst": {"title": "MODIS temperatura superficial mensual (MOD11C3, 0.05°)", "dir": "earth/modis/lst",
+    "lst": {"title": "Monthly MODIS Land Surface Temperature (MOD11C3, 0.05°)", "dir": "earth/modis/lst",
             "layers": {"LST_Day": ("LST_Day_CMG", lambda a: np.where(a == 0, np.nan, a * 0.02 - 273.15)),
                        "LST_Night": ("LST_Night_CMG", lambda a: np.where(a == 0, np.nan, a * 0.02 - 273.15))}},
 }
@@ -459,7 +459,7 @@ def explore_modis(data_root: str, key: str) -> dict:
     spec = MODIS_SPECS[key]
     d = os.path.join(data_root, spec["dir"])
     files = sorted(glob.glob(os.path.join(d, "*.hdf")))
-    res = {"key": f"earth_modis_{key}", "body": "Tierra", "title": spec["title"], "exists": bool(files),
+    res = {"key": f"earth_modis_{key}", "body": "Earth", "title": spec["title"], "exists": bool(files),
            "n_files": len(files), "total_bytes": int(sum(os.path.getsize(f) for f in files))}
     if not files:
         return res
@@ -479,27 +479,27 @@ def explore_modis(data_root: str, key: str) -> dict:
                     agg[lname]["n"] += np.isfinite(a)
             monthly.append(row)
     except Exception as e:  # noqa: BLE001
-        res["error"] = (f"No se pudo leer HDF4 ({type(e).__name__}: {e}). Instalar soporte: "
-                        "`pip install pyhdf` en el entorno, o GDAL con HDF4.")
+        res["error"] = (f"Failed to read HDF4 ({type(e).__name__}: {e}). Install HDF4 support: "
+                        "`pip install pyhdf` or configure GDAL with HDF4.")
         return res
     maps = []
     if key == "ndvi":
         nmax = agg["NDVI"]["max"]
-        maps.append(("NDVI máximo anual", nmax[::4, ::4], "ndvi", (-0.1, 0.9), stats(nmax)))
+        maps.append(("Annual Maximum NDVI", nmax[::4, ::4], "ndvi", (-0.1, 0.9), stats(nmax)))
     else:
         day = agg["LST_Day"]["sum"] / np.where(agg["LST_Day"]["n"] > 0, agg["LST_Day"]["n"], np.nan)
         night = agg["LST_Night"]["sum"] / np.where(agg["LST_Night"]["n"] > 0, agg["LST_Night"]["n"], np.nan)
         amp = day - night
-        maps.append(("Temperatura media de día (°C)", day[::4, ::4], "heat", (-40, 50), stats(day)))
-        maps.append(("Temperatura media de noche (°C)", night[::4, ::4], "heat", (-50, 35), stats(night)))
-        maps.append(("Amplitud día − noche (°C)", amp[::4, ::4], "heat", (0, 30), stats(amp)))
+        maps.append(("Mean Daytime Temperature (°C)", day[::4, ::4], "heat", (-40, 50), stats(day)))
+        maps.append(("Mean Nighttime Temperature (°C)", night[::4, ::4], "heat", (-50, 35), stats(night)))
+        maps.append(("Day − Night Amplitude (°C)", amp[::4, ::4], "heat", (0, 30), stats(amp)))
     res.update({"monthly": monthly, "backend": backend,
                 "maps": [(t, colorize(a, c, *rng), st, a) for t, a, c, rng, st in maps]})
     return res
 
 
 # ---------------------------------------------------------------------------
-# Vectores (Natural Earth) y nomenclatura IAU
+# Vector Datasets (Natural Earth) and IAU Planetary Nomenclature
 # ---------------------------------------------------------------------------
 
 def read_dbf(path: str, max_rows: int | None = None):
@@ -527,7 +527,7 @@ def read_dbf(path: str, max_rows: int | None = None):
 
 
 def shp_points(path: str, max_points: int = 400_000) -> tuple[int, str, np.ndarray]:
-    """Lee vértices de un .shp (Point, PolyLine, Polygon y sus variantes Z/M)."""
+    """Read vertices from a .shp (Point, PolyLine, Polygon and their Z/M variants)."""
     types = {1: "Point", 3: "PolyLine", 5: "Polygon", 8: "MultiPoint", 11: "PointZ", 13: "PolyLineZ", 15: "PolygonZ"}
     pts, n = [], 0
     with open(path, "rb") as f:
@@ -573,12 +573,12 @@ def explore_vectors(data_root: str) -> list[dict]:
     out = []
     base = os.path.join(data_root, "earth", "naturalearth")
     for layer, label, use in [
-        ("ne_10m_roads", "Carreteras (Natural Earth 1:10m)", "Distancia a carretera: logística de campañas de campo."),
-        ("ne_10m_airports", "Aeropuertos (Natural Earth 1:10m)", "Distancia a aeropuerto: logística."),
-        ("ne_10m_admin_0_countries", "Países (Natural Earth 1:10m)", "Llenar el país de cada análogo."),
+        ("ne_10m_roads", "Roads (Natural Earth 1:10m)", "Distance to nearest road: logistics for field campaigns."),
+        ("ne_10m_airports", "Airports (Natural Earth 1:10m)", "Distance to nearest airport: logistics and accessibility."),
+        ("ne_10m_admin_0_countries", "Admin 0 Countries (Natural Earth 1:10m)", "Assign country name to each candidate analog."),
     ]:
         shp = glob.glob(os.path.join(base, layer, "*.shp"))
-        res = {"key": f"earth_{layer}", "body": "Tierra", "title": label, "use": use, "exists": bool(shp)}
+        res = {"key": f"earth_{layer}", "body": "Earth", "title": label, "use": use, "exists": bool(shp)}
         if shp:
             try:
                 n, stype, pts = shp_points(shp[0])
@@ -593,9 +593,9 @@ def explore_vectors(data_root: str) -> list[dict]:
 
 def explore_nomenclature(data_root: str) -> list[dict]:
     out = []
-    for body, pat in [("Marte", "MARS*.dbf"), ("Luna", "MOON*.dbf")]:
+    for body, pat in [("Mars", "MARS*.dbf"), ("Moon", "MOON*.dbf")]:
         files = glob.glob(os.path.join(data_root, "nomenclature", pat))
-        res = {"key": f"iau_{body}", "body": body, "title": f"Nomenclatura IAU de {body}", "exists": bool(files)}
+        res = {"key": f"iau_{body.lower()}", "body": body, "title": f"IAU Nomenclature for {body}", "exists": bool(files)}
         if files:
             nrec, fields, rows = read_dbf(files[0])
             tcol = next((f[0] for f in fields if f[0].lower() == "type"), None)
@@ -612,12 +612,12 @@ def explore_nomenclature(data_root: str) -> list[dict]:
 def explore_diviner(data_root: str) -> dict:
     d = os.path.join(data_root, "moon", "diviner")
     files = sorted(glob.glob(os.path.join(d, "*")))
-    return {"key": "moon_diviner", "body": "Luna", "title": "Diviner Polar Resource Product", "exists": bool(files),
+    return {"key": "moon_diviner", "body": "Moon", "title": "Diviner Polar Resource Product", "exists": bool(files),
             "files": [(os.path.basename(f), os.path.getsize(f)) for f in files]}
 
 
 # ---------------------------------------------------------------------------
-# Reporte
+# HTML, Markdown, and JSON Reporting
 # ---------------------------------------------------------------------------
 
 CSS = """
@@ -641,139 +641,139 @@ pre{white-space:pre-wrap;font-size:12px;background:var(--bg);padding:8px;border-
 
 def status_pill(r: dict) -> str:
     if not r.get("exists"):
-        return '<span class="pill bad">no encontrado</span>'
+        return '<span class="pill bad">not found</span>'
     if r.get("error"):
-        return '<span class="pill bad">error al leer</span>'
+        return '<span class="pill bad">read error</span>'
     m = r.get("meta", {})
     if m.get("incomplete_aria2") or r.get("n_incomplete"):
-        return '<span class="pill warn">incompleto</span>'
+        return '<span class="pill warn">incomplete</span>'
     if r.get("n_bad"):
-        return '<span class="pill warn">con tiles dañados</span>'
+        return '<span class="pill warn">corrupt tiles</span>'
     return '<span class="pill ok">OK</span>'
 
 
 def render_raster(r: dict, spec: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3><p class="muted"><code>{html.escape(r.get("path", ""))}</code></p>'
     if not r.get("exists"):
-        return f'<div class="card">{head}<p>No está en Yuca.</p></div>'
+        return f'<div class="card">{head}<p>Not found on Yuca.</p></div>'
     if r.get("error"):
         return f'<div class="card">{head}<pre>{html.escape(r["error"])}\n{html.escape(r.get("trace", ""))}</pre></div>'
     m, st = r["meta"], r["stats"]
     res_txt = f'{fmt(m["res"][0])} × {fmt(m["res"][1])}'
     meta_rows = [
-        ("Qué es", html.escape(spec["what"])), ("Para qué lo usamos", html.escape(spec["use"])),
-        ("Tamaño en disco", human_bytes(m["size_bytes"]) + (" (con .aria2: incompleto)" if m["incomplete_aria2"] else "")),
-        ("Dimensiones", f'{m["width"]:,} × {m["height"]:,} px, {m["bands"]} banda(s), {m["dtype"]}'),
-        ("Resolución (unidades del CRS)", res_txt), ("Sistema de referencia", html.escape(str(m.get("crs_name")))),
-        ("Radio del cuerpo en el CRS", fmt(m.get("radius_m")) + " m" if m.get("radius_m") else "—"),
-        ("Límites (CRS)", ", ".join(fmt(b) for b in m["bounds"])), ("Nodata", fmt(m["nodata"]) if m["nodata"] is not None else "—"),
-        ("Bloques / overviews / compresión", f'{m["block_shape"]} / {m["overviews"] or "ninguno"} / {m["compression"] or "—"}'),
-        ("Unidades declaradas", html.escape(str(m.get("units") or spec["units"]))),
+        ("Description", html.escape(spec["what"])), ("Pipeline use", html.escape(spec["use"])),
+        ("Disk size", human_bytes(m["size_bytes"]) + (" (with .aria2: incomplete)" if m["incomplete_aria2"] else "")),
+        ("Dimensions", f'{m["width"]:,} × {m["height"]:,} px, {m["bands"]} band(s), {m["dtype"]}'),
+        ("Resolution (CRS units)", res_txt), ("Coordinate reference system", html.escape(str(m.get("crs_name")))),
+        ("Body radius in CRS", fmt(m.get("radius_m")) + " m" if m.get("radius_m") else "—"),
+        ("Bounds (CRS)", ", ".join(fmt(b) for b in m["bounds"])), ("Nodata", fmt(m["nodata"]) if m["nodata"] is not None else "—"),
+        ("Blocks / overviews / compression", f'{m["block_shape"]} / {m["overviews"] or "none"} / {m["compression"] or "—"}'),
+        ("Declared units", html.escape(str(m.get("units") or spec["units"]))),
     ]
-    stat_rows = [("Píxeles válidos", f'{st.get("valid_frac", 0) * 100:.1f} %')] + [
+    stat_rows = [("Valid pixels", f'{st.get("valid_frac", 0) * 100:.1f} %')] + [
         (k, fmt(st.get(k))) for k in ["min", "p1", "p5", "median", "mean", "p95", "p99", "max", "std"] if k in st]
     samp = ""
     if r.get("samples"):
-        samp = "<h3>Valores en sitios conocidos</h3>" + table(
-            [(f"{n} ({la:.2f}, {lo:.2f})", fmt(v) if v is not None else "fuera de cobertura") for n, la, lo, v in r["samples"]])
+        samp = "<h3>Values at known landmarks</h3>" + table(
+            [(f"{n} ({la:.2f}, {lo:.2f})", fmt(v) if v is not None else "outside coverage") for n, la, lo, v in r["samples"]])
     tags = ""
     if m.get("tags") or m.get("band_tags"):
-        tags = "<details><summary class='muted'>Metadatos del archivo</summary><pre>" + html.escape(
-            json.dumps({"dataset": m.get("tags"), "banda_1": m.get("band_tags")}, indent=1, ensure_ascii=False)) + "</pre></details>"
+        tags = "<details><summary class='muted'>File metadata</summary><pre>" + html.escape(
+            json.dumps({"dataset": m.get("tags"), "band_1": m.get("band_tags")}, indent=1, ensure_ascii=False)) + "</pre></details>"
     return (f'<div class="card">{head}<div class="grid"><div>{img_tag(r["thumb"], r["title"])}'
-            f'<p class="muted">Miniatura con estiramiento p2–p98. Leído en {r.get("seconds")} s.</p>'
-            f'{hist_svg(r["values"], spec["units"])}</div><div>{table(meta_rows)}<h3>Estadísticas (miniatura)</h3>'
+            f'<p class="muted">Thumbnail with p2–p98 stretch. Read in {r.get("seconds")} s.</p>'
+            f'{hist_svg(r["values"], spec["units"])}</div><div>{table(meta_rows)}<h3>Statistics (thumbnail)</h3>'
             f'{table(stat_rows)}{samp}{tags}</div></div></div>')
 
 
 def render_copernicus(r: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3>'
     if not r.get("exists"):
-        return f'<div class="card">{head}<p>No está en Yuca.</p></div>'
+        return f'<div class="card">{head}<p>Not found on Yuca.</p></div>'
     rows = [
-        ("Qué es", "Modelo digital de superficie global de ESA a 3 segundos de arco (~90 m), en tiles de 1° × 1°."),
-        ("Para qué lo usamos", "Topografía de la Tierra para buscar análogos."),
-        ("Tiles descargados", f'{r["n_tif"]:,} de {r["n_expected"]:,} en la lista oficial'),
-        ("Faltan de la lista", f'{r["n_missing"]:,}'),
-        ("Incompletos (.aria2)", f'{r["n_incomplete"]:,}'),
-        ("Fallidos en la última descarga", f'{r["failed_urls_last_job"]:,}' + (f' (<code>{html.escape(os.path.basename(r["failed_list"]))}</code>)' if r["failed_list"] else "")),
-        ("Tiles que no abren", f'{r["n_bad"]:,}' + ("" if r["validated"] else " (no se validó)")),
-        ("Tamaño total", human_bytes(r["total_bytes"])),
+        ("Description", "ESA global digital surface model at 3 arc-seconds (~90 m), packaged in 1° × 1° tiles."),
+        ("Pipeline use", "Earth topography source for planetary analog matching."),
+        ("Downloaded tiles", f'{r["n_tif"]:,} of {r["n_expected"]:,} in official catalogue'),
+        ("Missing from catalogue", f'{r["n_missing"]:,}'),
+        ("Incomplete (.aria2)", f'{r["n_incomplete"]:,}'),
+        ("Failed in latest download", f'{r["failed_urls_last_job"]:,}' + (f' (<code>{html.escape(os.path.basename(r["failed_list"]))}</code>)' if r["failed_list"] else "")),
+        ("Unreadable tiles", f'{r["n_bad"]:,}' + ("" if r["validated"] else " (not validated)")),
+        ("Total disk size", human_bytes(r["total_bytes"])),
     ]
     bad = ""
     if r["bad"]:
-        bad = "<details><summary>Tiles que no abren</summary><pre>" + html.escape(
+        bad = "<details><summary>Unreadable tiles</summary><pre>" + html.escape(
             "\n".join(f"{n}: {e}" for n, e in r["bad"])) + "</pre></details>"
     legend = ('<p class="legend"><span><i class="sw" style="background:#46c86e"></i>tile OK</span>'
-              '<span><i class="sw" style="background:#dc3232"></i>no abre</span>'
-              '<span><i class="sw" style="background:#f09628"></i>en la lista pero falta</span>'
-              '<span><i class="sw" style="background:#1e283c;border:1px solid #888"></i>sin tile (océano)</span></p>')
+              '<span><i class="sw" style="background:#dc3232"></i>unreadable</span>'
+              '<span><i class="sw" style="background:#f09628"></i>in catalogue but missing</span>'
+              '<span><i class="sw" style="background:#1e283c;border:1px solid #888"></i>no tile (ocean)</span></p>')
     tiles = []
     for s in r["samples"]:
         if not s.get("exists"):
-            tiles.append(f'<div class="card"><h3>{html.escape(s["label"])}</h3><p class="muted">No descargado: <code>{html.escape(s["file"])}</code></p></div>')
+            tiles.append(f'<div class="card"><h3>{html.escape(s["label"])}</h3><p class="muted">Not downloaded: <code>{html.escape(s["file"])}</code></p></div>')
         elif s.get("error"):
             tiles.append(f'<div class="card"><h3>{html.escape(s["label"])}</h3><pre>{html.escape(s["error"])}</pre></div>')
         else:
             st = s["stats"]
             tiles.append(f'<div class="card"><h3>{html.escape(s["label"])}</h3>{img_tag(s["thumb"], s["label"])}' + table([
-                ("Elevación (m)", f'{fmt(st.get("min"))} a {fmt(st.get("max"))}, mediana {fmt(st.get("median"))}'),
-                ("Pendiente media / p90", f'{s["slope_mean"]:.1f}° / {s["slope_p90"]:.1f}°'),
-                ("Píxeles", f'{s["shape"][1]} × {s["shape"][0]}'),
-                ("Válidos", f'{st.get("valid_frac", 0) * 100:.1f} %')]) + "</div>")
-    return (f'<div class="card">{head}<div class="grid"><div>{img_tag(r["coverage"], "Cobertura de Copernicus")}{legend}</div>'
-            f'<div>{table(rows)}{bad}</div></div></div><h3>Tiles de muestra</h3><div class="tiles">{"".join(tiles)}</div>')
+                ("Elevation (m)", f'{fmt(st.get("min"))} to {fmt(st.get("max"))}, median {fmt(st.get("median"))}'),
+                ("Mean / P90 slope", f'{s["slope_mean"]:.1f}° / {s["slope_p90"]:.1f}°'),
+                ("Pixels", f'{s["shape"][1]} × {s["shape"][0]}'),
+                ("Valid", f'{st.get("valid_frac", 0) * 100:.1f} %')]) + "</div>")
+    return (f'<div class="card">{head}<div class="grid"><div>{img_tag(r["coverage"], "Copernicus Coverage")}{legend}</div>'
+            f'<div>{table(rows)}{bad}</div></div></div><h3>Sample tiles</h3><div class="tiles">{"".join(tiles)}</div>')
 
 
 def render_modis(r: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3>'
     if not r.get("exists"):
-        return f'<div class="card">{head}<p>No está en Yuca.</p></div>'
+        return f'<div class="card">{head}<p>Not found on Yuca.</p></div>'
     if r.get("error"):
-        return f'<div class="card">{head}<p>{r["n_files"]} archivos, {human_bytes(r["total_bytes"])}.</p><pre>{html.escape(r["error"])}</pre></div>'
+        return f'<div class="card">{head}<p>{r["n_files"]} files, {human_bytes(r["total_bytes"])}.</p><pre>{html.escape(r["error"])}</pre></div>'
     maps = "".join(f'<div><h3>{html.escape(t)}</h3>{img_tag(img, t)}{table([(k, fmt(st.get(k))) for k in ["min", "median", "mean", "max"]])}</div>'
                    for t, img, st, _a in r["maps"])
     layers = [k for k in r["monthly"][0] if k not in ("month", "file")]
     mrows = "".join("<tr><td>" + m["month"] + "</td>" + "".join(
         f'<td>{fmt(m[l]["mean"])}</td>' for l in layers) + "</tr>" for m in r["monthly"])
-    mtable = ("<table><tr><th>Mes</th>" + "".join(f"<th>{l} (media global)</th>" for l in layers) + "</tr>" + mrows + "</table>")
-    what = ("NDVI: índice de vegetación (−0.2 a 1). Menos de 0.1 es suelo desnudo, roca o arena; más de 0.5 es vegetación densa. "
-            "Lo usamos como máscara: los análogos deben estar en zonas sin vegetación." if "ndvi" in r["key"] else
-            "Temperatura de la superficie de día y de noche (°C), media mensual. La amplitud día − noche es el equivalente "
-            "terrestre del contraste térmico de THEMIS en Marte.")
-    return (f'<div class="card">{head}<p>{html.escape(what)}</p><p class="muted">{r["n_files"]} archivos, '
-            f'{human_bytes(r["total_bytes"])}, leídos con {r["backend"]}.</p><div class="tiles">{maps}</div>'
-            f'<details><summary>Valores por mes</summary>{mtable}</details></div>')
+    mtable = ("<table><tr><th>Month</th>" + "".join(f"<th>{l} (global mean)</th>" for l in layers) + "</tr>" + mrows + "</table>")
+    what = ("NDVI: vegetation index (−0.2 to 1). Values < 0.1 indicate bare soil, rock, or sand; values > 0.5 indicate dense vegetation. "
+            "Used as a filter mask: analog sites must be barren." if "ndvi" in r["key"] else
+            "Daytime and nighttime surface temperatures (°C), monthly mean. Day-night temperature amplitude serves as "
+            "the terrestrial analog of martian THEMIS thermal contrast.")
+    return (f'<div class="card">{head}<p>{html.escape(what)}</p><p class="muted">{r["n_files"]} files, '
+            f'{human_bytes(r["total_bytes"])}, read via {r["backend"]}.</p><div class="tiles">{maps}</div>'
+            f'<details><summary>Values by month</summary>{mtable}</details></div>')
 
 
 def render_vector(r: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3>'
     if not r.get("exists"):
-        return f'<div class="card">{head}<p>No está en Yuca.</p></div>'
+        return f'<div class="card">{head}<p>Not found on Yuca.</p></div>'
     if r.get("error"):
         return f'<div class="card">{head}<pre>{html.escape(r["error"])}</pre></div>'
     sample = "<pre>" + html.escape(json.dumps(r["sample_rows"][:3], indent=1, ensure_ascii=False)[:2500]) + "</pre>"
     return (f'<div class="card">{head}<div class="grid"><div>{img_tag(r["map"], r["title"])}</div><div>'
-            + table([("Para qué lo usamos", html.escape(r["use"])), ("Elementos", f'{r["n_features"]:,}'),
-                     ("Geometría", r["shape_type"]), ("Columnas", html.escape(", ".join(r["fields"][:40])))])
-            + f'<details><summary>Primeras filas</summary>{sample}</details></div></div></div>')
+            + table([("Pipeline use", html.escape(r["use"])), ("Features", f'{r["n_features"]:,}'),
+                     ("Geometry", r["shape_type"]), ("Columns", html.escape(", ".join(r["fields"][:40])))])
+            + f'<details><summary>First rows</summary>{sample}</details></div></div></div>')
 
 
 def render_nomenclature(r: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3>'
     if not r.get("exists"):
-        return f'<div class="card">{head}<p>No está en Yuca.</p></div>'
-    return (f'<div class="card">{head}<p>Catálogo oficial de nombres de la Unión Astronómica Internacional (<code>{html.escape(r["file"])}</code>). '
-            f'Lo usamos para ponerle nombre a cada sitio de la Luna o Marte.</p><div class="grid"><div>'
-            + table([("Rasgos con nombre", f'{r["n_features"]:,}'), ("Columnas", html.escape(", ".join(r["fields"])))])
-            + "</div><div><h3>Por tipo</h3>" + table([(html.escape(t), f"{n:,}") for t, n in r["by_type"]]) + "</div></div></div>")
+        return f'<div class="card">{head}<p>Not found on Yuca.</p></div>'
+    return (f'<div class="card">{head}<p>Official International Astronomical Union (IAU) feature gazetteer (<code>{html.escape(r["file"])}</code>). '
+            f'Used for labeling and geodetic reference of Moon and Mars targets.</p><div class="grid"><div>'
+            + table([("Named features", f'{r["n_features"]:,}'), ("Columns", html.escape(", ".join(r["fields"])))])
+            + "</div><div><h3>By feature type</h3>" + table([(html.escape(t), f"{n:,}") for t, n in r["by_type"]]) + "</div></div></div>")
 
 
 def render_diviner(r: dict) -> str:
     head = f'<h3>{html.escape(r["title"])} {status_pill(r)}</h3>'
     if not r.get("exists"):
-        return (f'<div class="card">{head}<p>Pendiente de descarga manual (PDS <code>LRO-L-DLRE-5-PRP-V2.0</code>, '
-                f'<code>DLRE_PRP_SOUTH.TAB</code>) a <code>data/raw/moon/diviner/</code>.</p></div>')
+        return (f'<div class="card">{head}<p>Pending download (PDS <code>LRO-L-DLRE-5-PRP-V2.0</code>, '
+                f'<code>DLRE_PRP_SOUTH.TAB</code>) to <code>data/raw/moon/diviner/</code>.</p></div>')
     return f'<div class="card">{head}' + table([(html.escape(n), human_bytes(s)) for n, s in r["files"]]) + "</div>"
 
 
@@ -788,12 +788,12 @@ def strip_arrays(obj):
 
 
 def markdown_summary(results: dict) -> str:
-    lines = [f"# Exploración de datasets ({results['generated_at']})", "", "| Cuerpo | Dataset | Estado | Detalle |", "| --- | --- | --- | --- |"]
+    lines = [f"# Dataset Exploration Summary ({results['generated_at']})", "", "| Body | Dataset | Status | Details |", "| --- | --- | --- | --- |"]
 
     def state(r):
-        return "no encontrado" if not r.get("exists") else ("error" if r.get("error") else (
-            "incompleto" if (r.get("meta", {}).get("incomplete_aria2") or r.get("n_incomplete")) else (
-                "con tiles dañados" if r.get("n_bad") else "OK")))
+        return "not found" if not r.get("exists") else ("error" if r.get("error") else (
+            "incomplete" if (r.get("meta", {}).get("incomplete_aria2") or r.get("n_incomplete")) else (
+                "corrupt tiles" if r.get("n_bad") else "OK")))
 
     for r in results["rasters"]:
         if not r.get("exists") and r.get("optional"):
@@ -802,21 +802,21 @@ def markdown_summary(results: dict) -> str:
         if r.get("meta"):
             m, st = r["meta"], r["stats"]
             det = (f'{m["width"]}×{m["height"]} px, {m["dtype"]}, {human_bytes(m["size_bytes"])}, '
-                   f'válidos {st.get("valid_frac", 0) * 100:.0f} %, rango {fmt(st.get("p1"))} a {fmt(st.get("p99"))}')
+                   f'valid {st.get("valid_frac", 0) * 100:.0f} %, range {fmt(st.get("p1"))} to {fmt(st.get("p99"))}')
         lines.append(f'| {r["body"]} | {r["title"]} | {state(r)} | {det or r.get("error", "")} |')
     c = results["copernicus"]
     if c.get("exists"):
-        lines.append(f'| Tierra | {c["title"]} | {state(c)} | {c["n_tif"]:,} tiles de {c["n_expected"]:,}; faltan {c["n_missing"]:,}; '
-                     f'no abren {c["n_bad"]:,}; fallidos última descarga {c["failed_urls_last_job"]:,}; {human_bytes(c["total_bytes"])} |')
+        lines.append(f'| Earth | {c["title"]} | {state(c)} | {c["n_tif"]:,} tiles of {c["n_expected"]:,}; missing {c["n_missing"]:,}; '
+                     f'unreadable {c["n_bad"]:,}; failed in latest run {c["failed_urls_last_job"]:,}; {human_bytes(c["total_bytes"])} |')
     for r in results["modis"]:
-        det = f'{r.get("n_files", 0)} archivos' + (f'; {r["error"]}' if r.get("error") else "")
-        lines.append(f'| Tierra | {r["title"]} | {state(r)} | {det} |')
+        det = f'{r.get("n_files", 0)} files' + (f'; {r["error"]}' if r.get("error") else "")
+        lines.append(f'| Earth | {r["title"]} | {state(r)} | {det} |')
     for r in results["vectors"]:
-        lines.append(f'| Tierra | {r["title"]} | {state(r)} | {r.get("n_features", "")} elementos |')
+        lines.append(f'| Earth | {r["title"]} | {state(r)} | {r.get("n_features", "")} features |')
     for r in results["nomenclature"]:
-        lines.append(f'| {r["body"]} | {r["title"]} | {state(r)} | {r.get("n_features", "")} rasgos |')
+        lines.append(f'| {r["body"]} | {r["title"]} | {state(r)} | {r.get("n_features", "")} named features |')
     d = results["diviner"]
-    lines.append(f'| Luna | {d["title"]} | {state(d)} | {len(d["files"])} archivos |')
+    lines.append(f'| Moon | {d["title"]} | {state(d)} | {len(d["files"])} files |')
     return "\n".join(lines) + "\n"
 
 
@@ -825,9 +825,9 @@ def main():
     p.add_argument("--data-root", default="/lustre/proyectos/p089/data/raw")
     p.add_argument("--out-dir", required=True)
     p.add_argument("--workers", type=int, default=int(os.environ.get("SLURM_CPUS_PER_TASK", "4")))
-    p.add_argument("--max-px", type=int, default=900, help="Ancho máximo de las miniaturas")
-    p.add_argument("--no-validate-tiles", action="store_true", help="No abrir cada tile de Copernicus")
-    p.add_argument("--only", choices=["planets", "copernicus", "modis", "vectors"], help="Explorar solo una parte")
+    p.add_argument("--max-px", type=int, default=900, help="Maximum preview thumbnail width in pixels")
+    p.add_argument("--no-validate-tiles", action="store_true", help="Skip opening every individual Copernicus DEM tile")
+    p.add_argument("--only", choices=["planets", "copernicus", "modis", "vectors"], help="Explore only a specific subsystem")
     args = p.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -843,14 +843,14 @@ def main():
             r = explore_raster(spec, args.data_root, args.max_px)
             r["optional"] = spec.get("optional", False)
             results["rasters"].append(r)
-            print(f"    -> {'OK' if r.get('meta') else r.get('error', 'no existe')}", flush=True)
+            print(f"    -> {'OK' if r.get('meta') else r.get('error', 'not found')}", flush=True)
         results["nomenclature"] = explore_nomenclature(args.data_root)
         results["diviner"] = explore_diviner(args.data_root)
     if args.only in (None, "copernicus"):
         print("[*] Copernicus", flush=True)
         results["copernicus"] = explore_copernicus(args.data_root, args.workers, args.max_px, not args.no_validate_tiles)
         c = results["copernicus"]
-        print(f"    -> {c.get('n_tif', 0)} tiles, {c.get('n_bad', 0)} no abren", flush=True)
+        print(f"    -> {c.get('n_tif', 0)} tiles, {c.get('n_bad', 0)} unreadable", flush=True)
     if args.only in (None, "modis"):
         for key in MODIS_SPECS:
             print(f"[*] MODIS {key}", flush=True)
@@ -860,29 +860,29 @@ def main():
         results["vectors"] = explore_vectors(args.data_root)
 
     # HTML
-    by_body = {"Marte": [], "Luna": []}
+    by_body = {"Mars": [], "Moon": []}
     for r in results["rasters"]:
         if r.get("optional") and not r.get("exists"):
             continue
         by_body[r["body"]].append(render_raster(r, specs[r["key"]]))
     nom = {r["body"]: render_nomenclature(r) for r in results["nomenclature"]}
     sections = []
-    if by_body["Marte"] or "Marte" in nom:
-        sections.append('<h2 id="marte">Marte</h2>' + "".join(by_body["Marte"]) + nom.get("Marte", ""))
-    if by_body["Luna"] or "Luna" in nom:
-        sections.append('<h2 id="luna">Luna</h2>' + "".join(by_body["Luna"]) + nom.get("Luna", "")
+    if by_body["Mars"] or "Mars" in nom:
+        sections.append('<h2 id="mars">Mars</h2>' + "".join(by_body["Mars"]) + nom.get("Mars", ""))
+    if by_body["Moon"] or "Moon" in nom:
+        sections.append('<h2 id="moon">Moon</h2>' + "".join(by_body["Moon"]) + nom.get("Moon", "")
                         + (render_diviner(results["diviner"]) if args.only in (None, "planets") else ""))
     earth = ""
     if results["copernicus"].get("exists") or args.only in (None, "copernicus"):
         earth += render_copernicus(results["copernicus"])
     earth += "".join(render_modis(r) for r in results["modis"]) + "".join(render_vector(r) for r in results["vectors"])
     if earth:
-        sections.append('<h2 id="tierra">Tierra</h2>' + earth)
-    doc = (f'<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-           f'<title>Exploración de datasets</title><style>{CSS}</style></head><body><main>'
-           f'<h1>Exploración de datasets</h1><p class="muted">Planetary Analog Finder · generado {results["generated_at"]} '
-           f'en {html.escape(os.uname().nodename if hasattr(os, "uname") else "")} · {round(time.time() - t0)} s · '
-           f'<code>{html.escape(args.data_root)}</code></p><nav><a href="#marte">Marte</a><a href="#luna">Luna</a><a href="#tierra">Tierra</a></nav>'
+        sections.append('<h2 id="earth">Earth</h2>' + earth)
+    doc = (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+           f'<title>Dataset Exploration</title><style>{CSS}</style></head><body><main>'
+           f'<h1>Dataset Exploration</h1><p class="muted">Planetary Analog Finder · generated {results["generated_at"]} '
+           f'on {html.escape(os.uname().nodename if hasattr(os, "uname") else "")} · {round(time.time() - t0)} s · '
+           f'<code>{html.escape(args.data_root)}</code></p><nav><a href="#mars">Mars</a><a href="#moon">Moon</a><a href="#earth">Earth</a></nav>'
            + "".join(sections) + "</main></body></html>")
     with open(os.path.join(args.out_dir, "index.html"), "w", encoding="utf-8") as f:
         f.write(doc)

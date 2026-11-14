@@ -1,4 +1,4 @@
-"""Pruebas unitarias sintéticas de T5 (Copernicus GLO-90 VRT, prefiltro y merge)."""
+"""Synthetic unit tests for T5 (Copernicus GLO-90 VRT, vegetation prefilter, and stripe merging)."""
 
 from __future__ import annotations
 
@@ -67,7 +67,7 @@ def test_has_tile_negative_floor() -> None:
     assert got.tolist() == [True, False]
 
 
-@pytest.mark.skipif(not HAS_GDALBUILDVRT, reason="gdalbuildvrt no está en PATH")
+@pytest.mark.skipif(not HAS_GDALBUILDVRT, reason="gdalbuildvrt not found in PATH")
 def test_build_vrt_masks_sea(tmp_path: Path) -> None:
     cop_dir = tmp_path / "cop"
     cop_dir.mkdir()
@@ -75,7 +75,7 @@ def test_build_vrt_masks_sea(tmp_path: Path) -> None:
     yy, xx = np.mgrid[0:1200, 0:1200].astype(np.float32)
     land = 100.0 + 0.05 * xx + 0.05 * yy
     mixed = 200.0 + 0.05 * xx + 0.05 * yy
-    mixed[:, :600] = 0.0  # mitad oeste es mar (= 0.0 sin nodata)
+    mixed[:, :600] = 0.0  # Western half is sea (= 0.0 without nodata tag)
 
     _write_synthetic_dem(
         cop_dir / "Copernicus_DSM_COG_30_N10_00_E010_00_DEM.tif", 10.0, 11.0, 1200, 1200, land
@@ -98,7 +98,7 @@ def test_build_vrt_masks_sea(tmp_path: Path) -> None:
         assert np.isfinite(patch).all()
 
 
-@pytest.mark.skipif(not HAS_GDALBUILDVRT, reason="gdalbuildvrt no está en PATH")
+@pytest.mark.skipif(not HAS_GDALBUILDVRT, reason="gdalbuildvrt not found in PATH")
 def test_build_vrt_mixed_widths(tmp_path: Path) -> None:
     cop_dir = tmp_path / "cop_arctic"
     cop_dir.mkdir()
@@ -136,12 +136,12 @@ def test_prefilter_counts() -> None:
     lst_day = np.full((180, 360), np.nan, dtype=np.float32)
     lst_night = np.full((180, 360), np.nan, dtype=np.float32)
 
-    # Fila para lat 10.5 (1°/celda): row = floor(90 - 10.5) = 79
+    # Row for lat 10.5 (1°/cell): row = floor(90 - 10.5) = 79
     # Cols: 180 + lon -> lon 0.5=180, 5.5=185, 10.5=190, 15.5=195, 20.5=200
-    ndvi[79, 185] = 0.4  # vegetado
-    ndvi[79, 190] = 0.2  # árido válido
-    lst_day[79, 195] = -15.0  # NDVI NaN pero LST finito (hielo/Antártida)
-    # 79, 200 queda con NDVI NaN y LST NaN (mar)
+    ndvi[79, 185] = 0.4  # vegetated
+    ndvi[79, 190] = 0.2  # arid valid
+    lst_day[79, 195] = -15.0  # NDVI NaN but LST finite (ice/Antarctica)
+    # (79, 200) remains NDVI NaN and LST NaN (sea)
 
     layers = EarthLayers.from_arrays(ndvi_max=ndvi, lst_day_c=lst_day, lst_night_c=lst_night)
     lat = np.array([10.5, 10.5, 10.5, 10.5, 10.5], dtype=np.float64)

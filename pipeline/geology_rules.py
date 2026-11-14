@@ -1,4 +1,26 @@
-"""Shared geological taxonomy, GLiM tables, similarity matrix, and Moon/Mars rules (T14)."""
+"""Shared geological taxonomy, GLiM mappings, similarity matrix, and Moon/Mars rules (T14).
+
+This module unifies geological classification across Earth, Moon, and Mars:
+1. Canonical 8-class geological taxonomy (GEO_CLASSES):
+   - VOLCANIC_BASIC: Basalts, lunar maria, martian volcanic plains.
+   - VOLCANIC_OTHER: Intermediate and felsic volcanics, andesites, rhyolites.
+   - PYROCLASTIC: Volcanic tephra, ash falls, lunar dark mantle deposits.
+   - CRYSTALLINE: Anorthositic lunar highlands, plutonic and metamorphic basements.
+   - IMPACT: Impact melt sheets, polymict impact breccias, crater ejecta blankets.
+   - SEDIMENTARY: Martian/Earth aeolian, fluvial, deltaic, and lacustrine deposits.
+   - EVAPORITE: Planetary salt pans, sulfate-rich playas, halite/gypsum deposits.
+   - ICE: Glacial deposits, polar layered deposits, permanent ice sheets.
+
+2. Earth lithological mapping:
+   - Maps Global Lithological Map (GLiM) high-resolution codes to the 8 canonical classes.
+
+3. Planetary similarity matrix (GEO_SIMILARITY):
+   - Symmetric 8x8 matrix defining cross-class similarity scores in [0, 1]
+     (e.g., VOLCANIC_BASIC vs PYROCLASTIC = 0.6).
+
+4. Lunar and Martian unit keyword classification:
+   - Ordered regular-expression rules matching stratigraphic unit names and descriptions.
+"""
 
 from __future__ import annotations
 
