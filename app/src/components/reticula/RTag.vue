@@ -12,3 +12,9 @@ withDefaults(
 <template>
   <span class="tm-tag" :class="`tm-tag--${tone}`"><template v-if="bracket">[ </template><slot /><template v-if="bracket"> ]</template></span>
 </template>
+
+<style lang="scss" scoped>
+.tm-tag {
+  white-space: nowrap;
+}
+</style>

@@ -1,5 +1,5 @@
 /* RETÍCULA component styles, copied from docs/design-system/reticula/project/components/bundle.css. */
-/* Additions for the explorer (.tm-chip, .tm-range) are appended in phase 4. */
+/* Additions for the explorer (.tm-chip, .tm-range) follow at the end of this file. */
 /* RETÍCULA: estilos de componentes. Se carga después de tokens.css y no declara valores propios de color, tipo ni espacio. */
 
 /* Tipografía: el sistema pone en mayúsculas display, titulares y etiquetas */
@@ -98,3 +98,97 @@
 .tm-barcode--graphite { --c: var(--graphite); }
 .tm-barcode i { display: block; flex-basis: 0; flex-shrink: 1; }
 .tm-barcode i.on { background: var(--c); }
+
+// Chip: rectangular selection button (explorer presets, analogs, body). Border 1px --line; pressed = --ink fill.
+.tm-chip {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--stroke-hairline) solid var(--line);
+  background: var(--surface-raised);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--ink);
+  }
+
+  &[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--surface);
+  }
+
+  &:disabled {
+    background: var(--surface-sunken);
+    border-color: var(--line-faint);
+    color: var(--ink-muted);
+    cursor: not-allowed;
+  }
+}
+
+// Range slider: 2px --line track, square 16px --ink thumb. accent-color is the fallback.
+.tm-range {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  accent-color: var(--signal);
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: var(--stroke-line);
+    background: var(--line);
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -7px;
+    border: 0;
+    background: var(--ink);
+  }
+
+  &::-moz-range-track {
+    height: var(--stroke-line);
+    background: var(--line);
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: 0;
+    background: var(--ink);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 1;
+
+    &::-webkit-slider-runnable-track {
+      background: var(--line-faint);
+    }
+
+    &::-webkit-slider-thumb {
+      background: var(--graphite);
+    }
+
+    &::-moz-range-thumb {
+      background: var(--graphite);
+    }
+  }
+}
