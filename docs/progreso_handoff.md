@@ -1,0 +1,98 @@
+# Handoff de progreso v2 — Planetary Analog Finder (NASA Space Apps 2026)
+
+Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca (`/lustre/proyectos/p089/code`, rama `main`).
+
+- **Último commit previo en `main`:** `57f4f36` (`2026-11-13`)
+- **Especificación fuente de verdad:** `docs/plan_implementacion.md`
+- **Estado de datos y corridas en Yuca:** `docs/pipeline.md` y `docs/bitacora.md`
+- **Instrucciones operativas de trabajo y SLURM:** `docs/prompt_gemini.md`
+
+---
+
+## 1. Resumen de estado por tarea
+
+| Tarea | Archivo(s) principal(es) | Estado | Verificación / Evidencia |
+| --- | --- | --- | --- |
+| **T0** | `run_download_missing.slurm`, `run_download_extra.slurm`, `jobs/download_diviner.slurm` | Hecho (planetas, MODIS, Natural Earth, Diviner PRP) | MOLA, THEMIS Day/Night, LOLA, LROC WAC, IceFavorability, Diviner PRP (`dlre_prp_south.tab`) verificados en Yuca; Copernicus GLO-90 verificar si terminó `run_download_missing.slurm` (había 6,983/26,475 tiles antes) |
+| **T1** | `pipeline/config.py`, `pipeline/geo.py`, `tests/test_geo.py` | **Hecho** (`ac743ce`, ajustes en `920f812`, `bcf10de`) | `extract_patch()` AEQD 64×64 a 500 m/px con `scales`/`offsets` aplicados en `_clean_nodata` antes de reproyectar; 7 tests en `tests/test_geo.py` |
+| **T2** | `pipeline/features.py`, `tests/test_features.py` | **Hecho** (`a661bb7`, ajuste `np.gradient` en `920f812`) | `compute_features()` (alias `extract_features`) calcula los 7 rasgos en `float32`; 4 tests en `tests/test_features.py` |
+| **T3** | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm`, `tests/test_planet_features.py` | **Hecho y ejecutado en Yuca** (`19e3899` .. `57f4f36`) | Barrido global `0-15` + `--merge` (jobs `2242278` / `2242279`): Marte `140,916` parches y Luna `36,741` parches; 6 tests en `tests/test_planet_features.py` |
+| **T9** | `tests/` (17 pruebas unitarias sintéticas) | **Parcial (T1–T3 cubiertos)** | Yuca (`tests_v2`, env `spaceapps_2026`): **`17 passed` in 3.30s** |
+| **T10** | `app/`, `tools/v1_to_sample.py` | En curso en paralelo (`9325dea`, PR #2) | Primer esqueleto React + Vite + Tailwind en `main` con `app/public/data/sample.json` |
+| **T4** | `pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py` | **Pendiente (siguiente tarea)** | Por implementar usando las salidas de T3 (`runs/2242278/`) y gacetero IAU (`MARS*.dbf`, `MOON*.dbf`) |
+| **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json` | Pendiente | Por implementar tras T4 |
+| **T5** | `pipeline/earth_features.py`, `jobs/t5_earth_features.slurm` | Pendiente | Por implementar tras T6 |
+| **T7 / T8 / T11** | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json` | Pendiente | Integración final hacia `app/public/data/analogs_universe.json` |
+
+---
+
+## 2. Qué ya está implementado en código (`main`)
+
+### `pipeline/config.py`
+- Constantes del parche: `PATCH_SIZE_KM = 32.0`, `PATCH_RES_M = 500.0`, `PATCH_PIXELS = 64`, `MIN_VALID_FRAC = 0.90`, `MAX_ABS_ELEV_M = 1e5`, `WINDOW_MARGIN_PX = 2`.
+- Radios: `WGS84_SEMI_MAJOR_M = 6378137.0`, `BODY_RADII_M = {"Earth": 6371000.0, "Moon": 1737400.0, "Mars": 3396190.0}`.
+- Nombres de rasgos: `FEATURE_NAMES = ["mean_slope_deg", "p90_slope_deg", "relief_m", "hypsometric_integral", "detrended_std_m", "tri_m", "mean_elev_m"]`.
+- Rutas Yuca (`YUCA_PROJECT_DIR = Path("/lustre/proyectos/p089")`) y diccionarios `MARS_RAW_FILES`, `MOON_RAW_FILES`, `DIVINER_PARQUET_REL = "diviner_prp_south.parquet"`.
+
+### `pipeline/geo.py`
+- `extract_patch(src, lat, lon, body, size_km=32.0, res_m=500.0, resampling=Resampling.average) -> np.ndarray | None`
+- `get_antimeridian_skipped_count()`, `reset_antimeridian_skipped_count()`.
+- Aplica `PROJ_IGNORE_CELESTIAL_BODY=YES`, verifica radio del elipsoide/esfera vs cuerpo, detecta cruce del antimeridiano ±180°, reduce lectura con `out_shape` cuando `res_source_m <= res_m / 2` usando `out_dtype="float32"`, y en `_clean_nodata(...)`:
+  1. Enmascara no-finitos y centinelas `|valor| > 1e5` (antes de `np.isclose`, evitando overflow en `float32` con `nodata=-3.4e38`).
+  2. Enmascara `src.nodata` antes de escalar.
+  3. Aplica `valor = crudo * src.scales[0] + src.offsets[0]` cuando difiere de `(1.0, 0.0)`.
+  4. Reproyecta a AEQD local y devuelve `None` si `< 90 %` de píxeles son válidos.
+
+### `pipeline/features.py`
+- `compute_features(z, res_m=500.0) -> dict[str, np.float32]` (con alias `extract_features`).
+- Rellena NaNs restantes con la mediana del parche y devuelve `mean_slope_deg`, `p90_slope_deg`, `relief_m`, `hypsometric_integral`, `detrended_std_m`, `tri_m`, `mean_elev_m` en `np.float32` usando `np.gradient(z_clean, res, res)`.
+
+### `pipeline/planet_features.py` y `jobs/t3_planet_features.slurm`
+- Grilla global casi equiareal (`generate_grid`, `-88°` a `88°`), partición en franjas (`select_stripe`), submuestreo (`apply_limit`), carga/caché única de Diviner PRP (`prepare_diviner_parquet`, `load_diviner_prp`) y consulta polar por parche con `cKDTree` en estereográfica sur (`-999` en `ice_depth` se convierte a `NaN`).
+- Imprime al inicio `[META]` (`dtype`, `nodata`, `scales`, `offsets`, `res`) de cada raster usado (`DEM` y capas auxiliares).
+- Provee `compute_lunar_wac_percentile(values, reference=None)` para transformar el brillo relativo de LROC WAC (`uint8`, `scale=1.00395, offset=-0.00395, nodata=0`) a percentil `[0, 1]` dentro de la distribución lunar.
+
+---
+
+## 3. Salidas y hallazgos verificados en Yuca
+
+### Corrida global T3 completada (`/lustre/proyectos/p089/runs/2242278/`)
+Jobs `2242278_0..15` (`--array=0-15`, 8 CPUs c/u) + `2242279` (`--merge`):
+- **`/lustre/proyectos/p089/runs/2242278/features_mars.parquet`**: **`140,916`** parches válidos (de `141,472` candidatos, `99.61 %`; cumple criterio `~141k ± 10 %`). Columnas: `body, lat, lon, <7 rasgos T2>, themis_day, themis_night, themis_delta, valid_frac`.
+- **`/lustre/proyectos/p089/runs/2242278/features_moon.parquet`**: **`36,741`** parches válidos (de `37,014` candidatos, `99.26 %`; cumple criterio `~37k ± 10 %`). Columnas: `body, lat, lon, <7 rasgos T2>, wac_reflectance, ice_favorability, diviner_tmax_k, diviner_tavg_k, ice_depth_m, valid_frac`.
+- **Mapas scatter generados (pendiente inspección visual):**
+  - `/lustre/proyectos/p089/runs/2242278/map_mars_mean_slope_deg.png`
+  - `/lustre/proyectos/p089/runs/2242278/map_moon_mean_slope_deg.png`
+- **Caché Diviner PRP sur:** `/lustre/proyectos/p089/data/derived/diviner_prp_south.parquet` (`2,880,000` triángulos).
+
+### Escalas de mosaicos y validación antes/después (`--limit 500`: `2242227` vs `2242231_0`)
+Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuca:
+- **Solo LOLA y WAC tienen escala != `(1.0, 0.0)`:**
+  - `Lunar_LRO_LOLA_Global_LDEM_118m.tif`: `int16`, `scale=0.5`, `offset=0.0`, `nodata=-32768` (la v1 y el job `2242227` tenían todas las métricas lunares verticales al doble). Tras corregir `geo.py`, en `2242231_0` (`494/500` parches lunares): `mean_slope_deg` mediana bajó `13.24° -> 6.93°`, `relief_m` mediana `3229.80 -> 1614.90 m` (`0.50×`) y `mean_elev_m` mediana `-1424.61 -> -712.31 m` (`0.50×`).
+  - `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif`: `uint8`, `scale=1.00395256917`, `offset=-0.0039525691699605`, `nodata=0`. Entrega brillo relativo (`≈ 1–256`), no reflectancia absoluta; compararlo por percentil dentro de la Luna (`compute_lunar_wac_percentile`).
+  - `Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif` y `Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif`: `uint8`, `scale=1.0`, `offset=0.0`, `nodata=0` (nivel de gris crudo, no kelvin).
+  - `Moon_IceFavorabilityIndex_{90N,90S}000E_591mp.tif`: `float32`, `scale=1.0`, `offset=0.0`, `nodata=-3.4028226550889045e+38`.
+  - `Mars_MGS_MOLA_DEM_mosaic_global_463m.tif`: `int16`, `scale=1.0`, `offset=0.0`, `nodata=-32768` (en `2242231_0`, `498/500` válidos, `mean_slope_deg` mediana `1.08°`).
+
+---
+
+## 4. Detalles operativos importantes en Yuca / Repo
+
+1. **Pitfall de `sbatch --wrap` con `conda activate`:** el `--wrap` por defecto corre bajo `/bin/sh`, donde `conda activate spaceapps_2026` falla con exit code `2` por `_gdal-config` en `share/bash-completion/completions/gdalinfo`. Usar scripts `.slurm` con `#!/usr/bin/env bash` o envolver `--wrap 'bash -c "..."'`.
+2. **No tocar archivos v1 ni archivo preexistente sin rastrear:**
+   - Dejar intactos `process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py` en la raíz.
+   - Existe un archivo no rastreado preexistente `documentaci_n_t_cnica_del_pipeline_de_an_logos_planetarios.md`: **no** agregarlo ni borrarlo.
+3. **Reglas del clúster:** cuenta `-A p089`, partición `-p cpu`, `--time`, `--mem`, logs en `/lustre/proyectos/p089/output/`, salidas nuevas en `/lustre/proyectos/p089/runs/$SLURM_JOB_ID/`, tope grupal `500 CPUs / 4 GPUs` (usar `%30` si un array con 16 CPUs supera 500 CPUs), nunca `rm -rf` (usar `_to_delete/`) ni desactivar TLS.
+
+---
+
+## 5. Siguientes pasos inmediatos al conectar la nueva sesión
+
+1. **Inspeccionar estado de descargas T0 pendientes (especialmente `copernicus_90m` y `ne_10m_admin_0_countries`) y visualizar rápidamente los dos PNG de `runs/2242278/`** para cerrar el criterio visual de T3.
+2. **T4 (`pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py`):**
+   - Reunir coordenadas y URLs oficiales verificadas (`CURATED`: regiones candidatas Artemis III + borde de Shackleton en la Luna; Jezero, Gale, Gusev, Meridiani, Utopia, Elysium, Oxia Planum y Arcadia Planitia SWIM en Marte; `null` + `TODO(verificar)` si alguna no se verifica).
+   - Extraer rasgos de curados con T1 + T2 (promedio de parche central + 4 vecinos a 16 km) y capas auxiliares (incluyendo percentil lunar de WAC).
+   - Calcular 30 blancos `CLUSTER` por cuerpo (k-means sobre rasgos de topografía y rugosidad estandarizados de `/lustre/proyectos/p089/runs/2242278/features_{mars,moon}.parquet`) y asignarles nombre IAU reutilizando la lógica de `enrich_nomenclature.py` con `/lustre/proyectos/p089/data/raw/nomenclature/{MARS,MOON}*.dbf`.
+3. **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `tests/test_earth_layers.py`):** caché de `ndvi_max_2023.tif` (MOD13C2) y `lst_2023.tif` (MOD11C3), distancias a `ne_10m_roads`/`ne_10m_airports` y bboxes verificados de las 12 regiones conocidas.
+4. **T5 (`pipeline/earth_features.py`, `jobs/t5_earth_features.slurm`):** VRT `copernicus_90m.vrt`, prefiltro `ndvi_max <= 0.25`, prueba `--limit 500` y array `--array=0-31%30`.
+5. **T7 + T8 + T11 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json`, `tests/test_match.py`):** matching RBF + MSI + diversidad (> 150 km) + `mismatches` + `country` (`ne_10m_admin_0_countries`) y generación de `app/public/data/analogs_universe.json`.
