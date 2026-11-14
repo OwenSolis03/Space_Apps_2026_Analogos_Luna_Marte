@@ -79,7 +79,7 @@ Commit: `T5: barrido de la Tierra`. **Commitear y hacer push antes de enviar los
 5. **Prefiltro**, en este orden, contando cada descarte en `prefilter_stats.json`:
    1. Sin tile de Copernicus en la celda de 1° del **centro** se descarta (`no_tile`).
    2. `ndvi_max` del parche (mediana de la ventana, `EarthLayers.ndvi_prefilter`) **> 0.25** se descarta (`vegetated`).
-   3. `ndvi_max` **NaN** (por ejemplo, capas de hielo o islas sin dato de MODIS) **pasa**, con `ndvi_missing = True`. Si no, se perderían los Valles Secos y la Antártida.
+   3. `ndvi_max` **NaN** pasa **solo si** `lst_day_c` de la ventana (`patch_window_stat(..., 'mean')` sobre la banda 1 de LST) es finito: es tierra sin NDVI, como la Antártida, donde MOD13C2 no tiene datos al sur de −59.45°. Se marca `ndvi_missing = True`. Si NDVI y LST son NaN a la vez, el centro está sobre el mar (tiles costeros, atolones) y se descarta (`no_land_data`). Medido con la caché de T6 (job `2242426`): 35,483 centros con tile tienen NDVI NaN; 14,959 están al sur de −60° y 20,524 al norte, casi todos sobre el mar.
 6. **Mismas funciones que T3:** `extract_patch(src, lat, lon, body="Earth")` y `compute_features`. Sin cambios en `geo.py` ni en `features.py`. Los parches que cruzan ±180° se saltan y se cuentan (hay 140 centros con tile y `|lon| > 179.5°`).
 
 ---
@@ -120,7 +120,7 @@ CANDIDATE_COLUMNS = ["lat", "lon", *EARTH_ENV_COLUMNS, "ndvi_missing"]   # EARTH
 NDVI_PREFILTER_MAX = 0.25
 
 def prefilter(lat, lon, cells, layers: EarthLayers) -> tuple[np.ndarray, dict]:
-    """Máscara de candidatos y conteos {grid, no_tile, vegetated, ndvi_missing, kept}."""
+    """Máscara de candidatos y conteos {grid, no_tile, vegetated, no_land_data, ndvi_missing, kept}."""
 
 def prepare_candidates(project_dir: Path, out_dir: Path, limit: int | None = None) -> Path:
     """1) build_vrt(...) en data/derived/copernicus_90m.vrt.
@@ -241,10 +241,10 @@ En ese caso la app debe decir "cobertura parcial: X % de los candidatos".
    - Un tile de 1200 × 1200 en lat 69–70 y uno de 1200 × 400 (alto × ancho) en lat 70–71.
    - El VRT se construye y un parche centrado en la costura (lat 70.0) no tiene huecos: todo finito.
 5. **`test_build_vrt_does_not_overwrite`**: si `vrt_path` ya existe, `build_vrt` no lo modifica (misma fecha de modificación).
-6. **`test_prefilter_counts`**: un `EarthLayers.from_arrays` sintético (de T6) y 4 puntos: sin tile, NDVI 0.4, NDVI 0.2 y NDVI NaN. Resultado:
+6. **`test_prefilter_counts`**: un `EarthLayers.from_arrays` sintético (de T6) y 5 puntos: sin tile, NDVI 0.4, NDVI 0.2, NDVI NaN con LST finito (hielo) y NDVI NaN con LST NaN (mar). Resultado:
    - máscara `[F, F, T, T]`;
-   - `ndvi_missing` solo en el último;
-   - conteos `{grid: 4, no_tile: 1, vegetated: 1, ndvi_missing: 1, kept: 2}`.
+   - máscara `[F, F, T, T, F]`; `ndvi_missing` solo en el cuarto;
+   - conteos `{grid: 5, no_tile: 1, vegetated: 1, no_land_data: 1, ndvi_missing: 1, kept: 2}`.
 7. **`test_merge_join`**: `candidates.parquet` con 5 filas y dos franjas con 2 y 1 filas válidas. El resultado tiene 3 filas, las `EARTH_COLUMNS` exactas, `body == 'Earth'`, y las columnas de T6 copiadas bien.
    - Si falta una franja, `merge_earth` falla; con `allow_missing=True`, funciona.
 
@@ -255,8 +255,8 @@ En ese caso la app debe decir "cobertura parcial: X % de los candidatos".
 ### 6.1 `prepare`, en su log y en `prefilter_stats.json`
 
 - `grid = 497,818` y `grid − no_tile = 179,663`, exactos.
-- `kept` entre 50,000 y 130,000. Si sale fuera, **parar y avisar** antes de lanzar el array: el filtro de NDVI estaría mal, revisar la convención `/10000` de T6.
-- Imprimir `ndvi_missing` y su distribución por latitud. Se espera que se concentre en la Antártida y Groenlandia.
+- `kept` entre 35,000 y 80,000. La estimación con la caché de T6 es ~45,000: 30,245 con NDVI ≤ 0.25 más ~15,000 en la Antártida. Si sale fuera de ese rango, **parar y avisar** antes de lanzar el array.
+- Imprimir `ndvi_missing` y `no_land_data` con su distribución por latitud. Se espera que `ndvi_missing` esté casi todo al sur de −60°.
 
 ### 6.2 Prueba (`bash jobs/t5_submit.sh --limit 500`)
 
@@ -271,7 +271,7 @@ En ese caso la app debe decir "cobertura parcial: X % de los candidatos".
 
 | # | Verificación | Criterio |
 | --- | --- | --- |
-| 1 | Parches válidos | Entre 40,000 y 120,000 (criterio del plan general) |
+| 1 | Parches válidos | Entre 30,000 y 80,000. El plan general decía 40–120 mil antes de tener datos; con la caché de T6 se esperan ~45 mil candidatos, menos los costeros que el VRT descarta. Si sale menos de 30 mil, revisar la máscara de mar del VRT |
 | 2 | Amazonía `lat ∈ [-10, 2], lon ∈ [-75, -50]` | ≤ 5 parches, y listarlos |
 | 3 | Congo `lat ∈ [-5, 5], lon ∈ [12, 30]` | ≤ 5, listarlos |
 | 4 | Indonesia ecuatorial `lat ∈ [-5, 5], lon ∈ [95, 120]` | ≤ 5, listarlos |

@@ -394,6 +394,14 @@ No hace falta una corrida de prueba aparte: el job completo dura minutos y sus v
 | 12 | Fracción de la malla con `ndvi_max ≤ 0.25` | Imprimirla; es la estimación de cuántos parches pasan el prefiltro de T5. El plan general espera entre 40 y 120 mil parches terrestres válidos |
 | 13 | Tiempo de `EarthLayers.sample` sobre 10,000 puntos aleatorios en tierra | Imprimirlo; debe ser < 30 s para que T5 no se atore |
 
+### 6.2.1 Ajustes tras la primera corrida (job `2242426`, decididos por Claude el 2026-11-13)
+
+Los dos criterios duros que fallaron estaban mal planteados en este plan; el código y los datos son correctos.
+
+- **#2:** el umbral del Sahara pasa a **`< 0.12`**. El suelo desnudo brillante da NDVI de 0.05–0.12: en `(24.0, 28.0)` los 12 meses tienen confiabilidad 0 ("good") y la mediana del máximo es 0.103. Sigue muy lejos del corte de 0.25 del prefiltro.
+- **#8:** la fracción de celdas con `ndvi_max` finito se mide **ponderada por área** (`cos(lat)`) y debe ser `> 0.25`. El valor medido es 0.2696. La versión sin ponderar sobrerrepresenta los polos, y MOD13C2 no tiene datos al sur de −59.45°.
+- Consecuencia para T5: un NDVI NaN pasa el prefiltro solo si hay LST (ver `plan_t5.md` §2.5.3).
+
 ### 6.3 PNG en `runs/<JOBID>/`
 
 Imágenes de control, no para la presentación:
