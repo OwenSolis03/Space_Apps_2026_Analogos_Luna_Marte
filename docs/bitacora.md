@@ -2,6 +2,14 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: descargas enviadas en Yuca
+
+- Se clonó el repo en `/lustre/proyectos/p089/code`; los jobs se envían desde ahí. Las copias viejas de los scripts en la raíz de `p089/` quedan sin uso.
+- Se creó `~/.netrc` de Earthdata en Yuca (a mano, por Owen).
+- Jobs enviados: `2242198` (`run_download_missing.slurm`) y `2242199` (`run_download_extra.slurm`).
+- `2242194` era un envío duplicado de `run_download_missing.slurm` (17:49) que corrió unos minutos a la vez que `2242198`; se canceló.
+- **Pendiente:** como dos descargas escribieron a la vez, verificar al final que los mosaicos tengan el tamaño de S3 (THEMIS Night 15179427309 bytes, WAC 5959263751 bytes) y que no queden `.aria2` junto a ellos y que todos los tiles de Copernicus abran con rasterio (lo hace T5 al registrar los tiles que fallan).
+
 ## 2026-11-13: plan de implementación v2 y recursos oficiales
 
 **Qué se hizo**
