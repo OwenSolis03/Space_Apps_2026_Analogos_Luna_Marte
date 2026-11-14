@@ -2,6 +2,12 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: datos que faltan
+
+- Gemini ya empezó con el plan.
+- Se agregó `ne_10m_admin_0_countries` (Natural Earth, 5 MB) a `run_download_extra.slurm` para llenar el país de cada análogo. Hay que volver a enviar el job; lo ya descargado se salta.
+- Siguen pendientes: terminar Copernicus (job 2242198) y verificar tamaños, y Diviner PRP (manual).
+
 ## 2026-11-13: prompt de trabajo para Gemini
 
 - Claude escribió [prompt_gemini.md](prompt_gemini.md): instrucciones para que Gemini implemente el plan tarea por tarea (qué leer primero, reglas de commits y bitácora, reglas de Yuca, formato de respuesta) y el orden sugerido de sesiones.

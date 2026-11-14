@@ -397,7 +397,7 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 }
 ```
 
-`country` se puede llenar con Natural Earth `ne_10m_admin_0_countries` (agregarlo a T0.2 si se usa) o dejarse en `null`.
+`country` se llena con Natural Earth `ne_10m_admin_0_countries` (columna `ADMIN`), que baja `run_download_extra.slurm` a `data/raw/earth/naturalearth/ne_10m_admin_0_countries/`.
 
 ---
 

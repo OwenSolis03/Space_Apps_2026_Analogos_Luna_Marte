@@ -28,8 +28,8 @@ conda activate spaceapps_2026
 
 echo "job=${SLURM_JOB_ID:-local} nodo=$(hostname) inicio=$(date -Is)"
 
-echo "[1/2] Natural Earth 10m: carreteras y aeropuertos"
-for layer in ne_10m_roads ne_10m_airports; do
+echo "[1/2] Natural Earth 10m: carreteras, aeropuertos y países"
+for layer in ne_10m_roads ne_10m_airports ne_10m_admin_0_countries; do
   aria2c -c --auto-file-renaming=false --max-tries=5 -d "$RAW_EARTH/naturalearth" -o "$layer.zip" \
     "https://naciscdn.org/naturalearth/10m/cultural/$layer.zip" || echo "[WARN] $layer falló"
   if [ -f "$RAW_EARTH/naturalearth/$layer.zip" ] && [ ! -d "$RAW_EARTH/naturalearth/$layer" ]; then
