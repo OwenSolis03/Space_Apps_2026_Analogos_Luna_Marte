@@ -15,11 +15,11 @@ T6: pipeline/earth_layers.py + known_analogs.json ─► data/derived/{ndvi_max_
                                           │
 T5: pipeline/earth_features.py ───────────┴─► runs/2242438/features_earth.parquet (40,244 valid patches; smoke: runs/2242432/)
                                           │
-T7/T8: pipeline/match.py, export.py ──────┴─► runs/2242474/analogs_universe.json (3.18 MB; pending copy to app/public/data/)
-
-T14: pipeline/geology.py + rules/overrides ─► runs/2242482/geology_{earth,moon,mars,targets}.parquet (pre-16db5db; review stop)
-T13: pipeline/dust.py ──────────────────────► runs/2242484/dust_{earth,mars,targets}.parquet + 4 PNGs (check #5 review stop)
-T12: pipeline/ice.py + ice_hints.json ──────┴─► runs/2242485/ice_{earth,targets}.parquet (uses T14_DIR=runs/2242482)
+T14: pipeline/geology.py + overrides ────────► runs/2242486/geology_{earth,moon,mars,targets}.parquet (overrides applied)
+T13: pipeline/dust.py ───────────────────────► runs/2242484/dust_{earth,mars,targets}.parquet + 4 PNGs
+T12: pipeline/ice.py + ice_hints.json ───────► runs/2242487/ice_{earth,targets}.parquet (uses T14_DIR=runs/2242486)
+                                          │
+T7/T8/T15: match.py, export.py ───────────┴─► runs/2242489/analogs_universe.json (6.23 MB, 7 dims, 5 presets; pending review)
 ```
 
 **Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (e.g., jobs `2242438`–`2242440` write into `runs/2242438/`, `plan_t5.md` §2).
@@ -155,6 +155,10 @@ Logs in `/lustre/proyectos/p089/output/` (v2) and `logs/slurm/` (v1).
 | 2242482 | `jobs/t14_geology.slurm` | T14 geology (`commit 25f2e7e`, before `16db5db` overrides): Earth GLiM (`40,244`), Moon (`49` units), Mars (`44` units), `6/6` hard and `2/3` soft checks, `geology_mapping_review.md` |
 | 2242484 | `jobs/t13_dust.slurm` | T13 dust & seasons (`commit 16db5db`): `cdod610` + `MOD08_M3 Deep_Blue` (`24,998` Earth valid), all parquets + 4 PNGs + `t13_checks.json` (`3/4` hard, `3/4` soft; paused at §5.6 for check #5 Taklimakan `rank=0.7281 < 0.9`) |
 | 2242485 | `sbatch --export=ALL,T14_DIR=runs/2242482 jobs/t12_ice.slurm` | T12 water & ice (`commit 16db5db`): `ice_earth` (`40,244`), `ice_targets` (`76`), `1/1` hard and `3/3` soft checks |
+| 2242486 | `jobs/t14_geology.slurm` | T14 geology re-run (`commit d3a255f`): applied `geology_overrides.json`, 12 units mapped via override, default/null share 0.0% Moon & Mars, 6/6 hard, 2/3 soft |
+| 2242487 | `sbatch --export=ALL,T14_DIR=runs/2242486 jobs/t12_ice.slurm` | T12 water & ice re-run: linked to T14 `2242486`, `1/1` hard and `3/3` soft checks |
+| 2242488 | `pytest -q tests` | v2 tests (T1–T8, T12–T15): `81 passed, 73 warnings in 4.00s` (`commit bda0acf`) |
+| 2242489 | `sbatch --export=ALL,T5_DIR=runs/2242438,T12_DIR=runs/2242487,T13_DIR=runs/2242484,T14_DIR=runs/2242486 jobs/t7_match.slurm` | T15 matching & export: 7 dims, 5 presets, 5,010 pairs across 76 targets, `analogs_universe.json` (6.23 MB), 7/7 hard checks, 4/4 soft checks, `t7_report.md` |
 
 ## Exploring the data
 

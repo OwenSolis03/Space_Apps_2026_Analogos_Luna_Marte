@@ -26,10 +26,10 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 | **T4** targets | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm` | **Done and run** (`115e0c3`) | Job 2242423: 76 targets (16 curated, all ok; 60 clusters) |
 | **T6** Earth layers | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `jobs/t6_earth_layers.slurm` | **Done and run** (`29fbb88`, `84888cd`) | Jobs 2242426 (cache) and 2242430 (checks): 8/8 hard, 5/5 soft |
 | **T5** Earth sweep | `pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh` | **Done and run** (`52bf3d7`) | Jobs 2242438 (prepare), 2242439 (array 0–31), 2242440 (merge): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard checks, 4/5 soft checks (`runs/2242438/features_earth.parquet`, kit `t5_2242438.tar.gz`) |
-| **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Done and run; report pending review** (`997a0c0`) | Jobs `2242473` (smoke) and `2242474` (full): 3,908 pairs, `5/5` hard checks, `/lustre/proyectos/p089/runs/2242474/analogs_universe.json` (3.18 MB) + `t7_report.md` (not yet copied to `app/`) |
-| **T9** tests | `tests/` | Ongoing | 70 synthetic tests pass (job `2242478`) |
+| **T7/T8/T15** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Done and run; report ready for review** (`bda0acf`) | Job `2242489`: 7 dimensions, 5 presets, 5,010 pairs across 76 targets, `7/7` hard checks, `4/4` soft checks, `/lustre/proyectos/p089/runs/2242489/analogs_universe.json` (6.23 MB) + `t7_report.md` (pending Claude review before copy to `app/`) |
+| **T9** tests | `tests/` | Ongoing | 81 synthetic tests pass (job `2242488`) |
 | **T10** app | `app/`, `tools/v1_to_sample.py` | **Skeleton on `main`** (`9325dea`, PR #2) | Runs on `app/public/data/sample.json` (v1 converted) |
-| **T12–T15** geology, dust and seasons, water and ice | `pipeline/geology.py`, `geology_rules.py`, `pipeline/data/geology_overrides.json`, `dust.py`, `ice.py`, `pipeline/data/ice_hints.json` | **§5.6 review stop before T15** ([plan_t12_t15.md](plan_t12_t15.md)) | Tests `2242478` (70 passed), downloads `2242481` (60 `MOD08_M3` v6.1 + GLiM/SIM3292/Moon/Montabone); `T14=runs/2242482` (6/6 hard, pre-`16db5db` overrides), `T13=runs/2242484` (3/4 hard: Taklimakan check #5 `rank=0.7281 < 0.9`, all files+maps written), `T12=runs/2242485` (1/1 hard, 3/3 soft); T15 untouched |
+| **T12–T15** geology, dust and seasons, water and ice | `pipeline/geology.py`, `geology_rules.py`, `pipeline/data/geology_overrides.json`, `dust.py`, `ice.py`, `pipeline/data/ice_hints.json` | **Done and run** (`bda0acf`) | Downloads `2242481` (60 `MOD08_M3` v6.1 + GLiM/SIM3292/Moon/Montabone); `T14=runs/2242486` (overrides applied, 0.0% null/default, 6/6 hard, 2/3 soft), `T13=runs/2242484` (cdod610 + Deep Blue AOD, all parquets + 4 PNGs), `T12=runs/2242487` (ice parquets, 1/1 hard, 3/3 soft); feed into T15 `runs/2242489` |
 | **T11** limits and content | `pipeline/data/limits.json` | Pending (team) | Format in `plan_t7_t8.md` §4.2; provisional fallback from `sample.json` |
 
 **T0 data verified on Yuca:**
@@ -93,9 +93,9 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 
 **`pipeline/match.py` and `pipeline/export.py`**
 
-- **Normalization & scores:** Earth-only `log1p` + median/`1.4826 * MAD` normalization, Mars-only percentile thermal ranks (`themis_delta` vs `lst_amplitude_c`), RBF kernels per dimension (`σ_scale = 1.0`), and three weighted mission presets.
-- **Selection:** `NearestNeighbors` pool (`k = 2000`, retry `k = 8000`) -> greedy top-30 per preset with `>= 150 km` separation and `<= 3` `polar_cold` (`lst_day_c < -10 °C`) analogs, plus physical (`|z_diff| > 1.5`) and thermal (`> 0.30`) mismatches.
-- **Export & checks:** writes `analogs_universe.json` matching `types.ts` (falling back to provisional `sample.json` limits while `pipeline/data/limits.json` is absent), runs 5 hard checks (`t7_checks.json`), and emits `t7_report.md` (with Olympus Mons sanity check).
+- **Normalization & scores:** Earth-only `log1p` + median/`1.4826 * MAD` normalization, Mars-only percentile thermal ranks (`themis_delta` vs `lst_amplitude_c`), 7 similarity dimensions (`topography`, `roughness`, `environment`, `thermal`, `geology`, `dust`, `ice`), and 5 weighted mission presets (`mobility_and_traction`, `construction_and_base`, `geology_and_materials`, `dust_and_seasons`, `isru_and_ice`).
+- **Selection:** Whole Earth table (`40,244` patches) evaluated per target (candidate pool dropped) -> greedy top-30 per preset with `>= 150 km` separation and `<= 3` `ice_surface` (GLiM `ig`) analogs (exempt on `isru_and_ice`), plus physical (`|z_diff| > 1.5`), thermal (`> 0.30`), and layer mismatches (`geo_class`, `dust_level_rank`, `dust_seasonality_rank`, `dust_peak_phase_deg`, `cold_rank`).
+- **Export & checks:** writes `analogs_universe.json` matching `types.ts` (falling back to provisional `sample.json` limits while `pipeline/data/limits.json` is absent), runs 7 hard checks and 4 soft checks (`t7_checks.json`), and emits `t7_report.md` (with Olympus Mons sanity check, Mars plains spread, dust top 5, and ISRU ice top 5).
 
 ---
 
@@ -108,8 +108,12 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 | T6, `runs/2242430/` | `t6_checks.json` and the control maps; cache in `data/derived/` |
 | T5 smoke, `runs/2242432/` | `candidates.parquet` (500), `prefilter_stats.json` (44,375 candidates worldwide), `features_earth.parquet` (445), `t5_checks.json`, maps |
 | T5 full, `runs/2242438/` | `features_earth.parquet` (40,244 valid patches of 44,375 candidates, 3.3 MB), `prefilter_stats.json`, `t5_checks.json` (6/6 hard, 4/5 soft), `map_earth_*.png`; kit `kit/t5_2242438.tar.gz` (3.7 MB) |
+| T14, `runs/2242486/` | `geology_earth.parquet` (40,244), `geology_targets.parquet` (76), `geology_mapping_review.md` (12 overrides applied, 0.0% null/default share on Moon & Mars), `t14_checks.json` (6/6 hard, 2/3 soft) |
+| T13, `runs/2242484/` | `dust_earth.parquet` (40,244), `dust_mars.parquet` (140,916), `dust_targets.parquet` (76), 4 PNG maps (`map_dust_level_*`, `map_dust_peak_phase_*`), `t13_checks.json` |
+| T12, `runs/2242487/` | `ice_earth.parquet` (40,244), `ice_targets.parquet` (76), `t12_checks.json` (1/1 hard, 3/3 soft) |
 | T7/T8 smoke, `runs/2242473/` | `matches.parquet` (3,342 rows), `analogs_universe.json` (2.99 MB), `t7_checks.json` (5/5 hard), `t7_report.md` |
 | T7/T8 full, `runs/2242474/` | `matches.parquet` (3,908 rows across 76 targets), `analogs_universe.json` (3.18 MB), `t7_checks.json` (5/5 hard), `t7_report.md` |
+| T15 full, `runs/2242489/` | `matches.parquet` (5,010 pairs across 76 targets), `analogs_universe.json` (6.23 MB), `t7_checks.json` (7/7 hard, 4/4 soft), `t7_report.md` |
 
 **Raster scales** (checked with rasterio on the real files; more in [pipeline.md](pipeline.md)):
 
@@ -137,8 +141,8 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 
 ## 5. Next steps
 
-1. **Review `runs/2242474/t7_report.md`:** confirm score distribution (`σ_scale = 1.0`) and Olympus Mons sanity check before copying `runs/2242474/analogs_universe.json` into `app/public/data/`.
-2. **App:** publish `analogs_universe.json` to `app/public/data/`, switch `DATA_URL` in `app/src/App.tsx`, and deploy.
+1. **Review `runs/2242489/t7_report.md` and `t7_checks.json`:** Claude reviews report (including 10/10 volcanic basic Olympus Mons top 10, Mars plains spread, dust top 5, and ISRU ice top 5) before copying `runs/2242489/analogs_universe.json` into `app/public/data/`.
+2. **App:** once approved, publish `analogs_universe.json` to `app/public/data/`, verify in web UI, switch `DATA_URL` in `app/src/App.tsx`, and deploy.
 3. **T11 content and the submission items** in [submission.md](submission.md).
 
 ---

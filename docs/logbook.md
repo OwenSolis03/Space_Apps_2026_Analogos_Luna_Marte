@@ -2,6 +2,46 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14 (morning): T15 matching and export complete (7 dimensions, 5 presets), following Claude's §5.8 review
+
+**What was done and why** (code written by Gemini from Claude's approval in [`docs/plan_t12_t15.md`](plan_t12_t15.md) §5.8, commits `d3a255f`, `bda0acf`):
+
+1. **T14 geology re-run (`job 2242486`, `COMPLETED 0:0`, 8 s, output `/lustre/proyectos/p089/runs/2242486/`):**
+   - Applied `pipeline/data/geology_overrides.json` from Claude's review.
+   - All 12 target units (`Nt`, `pNt`, `Ioho`, `INt`, `It`, `Iif`, `Iohs`, `Iork`, `Iia`, `Iom`, `Itd`, `lApd`) recorded `rule=override` in `geology_mapping_review.md`.
+   - `default_or_null_area_share` dropped to **0.0% for Moon** and **0.0% for Mars**.
+   - Checks: **6/6 hard passed, 2/3 soft passed** (only soft warning: `arcadia_swim` is `VOLCANIC_BASIC` while `utopia_zhurong` is `SEDIMENTARY`, handled via shallow ice in T12).
+2. **T12 water & ice re-run (`job 2242487`, `COMPLETED 0:0`, 4 s, `T14_DIR=runs/2242486`, output `/lustre/proyectos/p089/runs/2242487/`):**
+   - Rebuilt `ice_earth.parquet` (`40,244` rows) and `ice_targets.parquet` (`76` rows) using the new geology run.
+   - Checks: **1/1 hard, 3/3 soft passed**.
+3. **T13 check update and tropical amendment:**
+   - Updated check 5 in `pipeline/dust.py` to `earth_bodele_dust_source` (hard: Bodélé rank > 0.9; Taklimakan reported only); dropped check 7 (`mars_hellas_gt_tharsis`).
+   - Implemented §5.8 tropical amendment in `S_dust`: when `|lat| < 15.0°` for either Earth patch or target, drop the seasonal phase term and use denominator `4.0` (`2 * 2`).
+4. **T15 matching and export implementation (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`):**
+   - Expanded matching across 7 dimensions (`topography`, `roughness`, `environment`, `thermal`, `geology`, `dust`, `ice`) and 5 mission presets (`mobility_and_traction`, `construction_and_base`, `geology_and_materials`, `dust_and_seasons`, `isru_and_ice`).
+   - Vectorized scoring across the entire Earth table (`40,244` patches) per target, dropping the k-NN candidate pool.
+   - Enforced ice cap rule: `<= 3` `ice_surface` (GLiM `ig`) analogs per (target, preset), except for `isru_and_ice` which is exempt.
+   - Added layer mismatches (`geo_class`, `dust_level_rank`, `dust_seasonality_rank`, `dust_peak_phase_deg`, `cold_rank`).
+   - Extended target and analog schemas with rich layer objects, citations, `not_modelled`, and pipeline run metadata.
+5. **Unit tests (`job 2242488`, `COMPLETED 0:0`, 5 s):**
+   - **`81 passed, 73 warnings in 4.00s`** across all unit test suites.
+6. **T15 production run (`job 2242489`, `COMPLETED 0:0`, 11 s, output `/lustre/proyectos/p089/runs/2242489/`):**
+   - Matches: `5,010` analog pairs across `76` targets.
+   - Universe JSON: `6.23 MB` (under 20 MB ceiling, single file, 0 NaN/Inf values).
+   - Lava tube terrain: `684` pairs with `subsurface_note = "Basaltic volcanic terrain: lava tubes are possible here (not mapped)"`.
+   - Checks: **7/7 hard passed, 4/4 soft passed** in [`t7_checks.json`](file:///lustre/proyectos/p089/runs/2242489/t7_checks.json):
+     - #1 `coverage`: 76 targets checked, 0 below 20 analogs.
+     - #2 `diversity`: min pair distance `150.001 km`, 0 violations.
+     - #3 `ice_cap`: max 3 `ice_surface` per preset, exempt for `isru_and_ice`, 0 violations.
+     - #4 `scores`: all `S_k` and `MSI` in `[0, 1]`, `S_thermal` null for Moon, 0 errors.
+     - #5 `json_contract`: valid JSON, 6.23 MB, required keys present.
+     - #6 `layer_scores`: non-null geology 4,814, dust 1,851, ice 732, 0 errors.
+     - #7 `olympus_mons_geology`: **10 / 10** `VOLCANIC_BASIC` (`vb`) Earth patches in the top 10 under `geology_and_materials` (Chad/Tibesti, Djibouti/Afar, Argentina/Puna, Antarctic/Greenland basaltic nunataks).
+     - #8 `mars_plains_spread`: median spread `0.059 > 0.012`.
+     - #9 `dust_and_seasons_mars_top5`: Yemen, Algeria, Sudan, Oman identified for Jezero and Meridiani.
+     - #10 `isru_and_ice_moon_top5`: Antarctica ice and cold-trap analogs for Haworth, Slater Plain, Shackleton.
+     - #11 `geo_class_shares`: Crystalline 39.7%, Sedimentary 35.6%, Volcanic Basic 13.6%, Ice 5.2%, Volcanic Other 1.7%, Evaporite 0.1%, Pyroclastic 0.2%, Null 3.9%.
+
 ## 2026-11-14 (early morning): T14 geology, T13 dust & seasons, T12 water & ice (runs before T15 review stop)
 
 **What was done and why** (code written by Gemini from Claude's [`docs/plan_t12_t15.md`](plan_t12_t15.md) §1–§4 and §7, stopping at §5.6 before T15)
