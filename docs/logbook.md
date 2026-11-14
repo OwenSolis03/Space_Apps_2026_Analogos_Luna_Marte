@@ -1,24 +1,42 @@
-# Bitácora
+# Logbook
 
-Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
+A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
 ## 2026-11-13 (night): T5 — Earth global sweep (Copernicus GLO-90 + T6 layers)
 
-**What was done and why (code written by Gemini from Claude's [`docs/plan_t5.md`](plan_t5.md))**
+**What was done and why** (code written by Gemini from Claude's [`docs/plan_t5.md`](plan_t5.md))
 
-- Added Copernicus settings (`copernicus_dir`, `copernicus_vrt`) in `pipeline/config.py`, implemented `pipeline/earth_features.py`, Slurm jobs (`jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm`, `jobs/t5_merge.slurm`, launcher `jobs/t5_submit.sh`), and 7 synthetic unit tests in `tests/test_earth_features.py` (covering `gdalbuildvrt` sea masking and latitude-varying tile widths).
-- Reused `pipeline/geo.py` (T1) and `pipeline/features.py` (T2) unmodified so Earth patches share the exact 64 × 64 (500 m/px) AEQD scale used on Mars and the Moon.
-- Applied `plan_t5.md` §2.5.3 prefilter rule (`ndvi_max <= 0.25`, keeping `ndvi_max == NaN` only when `lst_day_c` is finite) to retain ice-covered regions omitted south of −59.45°S by MOD13C2 (including Antarctica and McMurdo Dry Valleys).
+- **Code:**
+  - Copernicus settings (`copernicus_dir`, `copernicus_vrt`) in `pipeline/config.py`;
+  - `pipeline/earth_features.py`;
+  - Slurm jobs `jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm` and `jobs/t5_merge.slurm`, with the launcher `jobs/t5_submit.sh`;
+  - 7 synthetic unit tests in `tests/test_earth_features.py`, covering `gdalbuildvrt` sea masking and latitude-varying tile widths.
+- **Same scale as Mars and the Moon:** `pipeline/geo.py` (T1) and `pipeline/features.py` (T2) were reused unmodified, so Earth patches are exactly the same 64 × 64 (500 m/px) AEQD patches.
+- **Prefilter:** the `plan_t5.md` §2.5.3 rule (`ndvi_max <= 0.25`, keeping `ndvi_max == NaN` only when `lst_day_c` is finite). It retains the ice-covered regions that MOD13C2 omits south of −59.45°S, including Antarctica and the McMurdo Dry Valleys.
 
-**Verification on Yuca (via Slurm, env `spaceapps_2026`, commit `52bf3d7`)**
+**Verification on Yuca** (via Slurm, env `spaceapps_2026`, commit `52bf3d7`)
 
-- **Unit test suite (`job 2242431`, `pytest -q tests`):** **`49 passed, 73 warnings in 4.08s`** (0 skipped, 0 warnings from T5/T6 modules).
-- **Smoke test (`bash jobs/t5_submit.sh --limit 500`, `jobs 2242432` prepare / `2242433` array / `2242434` merge, `/lustre/proyectos/p089/runs/2242432/`):** built `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt` (`13M`, `432004×208800`, `res=(0.0008333333333333334, 0.0008333333333333334)`, `26,475` tiles in `00:04:35`), prefiltered `44,375` candidates from `497,818` grid points (`179,663` with tiles); stripe `0/1` yielded `445/500` valid patches (`89.0%`) in `5.0s` (`mean_elev_m ∈ [-28.00, 5244.27]`, median slope `0.504°`; `5/5` hard, `4/5` soft).
-- **Full 32-stripe run (`bash jobs/t5_submit.sh`, `jobs 2242438` prepare / `2242439` array `0-31%30` / `2242440` merge, shared run directory `/lustre/proyectos/p089/runs/2242438/`):**
-  - Reused existing `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt`; loaded `1,650,450` road vertices.
-  - **`prefilter_stats.json`:** `grid=497,818`, `no_tile=318,155` (`with_tile=179,663`), `vegetated=113,935`, `no_land_data=21,353` (`south_lt_minus60: 1878`, `mid_minus60_to_60: 17573`, `north_gt_60: 1902`), `ndvi_missing=14,130` (`south_lt_minus60: 13081`, `mid_minus60_to_60: 837`, `north_gt_60: 212`), `kept=44,375` (`NEW_CANDIDATE=43,596`, `KNOWN_ANALOG=779`).
+- **Unit test suite** (`job 2242431`, `pytest -q tests`): **`49 passed, 73 warnings in 4.08s`** (0 skipped, 0 warnings from T5/T6 modules).
+- **Smoke test** (`bash jobs/t5_submit.sh --limit 500`; jobs `2242432` prepare / `2242433` array / `2242434` merge; `/lustre/proyectos/p089/runs/2242432/`):
+  - built `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt` (`13M`, `432004×208800`, `res=(0.0008333333333333334, 0.0008333333333333334)`, `26,475` tiles, in `00:04:35`);
+  - prefiltered `44,375` candidates from `497,818` grid points (`179,663` with tiles);
+  - stripe `0/1` yielded `445/500` valid patches (`89.0%`) in `5.0s`, with `mean_elev_m ∈ [-28.00, 5244.27]` and median slope `0.504°`;
+  - checks: `5/5` hard, `4/5` soft.
+- **Full 32-stripe run** (`bash jobs/t5_submit.sh`; jobs `2242438` prepare / `2242439` array `0-31%30` / `2242440` merge; shared run directory `/lustre/proyectos/p089/runs/2242438/`):
+  - Reused the existing `/lustre/proyectos/p089/data/derived/copernicus_90m.vrt`; loaded `1,650,450` road vertices.
+  - **`prefilter_stats.json`:**
+
+    | Count | Value | By latitude |
+    | --- | --- | --- |
+    | `grid` | 497,818 | |
+    | `no_tile` | 318,155 (`with_tile=179,663`) | |
+    | `vegetated` | 113,935 | |
+    | `no_land_data` | 21,353 | south of −60: 1,878; −60 to 60: 17,573; north of 60: 1,902 |
+    | `ndvi_missing` | 14,130 | south of −60: 13,081; −60 to 60: 837; north of 60: 212 |
+    | `kept` | 44,375 (`NEW_CANDIDATE=43,596`, `KNOWN_ANALOG=779`) | |
+
   - **Merge (`32/32` stripes):** `/lustre/proyectos/p089/runs/2242438/features_earth.parquet` (`3.3M`), **`40,244` valid patches** (`90.69%`), `elev_min_m=-112.91`, `elev_max_m=5922.13`, `slope_median_deg=0.464`.
-  - **Visual map inspection:** reviewed `/lustre/proyectos/p089/runs/2242438/map_earth_mean_slope_deg.png` (`572K`) and `map_earth_classification.png` (`204K`) — expected topographic contrast across the Andes, Himalaya/Tibet, flat Sahara, and Antarctic plateau, and clean separation of `ndvi_missing`, `KNOWN_ANALOG`, and `NEW_CANDIDATE`.
+  - **Visual map inspection:** `/lustre/proyectos/p089/runs/2242438/map_earth_mean_slope_deg.png` (`572K`) shows the expected topographic contrast across the Andes, Himalaya/Tibet, the flat Sahara and the Antarctic plateau. `map_earth_classification.png` (`204K`) cleanly separates `ndvi_missing`, `KNOWN_ANALOG` and `NEW_CANDIDATE`.
   - **Offline kit packaged:** `/lustre/proyectos/p089/kit/t5_2242438.tar.gz` (`3.7M`, `sha256: 8396d59ab029c2dab1059326791f84f86c46f97fa23eb917a6a08ee934e0b76f`).
 
 | # | Type | Check | Observed | Expected | Status |
@@ -37,321 +55,470 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 
 **What is left**
 
-- Implement and run T7/T8 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`) against `runs/2242438/features_earth.parquet`, author T11 content (`pipeline/data/limits.json`), publish `app/public/data/analogs_universe.json`, and complete the English code cleanup.
+- Implement and run T7/T8 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`) against `runs/2242438/features_earth.parquet`.
+- Author the T11 content (`pipeline/data/limits.json`).
+- Publish `app/public/data/analogs_universe.json`.
+- Complete the English code cleanup.
 
-## 2026-11-13 (noche): T6 — capas terrestres (NDVI, LST, logística, país y análogos conocidos)
+## 2026-11-13 (night): documentation in English
 
-**Qué se hizo (código escrito por Gemini a partir de `docs/plan_t6.md` de Claude)**
+- Claude translated every document to English and renamed the files:
 
-- **Configuración y dependencias (`pipeline/config.py`, `pipeline/requirements.txt`):** se agregaron `EARTH_RAW_FILES`, `EARTH_DERIVED_FILES` (`ndvi_max_2023.tif`, `lst_2023.tif`) y `MODIS_CMG_RES_DEG = 0.05`, más `pyhdf>=0.10` solo para la construcción de cachés en Yuca.
-- **Regiones conocidas (`pipeline/data/known_analogs.json`):** 12 bboxes aproximados curados (`atacama`, `mcmurdo-dry-valleys`, `iceland`, `hawaii-big-island`, `devon-island`, `utah-mdrs`, `rio-tinto`, `svalbard`, `pilbara`, `meteor-crater`, `lanzarote`, `mojave`) validados al cargar (`id` único, bboxes válidos, `source_url` no vacío).
-- **Módulo `pipeline/earth_layers.py` + `jobs/t6_earth_layers.slurm`:**
-  - Funciones puras CMG 0.05° (`ndvi_from_raw` con `/ 10000.0`, fill `-3000`; `lst_c_from_raw` con `* 0.02 - 273.15`, fill `0`, `< 7500 -> NaN`), acumuladores anuales (`running_nanmax`, `running_sum_count`, `finalize_mean(..., min_count=3)`) y ventana de parche equiareal (`cell_index`, `patch_window_stat` con envoltura del antimeridiano).
-  - Constructores de caché en Yuca (`build_ndvi_max`, `build_lst`, `ensure_cache`) usando `pyhdf` importado de forma diferida y escritura atómica (`.tmp.tif` + `os.replace`, sin sobrescribir archivos existentes).
-  - Índices espaciales `Logistics` (`BallTree` haversine sobre `ne_10m_roads` densificada cada `0.02°` excluyendo `Ferry` = `1,650,450` vértices, y aeropuertos civiles excluyendo militares/spaceports), `Countries` (`within` + `sjoin_nearest` en `EPSG:4087` a `<= 25 km`), `KnownRegions` y fachada `EarthLayers` (~420 MB pensada para crearse una vez antes de `fork` en T5).
-- **Pruebas unitarias (`tests/test_earth_layers.py`):** 11 pruebas sintéticas sin `pyhdf`.
+  | Old name | New name |
+  | --- | --- |
+  | `bitacora` | `logbook` |
+  | `plan_implementacion` | `implementation_plan` |
+  | `prompt_gemini` | `gemini_prompt` |
+  | `progreso_handoff` | `handoff` |
+  | `propuesta_de_valor` | `value_proposition` |
+  | `operacion_sin_ssh` | `working_without_ssh` |
+  | `entrega` | `submission` |
 
-**Verificación en Yuca (vía SLURM)**
+  The master plan and the idea log moved into `docs/`.
+- The README was rewritten in English to describe the project.
+- [HISTORY.md](HISTORY.md) tells the whole history in English, with the reason for every decision.
+- **Rules from now on:** commit messages, new documentation and new code comments are in English. Old commits are not rewritten, because their hashes are cited in the docs and in the Slurm logs. Gemini will translate the code comments in a later session ([gemini_prompt.md](gemini_prompt.md)).
+- Claude also wrote the detailed T7/T8 plan in English ([plan_t7_t8.md](plan_t7_t8.md)), using the real T3, T4 and T5 outputs.
+  - **Scale gap:** Earth's arid land is much smoother than the lunar south pole at 32 km scale, so lunar scores will be low.
+  - **Ice sheets:** about 30 % of the Earth candidates are flat ice sheets that the data cannot tell from bare ground, so they are capped at 3 per ranking.
 
-- **Suite unitaria (`job 2242425`, `pytest -q tests`):** **`42 passed` in 3.79s** (31 previas + 11 de T6, 0 warnings del módulo T6).
-- **Construcción de cachés y primera verificación (`job 2242426`, commit `29fbb88`):**
-  - Generó `/lustre/proyectos/p089/data/derived/ndvi_max_2023.tif` (18 MB, 2 bandas `float32`, `3600×7200`, `EPSG:4326`) y `/lustre/proyectos/p089/data/derived/lst_2023.tif` (56 MB, 3 bandas `float32`, `3600×7200`, `EPSG:4326`).
-  - Pasó `5/5` blandos y `6/8` duros; fallaron #2 (Egipto `(24.0, 28.0)` dio `0.1028` con confiabilidad `0` en los 12 meses) y #8 (fracción finita sin ponderar `0.2438`, porque MOD13C2 no trae datos al sur de `-59.45°S` y omite la Antártida).
-  - Claude aprobó en `plan_t6.md` §6.2.1 ajustar `#2 < 0.12` y `#8` ponderado por `cos(lat) > 0.25`.
-- **Re-verificación tras ajuste (`job 2242430`, commit `84888cd`, reutilizando las cachés existentes en `/lustre/proyectos/p089/runs/2242430/`):** **`8/8` duros, `5/5` blandos (PASS)** y 3 PNGs revisados visualmente (`map_ndvi_max.png`, `map_lst_amplitude.png`, `map_known_analogs.png` con los 12 bbox sobre sus regiones):
+## 2026-11-13 (night): T6 — Earth layers (NDVI, LST, logistics, country and known analogs)
 
-| # | Tipo | Verificación | Observado | Esperado | Estado |
+**What was done** (code written by Gemini from Claude's `docs/plan_t6.md`)
+
+- **Configuration and dependencies** (`pipeline/config.py`, `pipeline/requirements.txt`): `EARTH_RAW_FILES`, `EARTH_DERIVED_FILES` (`ndvi_max_2023.tif`, `lst_2023.tif`) and `MODIS_CMG_RES_DEG = 0.05`, plus `pyhdf>=0.10`, used only to build the caches on Yuca.
+- **Known regions** (`pipeline/data/known_analogs.json`): 12 curated approximate bboxes (`atacama`, `mcmurdo-dry-valleys`, `iceland`, `hawaii-big-island`, `devon-island`, `utah-mdrs`, `rio-tinto`, `svalbard`, `pilbara`, `meteor-crater`, `lanzarote`, `mojave`), validated on load (unique `id`, valid bboxes, non-empty `source_url`).
+- **`pipeline/earth_layers.py` and `jobs/t6_earth_layers.slurm`:**
+  - **Pure functions** on the 0.05° CMG grid:
+    - `ndvi_from_raw`: `/ 10000.0`, fill `-3000`;
+    - `lst_c_from_raw`: `* 0.02 - 273.15`, fill `0`, `< 7500 -> NaN`;
+    - annual accumulators: `running_nanmax`, `running_sum_count`, `finalize_mean(..., min_count=3)`;
+    - patch window: `cell_index`, and `patch_window_stat` with antimeridian wrapping.
+  - **Cache builders** on Yuca (`build_ndvi_max`, `build_lst`, `ensure_cache`): `pyhdf` imported lazily, atomic writes (`.tmp.tif` + `os.replace`), existing files never overwritten.
+  - **Spatial indexes:**
+    - `Logistics`: a haversine `BallTree` on `ne_10m_roads` densified every `0.02°` without `Ferry` (`1,650,450` vertices), and on civil airports (military airports and spaceports excluded);
+    - `Countries`: `within`, then `sjoin_nearest` in `EPSG:4087` up to `25 km`;
+    - `KnownRegions`;
+    - the `EarthLayers` façade (~420 MB), meant to be created once before `fork` in T5.
+- **Unit tests** (`tests/test_earth_layers.py`): 11 synthetic tests, without `pyhdf`.
+
+**Verification on Yuca** (via Slurm)
+
+- **Unit suite** (`job 2242425`, `pytest -q tests`): **`42 passed` in 3.79s** (31 previous + 11 from T6; 0 warnings from the T6 module).
+- **Cache build and first check** (`job 2242426`, commit `29fbb88`):
+  - Built `/lustre/proyectos/p089/data/derived/ndvi_max_2023.tif` (18 MB, 2 `float32` bands, `3600×7200`, `EPSG:4326`) and `/lustre/proyectos/p089/data/derived/lst_2023.tif` (56 MB, 3 `float32` bands, `3600×7200`, `EPSG:4326`).
+  - Passed `5/5` soft and `6/8` hard. Two hard checks failed:
+    - **#2:** Egypt `(24.0, 28.0)` gave `0.1028`, with pixel reliability `0` in all 12 months;
+    - **#8:** the unweighted finite fraction was `0.2438`, because MOD13C2 has no data south of `-59.45°S` and omits Antarctica.
+  - Claude approved, in `plan_t6.md` §6.2.1, changing #2 to `< 0.12` and #8 to a `cos(lat)`-weighted fraction `> 0.25`.
+- **Re-check after the adjustment** (`job 2242430`, commit `84888cd`, reusing the existing caches; outputs in `/lustre/proyectos/p089/runs/2242430/`): **`8/8` hard and `5/5` soft (PASS)**. The 3 PNGs were reviewed visually (`map_ndvi_max.png`, `map_lst_amplitude.png`, and `map_known_analogs.png` with the 12 bboxes on their regions):
+
+| # | Type | Check | Observed | Expected | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Duro | `cache_metadata` | `ndvi` 2 bandas, `lst` 3 bandas, `3600×7200`, `EPSG:4326` | `3600×7200 EPSG:4326` | PASS |
-| 2 | Duro | `ndvi_sahara` | `dz=0.0919`, `eg=0.1028` | `< 0.12` en ambos | PASS |
-| 3 | Duro | `ndvi_atacama` | `0.0760` | `< 0.10` | PASS |
-| 4 | Duro | `ndvi_tropical_forests` | `amazonia=0.8684`, `congo=0.8650` | `> 0.70` en ambos | PASS |
-| 5 | Duro | `dist_road_hermosillo` | `0.596 km` | `< 5 km` | PASS |
-| 6 | Duro | `countries_lookup` | `Mexico` / `Chile` / `Algeria` | `Mexico` / `Chile` / `Algeria` | PASS |
-| 7 | Duro | `known_region_lookup` | `utah-mdrs` / `None` | `utah-mdrs` / `None` | PASS |
-| 8 | Duro | `ndvi_finite_land_frac` | `cos_weighted=0.2696` (`unweighted=0.2438`) | `> 0.25 (ponderado por cos(lat))` | PASS |
-| 9 | Blando | `lst_day_dry_valleys` | `-28.18 °C` | `< 0 °C` | PASS |
-| 10 | Blando | `lst_amp_sahara_vs_amazonia` | Sahara `21.30 °C` vs Amazonía `4.16 °C` | Sahara `> 15 °C` y `>` Amazonía | PASS |
-| 11 | Blando | `dist_road_dry_valleys` | `3447.74 km` | `> 1000 km` | PASS |
-| 12 | Blando | `ndvi_prefilter_pass_frac` | `grid=0.0543` (`land=0.2228`) | Informativo | PASS |
-| 13 | Blando | `sample_10k_runtime_s` | `1.216 s` | `< 30 s` | PASS |
-
-**Qué falta**
-
-- **T5 (`pipeline/earth_features.py`)**, **T7 (`pipeline/match.py`)**, **T8 (`pipeline/export.py`)** y **T11 (`pipeline/data/limits.json`)**.
-
-## 2026-11-13 (noche): sede real y reglas de entrega
-
-- El equipo está inscrito en **NASA Space Apps Sonora 2026** (Tec de Monterrey, Campus Sonora Norte), no en la sede de la UTH que aparecía en el README.
-- Claude revisó [spaceappssonora.org](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches):
-  - hackathon el sábado 14 de 9:00 a 21:00; pitches el domingo 15 de 9:00 a 14:00;
-  - pitch de 3 minutos en Canva, con el número de equipo en la primera lámina;
-  - documentación y video de 30 s en inglés;
-  - app publicada;
-  - criterios de evaluación: innovación, impacto social, documentación y escalabilidad.
-- Se actualizó el README (sede, horario y reglas) y se creó [submission.md](submission.md) con la lista de entregables, el cronograma ajustado a un solo día útil, el checklist y el plan B. Se marcó como reemplazado el cronograma de 48 horas de `implementation_plan.md`.
-- La sede dio permiso al equipo de empezar a trabajar desde el 13 de noviembre. Con eso queda resuelto el pendiente de la entrada "revisión del prototipo y repositorio", que preguntaba si las corridas previas contaban como trabajo previo.
-
-## 2026-11-13: T4 — blancos curados, soporte polar T4.0 y clusters globales
-
-**Qué se hizo (código escrito por Gemini a partir de `docs/plan_t4.md` de Claude)**
-
-- **T4.0 (`pipeline/geo.py`, `tests/test_geo.py`):** se agregó `_patch_contains_pole()` y la rama polar en `extract_patch()` para leer una banda de latitud completa cuando un parche contiene el polo (`lat = -89.67°` en Shackleton), sin tocar el flujo fuera de los polos ni el conteo del antimeridiano (`|lat| <= 88°` en T3 no cambia).
-- **Refactor de muestreo (`pipeline/planet_features.py`):** se extrajo `resolve_body_paths()` y se creó `PointSampler` para muestrear parches puntuales reutilizando exactamente `_process_point()` de T3.
-- **Nomenclatura IAU (`pipeline/iau.py`, `tests/test_iau.py`):** módulo limpio sin efectos secundarios al importar; carga `MARS_nomenclature_center_pts.shp` / `MOON_nomenclature_center_pts.shp` con `geopandas`, normaliza `center_lon` (`0–360 -> -180..180`) y enlaces `https://`, e implementa `haversine_km`, `iau_label` y `find_feature`.
-- **Blancos curados y clusters (`pipeline/data/targets.json`, `pipeline/targets.py`, `jobs/t4_targets.slurm`, `tests/test_targets.py`):**
-  - `targets.json` con **16 blancos curados**: 8 lunares (7 regiones Artemis III ancladas a sus rasgos IAU por no existir centros oficiales publicados + borde de Shackleton, usando anclas `point` de 5 parches y `rim` de 8 parches) y 8 marcianos (Jezero, Gale, Gusev, Meridiani Planum, Utopia Planitia, Elysium/InSight, Oxia Planum y Arcadia Planitia SWIM).
-  - Cálculo de `wac_percentile` por parche frente a `runs/2242278/features_moon.parquet` y `ice_stable_frac` en Diviner antes de promediar.
-  - Clustering k-means (`k = 30`, `seed = 42`, `log1p` en `relief_m`, `detrended_std_m`, `tri_m` + `StandardScaler` por cuerpo) sobre `runs/2242278/features_{mars,moon}.parquet`, tomando el parche real más cercano a cada centroide y nombrándolo con `iau_label`.
-
-**Verificación en Yuca (vía SLURM)**
-
-- **Suite unitaria (job `2242421`, `pytest -q tests`):** **`31 passed` in 3.76s** (17 previas + 3 en `test_geo.py` + 3 en `test_iau.py` + 8 en `test_targets.py`).
-- **Prueba de humo lunar (job `2242422`, `jobs/t4_targets.slurm --k 5 --body Moon`, 17 s):** `8/8` curados lunares `ok` (incluido Shackleton) y 5 clusters.
-- **Corrida completa T4 (job `2242423`, `jobs/t4_targets.slurm`, 32 s, salidas en `/lustre/proyectos/p089/runs/2242423/`):**
-  - Total: **`76` blancos** (`16` curados + `60` clusters) en `targets.parquet` y `targets.json`, más `targets_patches.parquet`, `clusters_{mars,moon}.parquet`, `map_targets_mars.png` y `map_targets_moon.png`. Ningún curado quedó fuera (`0 insufficient_coverage`).
-  - **Luna (`8/8 ok`):** todos los anclas coinciden exactamente con su `anchor.iau_feature` (`d = 0.0 km`), tienen `diviner_tavg_k` (`64.9–133.3 K`), `ice_favorability`, `ice_depth_m` (`ice_stable_frac = 1.0`) y `wac_percentile` finitos; `moon-shackleton-rim` completó `8/8` parches (`mean_slope = 14.27°`, `relief = 3616 m`). Los 30 clusters suman `36,741` parches (`min/mediana/max = 518/1040/2332`).
-  - **Marte (`8/8 ok`):** todos con `5/5` parches y `themis_day`, `themis_night`, `themis_delta` finitos. Los 30 clusters suman `140,916` parches (`min/mediana/max = 494/4715/8933`).
-- **Revisión de sentido común (`plan_t4.md` §10):**
-  - En **Marte** (mediana global `mean_slope_deg = 1.16°`), las 5 planicies de aterrizaje quedan muy por debajo de la mediana global: InSight es el #1 más plano (`0.25°`, `relief = 71.6 m`), seguido de Arcadia SWIM (`0.30°`, `39.1 m`), Zhurong/Utopia (`0.42°`, `126.9 m`), Spirit/Gusev (`0.49°`, `80.4 m`) y Opportunity/Meridiani (`0.54°`, `132.5 m`; top-3 absoluto es InSight, Arcadia SWIM, Zhurong, con Opportunity #5 dentro del bloque plano `< 0.55°` porque sus vecinos a 16 km tocan bordes de cráteres cercanos como Victoria). Gale tiene `relief_m = 2793.1 m` frente a `71.6 m` de InSight (`~39×`).
-  - En la **Luna** (mediana global `mean_slope_deg = 6.78°`), los 8 curados polares están entre `8.09°` (Mons Mouton) y `14.27°` (Shackleton rim), todos por encima de la mediana global lunar.
-  - En los PNG (`map_targets_mars.png`, `map_targets_moon.png`), los curados caen en sus regiones esperadas y Tharsis/Valles Marineris se separan de las llanuras del norte.
-
-**Qué falta**
-
-- **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`)**, **T5 (`pipeline/earth_features.py`)**, **T7 (`pipeline/match.py`)**, **T8 (`pipeline/export.py`)** y **T11 (`pipeline/data/limits.json`)**.
-
-## 2026-11-13 (noche): plan de T4, prompt para Gemini 4 y operación sin SSH
-
-**Qué se hizo (documentos escritos por Claude, en sesión directa en Yuca)**
-
-- Se revisó el estado real en Yuca:
-  - Copernicus GLO-90 está completo: 26,475 tiles y la lista de fallidos del job 2242198 está vacía.
-  - Los mapas de T3 (`runs/2242278/`) cumplen el criterio visual: Valles Marineris, Olympus Mons, Hellas y Argyre en Marte; mares frente a tierras altas, Crisium y Orientale en la Luna.
-- [plan_t4.md](plan_t4.md): especificación completa de T4.
-  - NASA solo publica los nombres de las 9 regiones de Artemis III, sin coordenadas, así que se anclan en el rasgo IAU del mismo nombre. Las regiones de borde se miden con 8 parches sobre el borde del cráter.
-  - Nobile Rim 1 y 2 se fusionan en un blanco, y también Mons Mouton y su meseta.
-  - Coordenadas de aterrizaje verificadas para 8 sitios en Marte; quedan `TODO(verificar)` en Spirit, Oxia y Arcadia.
-  - Se agrega soporte de parches que contienen el polo (Shackleton) sin cambiar T3.
-  - Clusters k-means (30 por cuerpo) sobre los rasgos de T3.
-- [gemini_prompt.md](gemini_prompt.md) se reescribió para Gemini 4 en modo Orchestrator (Argon) de Antigravity, que ya tiene acceso a Yuca. Tiene MODO A (con SSH) y MODO B (sin SSH), y reglas reforzadas: nada de `pytest` en el login y no importar los scripts v1.
-- [working_without_ssh.md](working_without_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre, pero Open OnDemand (HTTPS) sí funciona; así se trabajó el 13. El documento cubre el flujo con OOD (Gemini en local, push a GitHub, Owen corre `git pull`/`sbatch` en la terminal de OOD y le pasa los logs), la lista para esta noche, el kit offline, qué avanzar en cada lado y el plan B.
-  - El kit offline (`/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz`, 88 MB) tiene los parquet de T3, el gacetero IAU, Natural Earth y la caché de Diviner.
-- [handoff.md](handoff.md) se actualizó y ahora incluye la "Cola para cuando haya SSH".
-- Incidente sin daño: al revisar el gacetero, Claude importó `enrich_nomenclature.py`, que se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El contenido quedó idéntico a la copia del repo.
-
-**Qué falta**
-
-- Que Gemini implemente T4 con `plan_t4.md` y correrlo en Yuca, de ser posible esta misma noche.
-- Bajar el kit offline a la laptop y preparar el entorno local para las pruebas.
-- Planes detallados de T6, T5 y T7/T8 (Claude).
-
-## 2026-11-13: T10, primer esqueleto de la app (branch `feat/app-t10-esqueleto`)
-
-**Qué se hizo (código escrito por Claude, a partir del mockup publicado como artefacto)**
-
-- `app/`: React 18 + Vite 5 + TypeScript + Tailwind 4. Interfaz en inglés. Secciones: selector Marte / Luna, tesis con cifras, explorador (presets de misión, sliders de pesos, MSI mínimo, mapas dobles, ranking), ficha del sitio (tabla blanco contra Tierra con coincide / no coincide, radar de 4 dimensiones, uso sugerido, "Where the analogy breaks") y metodología con las fuentes.
-- El MSI se recalcula en el navegador con `MSI = Σ w·S / Σ w`, solo sobre las dimensiones que tienen `sub_score` (`app/src/lib/msi.ts`). Ambiente y térmico aparecen deshabilitados con la tarea que los trae (T5/T6, T7).
-- Mapas: Leaflet para los tres cuerpos (Marte con MOLA de Trek, la Luna con LROC WAC de Trek, ambos en EPSG:4326; la Tierra con Blue Marble de GIBS en Web Mercator). El plan pedía MapLibre para la Tierra; se dejó Leaflet para tener una sola librería en el esqueleto. Radar dibujado en SVG propio en lugar de Recharts por la misma razón.
-- `tools/v1_to_sample.py` convierte `output/analogs.json` (v1) al esquema v2 de la sección 5 y escribe `app/public/data/sample.json` (80 blancos, 400 análogos, 260 KB). Los `sub_scores` son provisionales: kernel RBF por rasgo con σ = 35 % del valor del blanco y un mínimo absoluto (1.5° y 2.5° para pendientes, 30 m y 25 m para σ de elevación y TRI). `mismatches` marca los rasgos a más de 1.5 σ (desviación del conjunto por cuerpo): 67 de 400 análogos tienen al menos uno. Presets y límites físicos van con texto en inglés provisional; T11 los reemplaza.
-- Diseño con los tokens en `app/src/index.css` (una capa de variables CSS, tema claro y oscuro por `prefers-color-scheme`, acento óxido para Marte y gris azulado para la Luna).
-- Verificado: `npm run build` sin errores; en el navegador cargan los tiles de Trek y GIBS sin errores de consola, el preset, el cambio de cuerpo y la selección de blanco y análogo actualizan ranking, mapas y ficha; sin scroll horizontal a 320 y 414 px. Gates del kit de diseño: sin emoji, sin valores fijos, sin `<select>` nativo. Contraste AA medido en los pares de tokens de ambos temas; `--faint` claro se oscureció a `#5c6370` porque fallaba sobre `--surface-2`. Los gates de render del kit no se corrieron porque esperan un HTML suelto y la app necesita servidor para leer el JSON.
-- `.claude/launch.json` con la configuración `app` (puerto 5173) para levantarla desde Claude Code.
-
-**Qué falta**
-
-- Conectar `analogs_universe.json` real cuando exista T8 (basta con cambiar `DATA_URL` en `app/src/App.tsx`).
-- Vista "Compare" de dos sitios, exportar ficha (JSON / Markdown) y vista de impresión.
-- Filtro "solo nuevos candidatos" y prioridad logística (λ) cuando T6 traiga `dist_road_km`.
-- Aviso y vista polar para el polo sur lunar (la proyección equirectangular deforma mucho).
-- Medir el criterio de aceptación de 50 ms al mover un slider y revisar la app en 1366 × 768 y en el proyector.
-
-Para correrla: `cd app && npm install && npm run dev`.
-
-## 2026-11-13: T1/T3 — aplicación de `scales`/`offsets` en `geo.py`, WAC por percentil lunar y metadatos de rasters
-
-**Qué se hizo (código escrito por Gemini)**
-
-- Se registró la corrida de prueba `--limit 500` de T3 en Yuca (job `2242227`, 1 min 18 s): Marte `498/500` válidos (`mean_slope_deg` mediana `1.08°`, p95 `4.63°`, máx `17.15°`), Diviner PRP cacheado (`2,880,000` triángulos en `data/derived/diviner_prp_south.parquet`) y Luna `494/500` válidos (`mean_slope_deg` mediana `13.24°`, p95 `21.50°`, máx `27.68°`).
-- **Confirmación en Yuca sobre LOLA y tabla completa de escalas (`docs/pipeline.md`):**
-  - `Lunar_LRO_LOLA_Global_LDEM_118m.tif` es `int16` con `scales=(0.5,)`, `offsets=(0.0,)` y `nodata=-32768`. Por no aplicar `scale=0.5`, tanto la **v1** como la primera prueba `2242227` tenían todas las métricas verticales lunares (`mean_elev_m`, `relief_m`, `roughness_std_m`, `tri` y `tan(slope)`) **al doble** de su valor real. (Se retira la nota previa sobre el rango de elevaciones de la v1).
-  - Entre todos los mosaicos revisados en Yuca, únicamente LOLA (`scale=0.5`, `offset=0.0`) y LROC WAC (`uint8`, `scale=1.00395`, `offset=-0.00395`, `nodata=0`) tienen escala distinta de `(1.0, 0.0)`.
-  - Además, WAC entrega brillo relativo (`≈ 1–256`), no reflectancia física absoluta, por lo que debe compararse por percentil dentro de la propia Luna; `Moon_IceFavorabilityIndex_{90N,90S}000E_591mp.tif` es `float32` con `nodata=-3.4e38`.
-- Se actualizó `pipeline/geo.py` (`extract_patch` y `_clean_nodata`): lectura con `out_dtype="float32"` (incluyendo la rama `out_shape`), filtrado previo de no-finitos y centinelas `|z| > 1e5` (para evitar overflow de `float32` con `nodata=-3.4e38`), enmascarado de `src.nodata` y aplicación de `src.scales[0]` / `src.offsets[0]` antes de reproyectar.
-- En `pipeline/features.py` se dejó explícito `np.gradient(z_clean, res, res)` para ambos ejes.
-- En `pipeline/planet_features.py` se agregó `_log_raster_meta` para imprimir al inicio `dtype`, `nodata`, `scales`, `offsets` y `res` de cada raster usado (`DEM`, `themis_day`, `themis_night`, `wac_reflectance`, `ice_south`, `ice_north`), el resumen (`min`, `mediana`, `p95`, `max`) de `mean_slope_deg`, `relief_m`, `mean_elev_m` y `wac_reflectance`, y la función `compute_lunar_wac_percentile` para transformar el brillo WAC a percentil `[0, 1]` dentro de la Luna.
-- En `tests/test_geo.py` y `tests/test_planet_features.py` se añadieron pruebas para `int16` escalado (`scale=0.5`, `offset=100.0`, `nodata=-32768`), `uint8` WAC escalado a `100 m/px`, filtrado de `nodata=-3.4e38` sin warnings y `compute_lunar_wac_percentile`.
-- **Verificación en Yuca (commit `bcf10de`):**
-  - Suite `pytest -q tests` (`tests_v2`): **`17 passed` in 3.30s** en `spaceapps_2026`.
-  - Prueba `--limit 500` **DESPUÉS** del arreglo (job `2242231_0`, 22 s en `amdcpu-hpc-23`), comparada frente al job `2242227` (ANTES, mismo conjunto de `494/500` parches lunares válidos):
-    - `mean_slope_deg` (Luna): min `0.33° -> 0.17°`, mediana `13.24° -> 6.93°`, p95 `21.50° -> 11.51°`, máx `27.68° -> 16.04°`.
-    - `relief_m` (Luna): min `67.92 -> 33.96 m`, mediana `3229.80 -> 1614.90 m`, p95 `7460.09 -> 3730.05 m`, máx `11210.04 -> 5605.02 m` (exactamente a la mitad).
-    - `mean_elev_m` (Luna): min `-10630.40 -> -5315.20 m`, mediana `-1424.61 -> -712.31 m`, p95 `8225.56 -> 4112.78 m`, máx `14751.13 -> 7375.57 m` (exactamente a la mitad y ya dentro del rango físico lunar `-9.1` a `+10.8 km`).
-    - `wac_reflectance` (Luna, brillo relativo `uint8` con `scale=1.00395, offset=-0.00395, nodata=0`): min `1.00`, mediana `67.26`, p95 `93.85`, máx `136.71` (`n=494`).
-    - `ice_south` / `ice_north` (`float32`, `nodata=-3.4028226550889045e+38`): leídos sin warnings y `Diviner polar` con 5 parches de cobertura en la muestra `--limit 500`.
-    - Marte en `2242231_0` (`498/500` válidos, `scale=1.0`): `mean_slope_deg` min `0.04°`, mediana `1.08°`, p95 `4.63°`, máx `17.15°`; `relief_m` min `6.04 m`, mediana `239.32 m`, p95 `1476.28 m`, máx `5310.49 m`; `mean_elev_m` min `-6864.79 m`, mediana `-282.06 m`, p95 `4256.35 m`, máx `9031.45 m`.
-  - **Corrida global completa de T3 (jobs `2242278` `0..15` + merge `2242279`):**
-    - Marte: 16 franjas -> **`140,916` parches válidos** (de `141,472`, `99.61 %`; cumple `~141k ± 10 %`) en `/lustre/proyectos/p089/runs/2242278/features_mars.parquet` y mapa `/lustre/proyectos/p089/runs/2242278/map_mars_mean_slope_deg.png`.
-    - Luna: 16 franjas -> **`36,741` parches válidos** (de `37,014`, `99.26 %`; cumple `~37k ± 10 %`) en `/lustre/proyectos/p089/runs/2242278/features_moon.parquet` y mapa `/lustre/proyectos/p089/runs/2242278/map_moon_mean_slope_deg.png`.
-
-**Qué falta**
-
-- Inspección visual rápida de los mapas `map_mars_mean_slope_deg.png` y `map_moon_mean_slope_deg.png` de `runs/2242278/` (Valles Marineris / Olympus Mons en Marte; tierras altas frente a mares en la Luna).
-- Implementar **T4** (`pipeline/targets.py` + `pipeline/data/targets.json` + tests): blancos curados (Artemis III + Shackleton, sitios de aterrizaje en Marte con coordenadas verificadas) y 30 clusters por cuerpo sobre los parquet de T3 (`2242278`), luego T6, T5, T7 y T8.
-
-## 2026-11-13: T3 — barrido global de Marte y la Luna (pipeline/planet_features.py)
-
-**Qué se hizo (código escrito por Gemini)**
-
-- Se verificó la suite T1+T2 en Yuca (job `2242225`, entorno `spaceapps_2026`: `9 passed in 1.16s`).
-- Se actualizó `pipeline/config.py` y `pipeline/requirements.txt` (`matplotlib>=3.7` y rutas de rasters planetarios y Diviner PRP).
-- Se implementó `pipeline/planet_features.py` y `jobs/t3_planet_features.slurm`: grilla global de `32 km` (`-88°` a `88°`, ~141k centros en Marte y ~37k en la Luna), extracción paralela por franjas (`--array=0-15`, `8 CPUs`), muestreo de capas auxiliares (`themis_day`, `themis_night`, `themis_delta` en Marte; `wac_reflectance`, `ice_favorability` polar y lectura/caché de `dlre_prp_south.tab` a `data/derived/diviner_prp_south.parquet` con consulta `cKDTree` en parches polares para `diviner_tmax_k`, `diviner_tavg_k`, `ice_depth_m` ignorando `-999`), opción `--limit` para pruebas y `--merge` para combinar franjas y generar mapas scatter PNG de `mean_slope_deg`.
-- Se añadieron pruebas unitarias sintéticas en `tests/test_planet_features.py` (`14 passed` en total localmente).
-
-**Qué falta**
-
-- Correr T3 en Yuca primero en modo prueba (`--limit 500`), revisar el log y el PNG, y después lanzar el job array completo (`0-15`) + `--merge`.
-- Continuar con T4 (`pipeline/targets.py` + `pipeline/data/targets.json`) y T5–T11.
-
-## 2026-11-13: descarga de Diviner
-
-- Se encontró el Diviner Polar Resource Product en el paquete PDS4 `lro_diviner_derived1`, colección `data_derived_prp` (Yuca sí llega a PDS Geosciences; la laptop no).
-- Nuevo `jobs/download_diviner.slurm`: baja `dlre_prp_south.tab` (604800210 bytes), `.lbl` y `.xml` a `data/raw/moon/diviner/`. El polo norte (mismo tamaño) no se baja porque los blancos están en el sur.
-- Descargado y verificado en Yuca: `.tab` de 604800210 bytes exactos, sin `.aria2`. Se envió dos veces por error, pero el segundo job (2242221) solo encontró los archivos ya completos.
-- Formato real (CSV con encabezado): `tri1_x..tri3_z` (vértices de la malla, en km), `tri_clon`, `tri_clat` (centro del triángulo, grados), `tri_calt`, `temp_avg` y `temp_max` (K), `ice_depth` (m; `-999` = sin hielo estable). La malla es un cuadrado centrado en el polo, así que en las esquinas llega hasta ~75.9°S.
-
-## 2026-11-13: explorador de datasets
-
-- Claude escribió `tools/explore_datasets.py` y `jobs/explore_datasets.slurm`: un reporte HTML autocontenido con miniatura, metadatos (CRS, resolución, nodata, radio del cuerpo), estadísticas, histograma y valores en sitios conocidos de cada raster; cobertura y validación de los tiles de Copernicus (abre cada tile); mapas de NDVI y temperatura de MODIS; carreteras, aeropuertos y países; nomenclatura IAU. También escribe `resumen.md` y `resumen.json`.
-- Solo depende de numpy, rasterio y pyproj (las imágenes se generan sin matplotlib). MODIS se lee con GDAL o, si no tiene HDF4, con pyhdf (el job lo instala si falta).
-- Probado en la laptop con datos sintéticos (rasters equirectangulares, tiles válidos y uno dañado, shapefile y dbf). Falta correrlo en Yuca con los datos reales.
-
-## 2026-11-13: verificación de mosaicos descargados (job 2242198)
-
-- THEMIS IR Night 60N-60S: 15179427309 bytes, igual que en S3, sin `.aria2`.
-- LROC WAC 100 m: 5959263751 bytes, igual que en S3, sin `.aria2`.
-- Índice de favorabilidad de hielo, ambos polos: 4003661 bytes cada uno.
-- Copernicus: seguía bajando (17,293 tiles a las 18:06, ahora en la Antártida); falta revisar el final del log y la lista de fallidos.
-
-## 2026-11-13: T2 — rasgos geomorfométricos del parche (pipeline/features.py)
-
-**Qué se hizo (código escrito por Gemini)**
-
-- Se implementó `compute_features` (alias `extract_features`) en `pipeline/features.py` para parches de `64 × 64` a `500 m/px`, rellenando `NaN` restantes con la mediana del parche y devolviendo los 7 rasgos en `float32`: `mean_slope_deg`, `p90_slope_deg`, `relief_m`, `hypsometric_integral`, `detrended_std_m`, `tri_m` (TRI de Riley sobre 8 vecinos en píxeles interiores) y `mean_elev_m`.
-- Se agregaron pruebas sintéticas en `tests/test_features.py` (plano inclinado de 10°, plano horizontal, cono sintético con integral hipsométrica ≈ 1/3, relleno de `NaN` y tipos `float32`).
-- Suite completa verificada localmente: 9/9 pruebas pasan con `pytest -q tests`.
-
-**Qué falta**
-
-- Instalar `pipeline/requirements.txt` si falta algún paquete en el entorno `spaceapps_2026` de Yuca y correr `pytest -q tests` en Yuca.
-- Siguientes tareas del plan: T3 (`pipeline/planet_features.py` + `jobs/t3_planet_features.slurm`) y T4 (`pipeline/targets.py` + `pipeline/data/targets.json`), además de completar descargas T0.
-
-## 2026-11-13: T1 — extracción de parches sin distorsión (pipeline/geo.py)
-
-**Qué se hizo (código escrito por Gemini)**
-
-- Se creó la base del paquete `pipeline/` (`__init__.py`, `config.py`, `requirements.txt`).
-- Se implementó `extract_patch` en `pipeline/geo.py`: extrae parches de `32 × 32 km` a `500 m/px` (`64 × 64 px`) en proyección AEQD local centrada en `(lat, lon)`, verificando el radio del elipsoide (`WGS84` para Tierra, `1737400 m` para Luna, `3396190 m` para Marte), reduciendo lectura con `out_shape` en rasters finos, saltando y contando cruces del antimeridiano `±180°`, convirtiendo `nodata` y `|z| > 1e5` a `NaN` y exigiendo al menos 90 % de píxeles válidos.
-- Se agregaron pruebas sintéticas en `tests/__init__.py` y `tests/test_geo.py` (invarianza de pendiente entre lat 0° y 70° en la Luna, cruce de borde entre tiles en VRT terrestre sin huecos, descarte de océano/nodata, cruce de antimeridiano y validación de radio): 5/5 pruebas pasan con `pytest`.
-
-**Qué falta**
-
-- T2 (`pipeline/features.py` + `tests/test_features.py`) y tareas T3–T11 del plan.
-- Ejecutar `pytest -q tests` en Yuca y validar cobertura de descargas T0.
-
-## 2026-11-13: datos que faltan
-
-- Gemini ya empezó con el plan.
-- Se agregó `ne_10m_admin_0_countries` (Natural Earth, 5 MB) a `run_download_extra.slurm` para llenar el país de cada análogo. Hay que volver a enviar el job; lo ya descargado se salta.
-- Siguen pendientes: terminar Copernicus (job 2242198) y verificar tamaños, y Diviner PRP (manual).
-
-## 2026-11-13: prompt de trabajo para Gemini
-
-- Claude escribió [gemini_prompt.md](gemini_prompt.md): instrucciones para que Gemini implemente el plan tarea por tarea (qué leer primero, reglas de commits y bitácora, reglas de Yuca, formato de respuesta) y el orden sugerido de sesiones.
-
-## 2026-11-13: descargas enviadas en Yuca
-
-- Se clonó el repo en `/lustre/proyectos/p089/code`; los jobs se envían desde ahí. Las copias viejas de los scripts en la raíz de `p089/` quedan sin uso.
-- Se creó `~/.netrc` de Earthdata en Yuca (a mano, por Owen).
-- Jobs enviados: `2242198` (`run_download_missing.slurm`) y `2242199` (`run_download_extra.slurm`).
-- `2242199` bajó Natural Earth, pero MODIS falló por credenciales de Earthdata inválidas. Tras corregir el `.netrc`, `2242203` bajó MODIS completo: 12 archivos MOD13C2 (NDVI) en `data/raw/earth/modis/ndvi` y 12 MOD11C3 (LST) en `data/raw/earth/modis/lst`, todo 2023.
-- `2242194` era un envío duplicado de `run_download_missing.slurm` (17:49) que corrió unos minutos a la vez que `2242198`; se canceló.
-- **Pendiente:** como dos descargas escribieron a la vez, verificar al final que los mosaicos tengan el tamaño de S3 (THEMIS Night 15179427309 bytes, WAC 5959263751 bytes) y que no queden `.aria2` junto a ellos y que todos los tiles de Copernicus abran con rasterio (lo hace T5 al registrar los tiles que fallan).
-
-## 2026-11-13: plan de implementación v2 y recursos oficiales
-
-**Qué se hizo**
-
-- Se revisó la pestaña Resources del challenge. Ya usamos PDS, LRO (LOLA, LROC WAC) y Copernicus. Faltaban Diviner (temperaturas polares) y NASA Earthdata (MODIS); CSA RADARSAT, ESA Open Science Catalog y JAXA G-Portal quedan fuera de alcance.
-- Claude escribió [implementation_plan.md](implementation_plan.md): tareas T0–T11 con archivos, fórmulas, criterios de aceptación, contrato JSON v2 y cronograma. El código lo implementará Gemini a partir de ese plan.
-- Decisiones clave del plan: parches de 32 × 32 km a 500 m/px en proyección AEQD local para los tres cuerpos; máscara con NDVI de MODIS; blancos curados (Artemis III, sitios de aterrizaje en Marte) más clusters; puntaje RBF por dimensión; etiqueta de análogos conocidos.
-- Nuevo job `run_download_extra.slurm` con `download_earthdata.py`: Natural Earth (carreteras, aeropuertos) y MODIS NDVI (MOD13C2) y LST (MOD11C3) de 2023 vía `earthaccess`.
-- Se verificaron las URLs de tiles de NASA GIBS (Tierra) y NASA Trek (Luna y Marte) para la app.
-
-**Pendiente**
-
-- Diviner Polar Resource Product (`LRO-L-DLRE-5-PRP-V2.0`): la URL exacta no se pudo verificar desde la red de la laptop; bajarlo a mano.
-- Crear cuenta de Earthdata y `~/.netrc` en Yuca antes de enviar `run_download_extra.slurm`.
-
-## 2026-11-13: job para re-descargar lo que faltó
-
-**Qué se hizo**
-
-- Se revisó el bucket de USGS (`asc-pds-services`, prefijo `mosaic/`) para encontrar los nombres reales:
-  - THEMIS Night existe solo como `Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` (15.2 GB, 60°N–60°S). Por eso la URL global daba 404.
-  - Para la Luna se eligió `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB, reflectancia real) en vez del ClrShade.
-  - Se agregó `Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` (~4 MB c/u), útil para la base permanente en el polo.
-- Nuevo job `run_download_missing.slurm`: baja lo anterior y retoma Copernicus GLO-90 con la lista sin `\r`, guarda los fallidos en `copernicus_90m_fallidos_<job>.txt` y al final verifica conteos y cuota. Corre como `sbatch`, no con `nohup` en el login.
-- `process_analogs.py` ahora lee THEMIS Night y WAC con sus nombres nuevos (`wac_reflectance` reemplaza a `lola_albedo_shade`).
-
-**Pendiente**
-
-- SSH a Yuca está bloqueado desde la red actual; el job está listo pero no se ha corrido.
-- Cuota de `p089` revisada: 78.9 GB usados de 18.63 TB (15,839 archivos). Sobra espacio para los ~75–80 GB estimados.
-- Después de la descarga, mover a `_to_delete/` el `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` (es ClrShade) y el intento fallido `Mars_ODY_THEMIS_IR_Night_Mosaic_100m.tif` si quedó.
-
-## 2026-11-13: propuesta de valor
-
-- Claude redactó [value_proposition.md](value_proposition.md) para el equipo de presentación y video: problemática, propuesta de valor, qué agrega el proyecto frente a lo que pide la NASA, diferenciador frente a otros equipos y candidatos en México del prototipo.
-- Incluye una lista de lo que no debe afirmarse todavía, por las limitaciones del prototipo.
-- El diferenciador frente a otros equipos es una hipótesis: sus proyectos no son visibles antes de la entrega.
-- Se subió el mismo contenido a un doc de Claude para el equipo: [Propuesta de valor: Planetary Analog Finder](https://claude.ai/artifact/563rMStp47364hAEc9pCmV). Es privado hasta que se comparta.
-
-## 2026-11-13: revisión del prototipo y repositorio
-
-**Qué se hizo**
-
-- Se bajaron de Yuca los scripts, los logs y `output.zip` (sin los rasters).
-- Claude revisó scripts, logs y salidas.
-- Se ordenó la carpeta: logs en `logs/`, JSON de salida en `output/`, documentación en `docs/`.
-- Se creó el repositorio en GitHub (privado) y se invitó al equipo con permiso de escritura: Javier033x, FernyBoy, EmiB-05, FlorMMF y verdielias.
-
-**Estado del prototipo**
-
-El pipeline corre completo: DEM de Marte y Luna, luego 40 arquetipos por cuerpo con nombre IAU, y luego top-5 análogos terrestres. `output/analogs.json` ya sirve para conectar la app.
-
-**Puntos a mejorar, por prioridad**
-
-1. **Escala.** Las ventanas miden ~118 km en Marte (256 px × 463 m), ~30 km en la Luna (256 × 118 m) y ~46 km en la Tierra (512 × 90 m). La pendiente y la rugosidad dependen de la resolución, así que hay que remuestrear a una resolución común y usar ventanas de la misma extensión en km.
-2. **Máscara árida.** No hay filtro de vegetación (`masks/` vacía). Muchos análogos lunares caen en el Himalaya, Tíbet y los Andes de Colombia.
-3. **Capa lunar.** El archivo llamado "Albedo" se bajó de la URL de `ClrShade` (relieve sombreado a color). Hay que cambiar la URL por una capa de albedo o de rugosidad real.
-4. **Cobertura terrestre.** Solo 6,983 de 26,475 tiles; los análogos quedan entre 0.4° y 45.8° N. La descarga nocturna se cortó y 976 tiles fallaron por un `\r` en las URLs, que ya está corregido en el script.
-5. **THEMIS Night.** La URL `..._v14.tif` da 404; falta encontrar la correcta.
-6. **Blancos.** El k-means es global; faltan blancos reales del reto (polo sur lunar / Artemis, sitios de aterrizaje en Marte).
-7. **Puntaje.** Pasar de `100/(1+0.35d)` al RBF con σ por dimensión del plan maestro.
-8. **Menores.** `tri` es en realidad desviación absoluta a la mediana; `themis_ir_day` está en valores crudos; las etiquetas IAU lunares suelen ser cráteres satélite; `analyze_earth_tile` ignora errores sin avisar.
-
-**Pendiente de confirmar**
-
-- Con el Local Lead: si la descarga de datos y las corridas antes del 14 de noviembre cuentan como trabajo previo.
-
-## 2026-11-12: descargas y primeras corridas en Yuca
-
-- Descarga de MOLA, THEMIS Day y LOLA LDEM (`logs/descargas/download.log`).
-- Descarga nocturna de Copernicus GLO-90; se interrumpió a medias (`logs/descargas/night_download.log`).
-- Corridas de clustering (jobs 2241770, 2241771, 2241773) y de matching (2241781, 2241782, 2241783). Detalle en [pipeline.md](pipeline.md).
-
-## Antes del 12 de noviembre
-
-- Ideas del equipo y su evaluación: [ideas.md](ideas.md).
-- Plan maestro: [master_plan.md](master_plan.md).
+| 1 | Hard | `cache_metadata` | `ndvi` 2 bands, `lst` 3 bands, `3600×7200`, `EPSG:4326` | `3600×7200 EPSG:4326` | PASS |
+| 2 | Hard | `ndvi_sahara` | `dz=0.0919`, `eg=0.1028` | `< 0.12` in both | PASS |
+| 3 | Hard | `ndvi_atacama` | `0.0760` | `< 0.10` | PASS |
+| 4 | Hard | `ndvi_tropical_forests` | `amazonia=0.8684`, `congo=0.8650` | `> 0.70` in both | PASS |
+| 5 | Hard | `dist_road_hermosillo` | `0.596 km` | `< 5 km` | PASS |
+| 6 | Hard | `countries_lookup` | `Mexico` / `Chile` / `Algeria` | `Mexico` / `Chile` / `Algeria` | PASS |
+| 7 | Hard | `known_region_lookup` | `utah-mdrs` / `None` | `utah-mdrs` / `None` | PASS |
+| 8 | Hard | `ndvi_finite_land_frac` | `cos_weighted=0.2696` (`unweighted=0.2438`) | `> 0.25` (weighted by `cos(lat)`) | PASS |
+| 9 | Soft | `lst_day_dry_valleys` | `-28.18 °C` | `< 0 °C` | PASS |
+| 10 | Soft | `lst_amp_sahara_vs_amazonia` | Sahara `21.30 °C` vs Amazon `4.16 °C` | Sahara `> 15 °C` and `>` Amazon | PASS |
+| 11 | Soft | `dist_road_dry_valleys` | `3447.74 km` | `> 1000 km` | PASS |
+| 12 | Soft | `ndvi_prefilter_pass_frac` | `grid=0.0543` (`land=0.2228`) | Informative | PASS |
+| 13 | Soft | `sample_10k_runtime_s` | `1.216 s` | `< 30 s` | PASS |
+
+- **Prefilter rule for T5:** Claude then estimated the T5 prefilter on the real cache. 20,524 of the 35,483 tile centres with NaN NDVI are over the sea (coastal tiles, atolls), not in Antarctica. The T5 plan was changed so that a NaN NDVI passes only where LST exists (`plan_t5.md` §2.5.3).
+
+**What was left:** T5, T7, T8 and T11.
+
+## 2026-11-13 (night): the real venue and its submission rules
+
+- The team is registered at **NASA Space Apps Sonora 2026** (Tec de Monterrey, Campus Sonora Norte), not at the UTH venue the README used to show.
+- Claude reviewed [spaceappssonora.org](https://spaceappssonora.org/) and its [pitch guide](https://spaceappssonora.org/pitches):
+  - hackathon on Saturday the 14th from 9:00 to 21:00; pitches on Sunday the 15th from 9:00 to 14:00;
+  - a 3-minute pitch in Canva, with the team number on the first slide;
+  - documentation and a 30-second video in English;
+  - a deployed app;
+  - judging criteria: innovation, social impact, documentation and scalability.
+- The README was updated with the venue, schedule and rules. [submission.md](submission.md) was created with the deliverables, a timeline fitted to a single working day, the checklist and plan B. The 48-hour timeline in `implementation_plan.md` was marked as superseded.
+
+## 2026-11-13: T4 — curated targets, T4.0 polar support and global clusters
+
+**What was done** (code written by Gemini from Claude's `docs/plan_t4.md`)
+
+- **T4.0** (`pipeline/geo.py`, `tests/test_geo.py`): added `_patch_contains_pole()` and the polar branch in `extract_patch()`, which reads a full latitude band when a patch contains the pole (Shackleton, at `lat = -89.67°`). Patches away from the poles and the antimeridian count are untouched, so T3 (`|lat| <= 88°`) does not change.
+- **Sampling refactor** (`pipeline/planet_features.py`): `resolve_body_paths()` was extracted, and `PointSampler` samples single points reusing T3's `_process_point()` exactly.
+- **IAU nomenclature** (`pipeline/iau.py`, `tests/test_iau.py`):
+  - a clean module with no import side effects;
+  - it loads `MARS_nomenclature_center_pts.shp` and `MOON_nomenclature_center_pts.shp` with `geopandas`;
+  - it normalises `center_lon` (`0–360 -> -180..180`) and makes the links `https://`;
+  - it implements `haversine_km`, `iau_label` and `find_feature`.
+- **Curated targets and clusters** (`pipeline/data/targets.json`, `pipeline/targets.py`, `jobs/t4_targets.slurm`, `tests/test_targets.py`):
+  - `targets.json` holds **16 curated targets**, using `point` anchors (5 patches) and `rim` anchors (8 patches):
+    - 8 lunar: 7 Artemis III regions anchored on their IAU features, because no official centres are published, plus the Shackleton rim;
+    - 8 Martian: Jezero, Gale, Gusev, Meridiani Planum, Utopia Planitia, Elysium/InSight, Oxia Planum and the Arcadia Planitia SWIM region.
+  - `wac_percentile` is computed per patch against `runs/2242278/features_moon.parquet`, and `ice_stable_frac` from Diviner, both before averaging.
+  - **k-means clustering:** `k = 30`, `seed = 42`, `log1p` on `relief_m`, `detrended_std_m` and `tri_m`, and a per-body `StandardScaler`, on `runs/2242278/features_{mars,moon}.parquet`. Each cluster is represented by the real patch closest to its centroid, named with `iau_label`.
+
+**Verification on Yuca** (via Slurm)
+
+- **Unit suite** (job `2242421`, `pytest -q tests`): **`31 passed` in 3.76s** (17 previous + 3 in `test_geo.py` + 3 in `test_iau.py` + 8 in `test_targets.py`).
+- **Lunar smoke test** (job `2242422`, `jobs/t4_targets.slurm --k 5 --body Moon`, 17 s): `8/8` lunar curated targets `ok`, Shackleton included, and 5 clusters.
+- **Full T4 run** (job `2242423`, `jobs/t4_targets.slurm`, 32 s, outputs in `/lustre/proyectos/p089/runs/2242423/`):
+  - **Outputs:** **`76` targets** (`16` curated + `60` clusters) in `targets.parquet` and `targets.json`, plus `targets_patches.parquet`, `clusters_{mars,moon}.parquet`, `map_targets_mars.png` and `map_targets_moon.png`. No curated target dropped out (`0 insufficient_coverage`).
+  - **Moon (`8/8 ok`):**
+    - every anchor matches its `anchor.iau_feature` exactly (`d = 0.0 km`);
+    - all have finite `diviner_tavg_k` (`64.9–133.3 K`), `ice_favorability`, `ice_depth_m` (`ice_stable_frac = 1.0`) and `wac_percentile`;
+    - `moon-shackleton-rim` completed `8/8` patches (`mean_slope = 14.27°`, `relief = 3616 m`);
+    - the 30 clusters add up to `36,741` patches (`min/median/max = 518/1040/2332`).
+  - **Mars (`8/8 ok`):** all with `5/5` patches and finite `themis_day`, `themis_night` and `themis_delta`. The 30 clusters add up to `140,916` patches (`min/median/max = 494/4715/8933`).
+- **Sanity review** (`plan_t4.md` §10):
+  - **Mars** (global median `mean_slope_deg = 1.16°`): the five landing plains are all well below the global median. InSight is the flattest (`0.25°`, `relief = 71.6 m`), followed by Arcadia SWIM (`0.30°`, `39.1 m`), Zhurong/Utopia (`0.42°`, `126.9 m`), Spirit/Gusev (`0.49°`, `80.4 m`) and Opportunity/Meridiani (`0.54°`, `132.5 m`).
+    - The strict top 3 is InSight, Arcadia SWIM and Zhurong, so Opportunity comes 5th, inside the flat block below `0.55°`.
+    - Gale has `relief_m = 2793.1 m`, against `71.6 m` for InSight (`~39×`).
+  - **Moon** (global median `mean_slope_deg = 6.78°`): the 8 polar targets range from `8.09°` (Mons Mouton) to `14.27°` (Shackleton rim), all above the global lunar median.
+  - **Maps** (`map_targets_mars.png`, `map_targets_moon.png`): the curated targets fall in their expected regions, and Tharsis and Valles Marineris separate from the northern plains.
+- **Claude's review:** accepted. The Opportunity criterion was too strict in the plan, and the result is correct. The explanation Gemini first gave (that its 16 km neighbours "touch" the rim of Victoria crater) does not hold: Victoria is ~750 m across, far too small to move a 32 km patch. The job log records commit `0e1e43c` because the job ran before the commit; the code was unchanged between the run and `115e0c3`. Rule since then: commit before running.
+
+**What was left:** T6, T5, T7, T8 and T11.
+
+## 2026-11-13 (night): T4 plan, Gemini 4 prompt and working without SSH
+
+**What was done** (documents written by Claude, in a session directly on Yuca)
+
+- **Real state on Yuca:**
+  - Copernicus GLO-90 is complete: 26,475 tiles, and the failure list of job 2242198 is empty;
+  - the T3 maps (`runs/2242278/`) pass the visual check: Valles Marineris, Olympus Mons, Hellas and Argyre on Mars; maria against highlands, Crisium and Orientale on the Moon.
+- **[plan_t4.md](plan_t4.md),** the full T4 specification:
+  - NASA publishes only the names of the 9 Artemis III regions, without coordinates, so each is anchored on the IAU feature of the same name. Rim regions are measured with 8 patches on the crater rim.
+  - Nobile Rim 1 and 2 are merged into one target, and so are Mons Mouton and its plateau.
+  - Landing coordinates were verified for the 8 Mars sites; `TODO(verify)` remains on Spirit, Oxia and Arcadia.
+  - Support for patches that contain the pole (Shackleton) is added without changing T3.
+  - k-means clusters (30 per body) are built on the T3 features.
+- **[gemini_prompt.md](gemini_prompt.md)** was rewritten for Gemini 4 in Antigravity's Orchestrator (Argon) mode, which by then had access to Yuca.
+  - MODE A is with SSH, MODE B without.
+  - Reinforced rules: no `pytest` on the login node, and never import the v1 scripts.
+- **[working_without_ssh.md](working_without_ssh.md):** the venue network blocks SSH on 14 and 15 November, but Open OnDemand (HTTPS) works; that is how the team worked on the 13th.
+  - **Workflow:** Gemini works locally and pushes to GitHub; Owen runs `git pull`/`sbatch` in the OOD shell and passes the logs back.
+  - **Also covered:** the checklist for that night, the offline kit, what can move forward on each side, and plan B.
+  - **Offline kit:** `/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz`, 88 MB, with the T3 parquet files, the IAU gazetteer, Natural Earth and the Diviner cache.
+- **[handoff.md](handoff.md)** was updated and now has a queue of pending cluster commands.
+- **Incident without damage:** while inspecting the gazetteer, Claude imported `enrich_nomenclature.py`, which ran and rewrote `/lustre/proyectos/p089/output/planetary_baselines.json`. The content came out identical to the repository copy.
+
+**What was left**
+
+- Gemini implements T4 from `plan_t4.md`, and it runs on Yuca, ideally the same night.
+- Download the offline kit to the laptop and set up the local environment for the tests.
+- Detailed plans for T6, T5 and T7/T8 (Claude).
+
+## 2026-11-13: T10, first app skeleton (branch `feat/app-t10-esqueleto`)
+
+**What was done** (code written by Claude, from the mockup published as an artifact)
+
+- **`app/`:** React 18, Vite 5, TypeScript and Tailwind 4, with an English interface. Sections:
+  - a Mars / Moon selector;
+  - a thesis with figures;
+  - the explorer: mission presets, weight sliders, minimum MSI, dual maps and ranking;
+  - the site card: target-vs-Earth table with match / no match, a 4-dimension radar, suggested use, and "Where the analogy breaks";
+  - methodology with the sources.
+- **MSI in the browser:** recomputed as `MSI = Σ w·S / Σ w`, only over the dimensions that have a `sub_score` (`app/src/lib/msi.ts`). Environment and thermal are shown as disabled, labelled with the task that brings them (T5/T6, T7).
+- **Maps:** Leaflet for all three bodies.
+  - Mars with Trek's MOLA, and the Moon with Trek's LROC WAC, both in EPSG:4326; Earth with GIBS Blue Marble in Web Mercator.
+  - The plan asked for MapLibre for Earth; Leaflet was kept so the skeleton has a single library. For the same reason the radar is drawn in custom SVG instead of Recharts.
+- **Sample data:** `tools/v1_to_sample.py` converts `output/analogs.json` (v1) to the v2 schema of section 5, and writes `app/public/data/sample.json` (80 targets, 400 analogs, 260 KB).
+  - **The `sub_scores` are provisional:** an RBF kernel per feature, with σ = 35 % of the target's value and an absolute minimum (1.5° and 2.5° for the slopes, 30 m and 25 m for the elevation σ and TRI).
+  - **`mismatches`** flags features more than 1.5 σ away (the standard deviation of the set, per body): 67 of the 400 analogs have at least one.
+  - **Presets and physical limits** have provisional English text, which T11 replaces.
+- **Design:** tokens in `app/src/index.css` (one layer of CSS variables; light and dark themes through `prefers-color-scheme`; a rust accent for Mars and blue-grey for the Moon).
+- **Verified:**
+  - `npm run build` passes without errors.
+  - In the browser, the Trek and GIBS tiles load with no console errors, and the preset, the body switch and the target/analog selection all update the ranking, the maps and the card.
+  - There is no horizontal scroll at 320 or 414 px.
+  - Design-kit gates: no emoji, no hard-coded values, no native `<select>`.
+  - AA contrast was measured on the token pairs of both themes; the light `--faint` was darkened to `#5c6370` because it failed on `--surface-2`.
+  - The kit's render gates were not run, because they expect a standalone HTML file and the app needs a server to read the JSON.
+- **Dev setup:** `.claude/launch.json` with the `app` configuration (port 5173), to start it from Claude Code.
+
+**What was left**
+
+- Connect the real `analogs_universe.json` once T8 exists (changing `DATA_URL` in `app/src/App.tsx` is enough).
+- A "Compare" view for two sites, card export (JSON / Markdown) and a print view.
+- A "new candidates only" filter and the logistics priority (λ), once T6 brings `dist_road_km`.
+- A notice and a polar view for the lunar south pole (the equirectangular projection distorts heavily).
+- Measure the 50 ms slider criterion, and review the app at 1366 × 768 and on a projector.
+
+To run it: `cd app && npm install && npm run dev`.
+
+## 2026-11-13: T1/T3 — `scales`/`offsets` in `geo.py`, WAC by lunar percentile and raster metadata
+
+**What was done** (code written by Gemini)
+
+- **First T3 test run recorded** (`--limit 500`, job `2242227`, 1 min 18 s):
+  - Mars: `498/500` valid (`mean_slope_deg` median `1.08°`, p95 `4.63°`, max `17.15°`);
+  - Diviner PRP cached (`2,880,000` triangles in `data/derived/diviner_prp_south.parquet`);
+  - Moon: `494/500` valid (`mean_slope_deg` median `13.24°`, p95 `21.50°`, max `27.68°`).
+- **LOLA and the full scale table, confirmed on Yuca** (`docs/pipeline.md`):
+  - **LOLA:** `Lunar_LRO_LOLA_Global_LDEM_118m.tif` is `int16` with `scales=(0.5,)`, `offsets=(0.0,)` and `nodata=-32768`. Because `scale=0.5` was not applied, **both v1 and the first test `2242227` had every lunar vertical metric doubled** (`mean_elev_m`, `relief_m`, `roughness_std_m`, `tri` and `tan(slope)`). The earlier note about the v1 elevation range is withdrawn.
+  - **Only LOLA and WAC** have a scale other than `(1.0, 0.0)` among all the mosaics checked on Yuca. LOLA has `scale=0.5`, `offset=0.0`; LROC WAC is `uint8` with `scale=1.00395`, `offset=-0.00395`, `nodata=0`.
+  - **WAC** gives relative brightness (`≈ 1–256`), not absolute physical reflectance, so it must be compared by percentile within the Moon.
+  - **The ice index:** `Moon_IceFavorabilityIndex_{90N,90S}000E_591mp.tif` is `float32` with `nodata=-3.4e38`.
+- **`pipeline/geo.py`** (`extract_patch` and `_clean_nodata`):
+  - reads with `out_dtype="float32"`, including the `out_shape` branch;
+  - filters non-finite values and `|z| > 1e5` sentinels first, which avoids `float32` overflow with `nodata=-3.4e38`;
+  - masks `src.nodata`;
+  - applies `src.scales[0]` / `src.offsets[0]` before reprojecting.
+- **`pipeline/features.py`:** `np.gradient(z_clean, res, res)` is now explicit for both axes.
+- **`pipeline/planet_features.py`:**
+  - `_log_raster_meta` prints, at the start, the `dtype`, `nodata`, `scales`, `offsets` and `res` of every raster used (`DEM`, `themis_day`, `themis_night`, `wac_reflectance`, `ice_south`, `ice_north`);
+  - a summary (`min`, median, `p95`, `max`) of `mean_slope_deg`, `relief_m`, `mean_elev_m` and `wac_reflectance`;
+  - `compute_lunar_wac_percentile`, which turns WAC brightness into a `[0, 1]` percentile within the Moon.
+- **Tests** in `tests/test_geo.py` and `tests/test_planet_features.py`:
+  - scaled `int16` (`scale=0.5`, `offset=100.0`, `nodata=-32768`);
+  - scaled `uint8` WAC at `100 m/px`;
+  - filtering `nodata=-3.4e38` without warnings;
+  - `compute_lunar_wac_percentile`.
+- **Verification on Yuca** (commit `bcf10de`):
+  - `pytest -q tests` (`tests_v2`): **`17 passed` in 3.30s** in `spaceapps_2026`.
+  - **`--limit 500` test AFTER the fix** (job `2242231_0`, 22 s on `amdcpu-hpc-23`), compared with job `2242227` (BEFORE, same set of `494/500` valid lunar patches):
+
+    | Moon metric | Min | Median | p95 | Max |
+    | --- | --- | --- | --- | --- |
+    | `mean_slope_deg` | `0.33° -> 0.17°` | `13.24° -> 6.93°` | `21.50° -> 11.51°` | `27.68° -> 16.04°` |
+    | `relief_m` (exactly half) | `67.92 -> 33.96 m` | `3229.80 -> 1614.90 m` | `7460.09 -> 3730.05 m` | `11210.04 -> 5605.02 m` |
+    | `mean_elev_m` (exactly half, now inside the physical lunar range of `-9.1` to `+10.8 km`) | `-10630.40 -> -5315.20 m` | `-1424.61 -> -712.31 m` | `8225.56 -> 4112.78 m` | `14751.13 -> 7375.57 m` |
+
+    - `wac_reflectance` (Moon; relative `uint8` brightness with `scale=1.00395, offset=-0.00395, nodata=0`): min `1.00`, median `67.26`, p95 `93.85`, max `136.71` (`n=494`).
+    - `ice_south` / `ice_north` (`float32`, `nodata=-3.4028226550889045e+38`): read without warnings, and polar Diviner coverage on 5 patches of the `--limit 500` sample.
+    - Mars in `2242231_0` (`498/500` valid, `scale=1.0`):
+
+      | Mars metric | Min | Median | p95 | Max |
+      | --- | --- | --- | --- | --- |
+      | `mean_slope_deg` | `0.04°` | `1.08°` | `4.63°` | `17.15°` |
+      | `relief_m` | `6.04 m` | `239.32 m` | `1476.28 m` | `5310.49 m` |
+      | `mean_elev_m` | `-6864.79 m` | `-282.06 m` | `4256.35 m` | `9031.45 m` |
+
+  - **Full global T3 run** (jobs `2242278` `0..15` + merge `2242279`):
+    - Mars: 16 stripes -> **`140,916` valid patches** (of `141,472`, `99.61 %`; meets `~141k ± 10 %`) in `/lustre/proyectos/p089/runs/2242278/features_mars.parquet`, with the map `/lustre/proyectos/p089/runs/2242278/map_mars_mean_slope_deg.png`.
+    - Moon: 16 stripes -> **`36,741` valid patches** (of `37,014`, `99.26 %`; meets `~37k ± 10 %`) in `/lustre/proyectos/p089/runs/2242278/features_moon.parquet`, with the map `/lustre/proyectos/p089/runs/2242278/map_moon_mean_slope_deg.png`.
+
+**What was left**
+
+- A quick visual check of `map_mars_mean_slope_deg.png` and `map_moon_mean_slope_deg.png` in `runs/2242278/` (Valles Marineris and Olympus Mons on Mars; highlands against maria on the Moon). Claude did it later the same day: passed.
+- Implement **T4** (`pipeline/targets.py` + `pipeline/data/targets.json` + tests): curated targets (Artemis III + Shackleton, Mars landing sites with verified coordinates) and 30 clusters per body on the T3 parquet files (`2242278`); then T6, T5, T7 and T8.
+
+## 2026-11-13: T3 — global Mars and Moon sweep (`pipeline/planet_features.py`)
+
+**What was done** (code written by Gemini)
+
+- **T1 + T2 suite on Yuca:** passed (job `2242225`, `spaceapps_2026`: `9 passed in 1.16s`).
+- **Configuration:** `pipeline/config.py` and `pipeline/requirements.txt` updated (`matplotlib>=3.7`, planetary raster and Diviner PRP paths).
+- **`pipeline/planet_features.py` and `jobs/t3_planet_features.slurm`:**
+  - a global `32 km` grid (`-88°` to `88°`; ~141k centres on Mars and ~37k on the Moon);
+  - parallel extraction by stripes (`--array=0-15`, `8 CPUs`);
+  - auxiliary layers: `themis_day`, `themis_night` and `themis_delta` on Mars; `wac_reflectance` and polar `ice_favorability` on the Moon;
+  - Diviner: `dlre_prp_south.tab` is read and cached into `data/derived/diviner_prp_south.parquet`, then queried per polar patch with a `cKDTree` for `diviner_tmax_k`, `diviner_tavg_k` and `ice_depth_m`, ignoring `-999`;
+  - `--limit` for tests, and `--merge` to combine the stripes and draw `mean_slope_deg` scatter maps.
+- **Tests:** synthetic unit tests in `tests/test_planet_features.py` (`14 passed` in total, locally).
+
+**What was left**
+
+- Run T3 on Yuca, first in test mode (`--limit 500`), review the log and PNG, then the full array (`0-15`) + `--merge`.
+- Continue with T4 (`pipeline/targets.py` + `pipeline/data/targets.json`) and T5–T11.
+
+## 2026-11-13: Diviner download
+
+- **Where it is:** the Diviner Polar Resource Product was found in the PDS4 bundle `lro_diviner_derived1`, collection `data_derived_prp`. Yuca can reach PDS Geosciences; the laptop cannot.
+- **New `jobs/download_diviner.slurm`:** downloads `dlre_prp_south.tab` (604,800,210 bytes), `.lbl` and `.xml` into `data/raw/moon/diviner/`. The north pole file (same size) is not downloaded, because the targets are in the south.
+- **Downloaded and verified on Yuca:** the `.tab` is exactly 604,800,210 bytes, with no `.aria2`. It was submitted twice by mistake, but the second job (2242221) only found the files already complete.
+- **Real format** (CSV with a header):
+  - `tri1_x..tri3_z`: mesh vertices, in km;
+  - `tri_clon`, `tri_clat`: triangle centre, in degrees;
+  - `tri_calt`;
+  - `temp_avg` and `temp_max`: in K;
+  - `ice_depth`: in m; `-999` means no stable ice.
+
+  The mesh is a square centred on the pole, so at its corners it reaches ~75.9°S.
+
+## 2026-11-13: dataset explorer
+
+- **The tool:** Claude wrote `tools/explore_datasets.py` and `jobs/explore_datasets.slurm`. They build a self-contained HTML report with:
+  - for every raster: a thumbnail, metadata (CRS, resolution, nodata, body radius), statistics, a histogram and the values at known sites;
+  - coverage and validation of the Copernicus tiles (each tile is opened);
+  - MODIS NDVI and temperature maps;
+  - roads, airports and countries;
+  - the IAU nomenclature.
+
+  It also writes `resumen.md` and `resumen.json`.
+- **Dependencies:** only numpy, rasterio and pyproj; the images are generated without matplotlib. MODIS is read with GDAL or, if it has no HDF4, with pyhdf (the job installs it if missing).
+- **Tested** on the laptop with synthetic data (equirectangular rasters, valid tiles plus a broken one, a shapefile and a dbf). It still had to be run on Yuca with the real data.
+
+## 2026-11-13: checking the downloaded mosaics (job 2242198)
+
+- THEMIS IR Night 60N-60S: 15,179,427,309 bytes, the same as on S3, with no `.aria2`.
+- LROC WAC 100 m: 5,959,263,751 bytes, the same as on S3, with no `.aria2`.
+- Ice favorability index, both poles: 4,003,661 bytes each.
+- Copernicus: still downloading (17,293 tiles at 18:06, then in Antarctica); the end of the log and the failure list still had to be checked. Later the same day: complete, 26,475 tiles and 0 failures.
+
+## 2026-11-13: T2 — patch terrain features (`pipeline/features.py`)
+
+**What was done** (code written by Gemini)
+
+- **`compute_features`** (alias `extract_features`) in `pipeline/features.py`, for `64 × 64` patches at `500 m/px`. It fills any remaining `NaN` with the patch median, and returns 7 features as `float32`:
+  - `mean_slope_deg`, `p90_slope_deg`;
+  - `relief_m`, `hypsometric_integral`;
+  - `detrended_std_m`;
+  - `tri_m` (Riley's TRI over 8 neighbours on interior pixels);
+  - `mean_elev_m`.
+- **Synthetic tests** in `tests/test_features.py`: a 10° tilted plane, a horizontal plane, a synthetic cone with hypsometric integral ≈ 1/3, `NaN` filling, and `float32` types.
+- **Local check:** the full suite passed, 9/9 with `pytest -q tests`.
+
+**What was left**
+
+- Install `pipeline/requirements.txt` if anything is missing in the `spaceapps_2026` environment on Yuca, and run `pytest -q tests` there.
+- Next tasks: T3 (`pipeline/planet_features.py` + `jobs/t3_planet_features.slurm`) and T4 (`pipeline/targets.py` + `pipeline/data/targets.json`), and finish the T0 downloads.
+
+## 2026-11-13: T1 — distortion-free patch extraction (`pipeline/geo.py`)
+
+**What was done** (code written by Gemini)
+
+- **Package base:** `pipeline/` was created (`__init__.py`, `config.py`, `requirements.txt`).
+- **`extract_patch`** in `pipeline/geo.py`. It extracts `32 × 32 km` patches at `500 m/px` (`64 × 64 px`) in a local AEQD projection centred on `(lat, lon)`, and:
+  - checks the body radius (`WGS84` for Earth, `1737400 m` for the Moon, `3396190 m` for Mars);
+  - reduces the read with `out_shape` on fine rasters;
+  - skips and counts patches crossing `±180°`;
+  - turns `nodata` and `|z| > 1e5` into `NaN`;
+  - requires at least 90 % valid pixels.
+- **Synthetic tests** in `tests/__init__.py` and `tests/test_geo.py`: 5/5 pass with `pytest`. They cover:
+  - slope invariance between lat 0° and 70° on the Moon;
+  - a seam between tiles in an Earth VRT, with no holes;
+  - dropping ocean/nodata;
+  - antimeridian crossing;
+  - radius validation.
+
+**What was left**
+
+- T2 (`pipeline/features.py` + `tests/test_features.py`) and tasks T3–T11.
+- Run `pytest -q tests` on Yuca and check the T0 download coverage.
+
+## 2026-11-13: missing data
+
+- Gemini started on the plan.
+- `ne_10m_admin_0_countries` (Natural Earth, 5 MB) was added to `run_download_extra.slurm`, to fill in each analog's country. The job has to be resubmitted; files already downloaded are skipped.
+- **Still pending:** finish Copernicus (job 2242198) and check the sizes, and Diviner PRP (manual).
+
+## 2026-11-13: working prompt for Gemini
+
+- Claude wrote [gemini_prompt.md](gemini_prompt.md): instructions for Gemini to implement the plan task by task. It covers:
+  - what to read first;
+  - the commit and logbook rules;
+  - the Yuca rules;
+  - the answer format;
+  - the suggested order of sessions.
+
+## 2026-11-13: downloads submitted on Yuca
+
+- **Clone:** the repository was cloned into `/lustre/proyectos/p089/code`, and jobs are submitted from there. The old copies of the scripts in the root of `p089/` are no longer used.
+- **Earthdata credentials:** the `~/.netrc` was created on Yuca by hand, by Owen.
+- **Jobs submitted:** `2242198` (`run_download_missing.slurm`) and `2242199` (`run_download_extra.slurm`).
+  - `2242199` downloaded Natural Earth, but MODIS failed because of invalid Earthdata credentials.
+  - After the `.netrc` was fixed, `2242203` downloaded all of MODIS: 12 MOD13C2 files (NDVI) in `data/raw/earth/modis/ndvi` and 12 MOD11C3 files (LST) in `data/raw/earth/modis/lst`, all from 2023.
+  - `2242194` was a duplicate submission of `run_download_missing.slurm` (17:49) that ran for a few minutes alongside `2242198`; it was cancelled.
+- **Pending:** two downloads wrote at the same time, so at the end check that:
+  - the mosaics have the S3 sizes (THEMIS Night 15,179,427,309 bytes, WAC 5,959,263,751 bytes);
+  - no `.aria2` files are left next to them;
+  - every Copernicus tile opens with rasterio (T5 does this when it logs failing tiles).
+
+## 2026-11-13: v2 implementation plan and official resources
+
+**What was done**
+
+- **The challenge's Resources tab was reviewed.** PDS, LRO (LOLA, LROC WAC) and Copernicus were already in use. Diviner (polar temperatures) and NASA Earthdata (MODIS) were missing. CSA RADARSAT, the ESA Open Science Catalog and JAXA G-Portal are out of scope.
+- **[implementation_plan.md](implementation_plan.md):** Claude wrote tasks T0–T11 with files, formulas, acceptance criteria, the v2 JSON contract and a timeline. Gemini implements the code from that plan.
+- **Key decisions of the plan:**
+  - 32 × 32 km patches at 500 m/px, in a local AEQD projection, for all three bodies;
+  - a MODIS NDVI mask;
+  - curated targets (Artemis III, Mars landing sites) plus clusters;
+  - an RBF score per dimension;
+  - a known-analog label.
+- **New job `run_download_extra.slurm`** with `download_earthdata.py`: Natural Earth (roads, airports), and MODIS NDVI (MOD13C2) and LST (MOD11C3) for 2023, through `earthaccess`.
+- **App base layers:** the NASA GIBS (Earth) and NASA Trek (Moon and Mars) tile URLs were verified.
+
+**Pending**
+
+- The Diviner Polar Resource Product (`LRO-L-DLRE-5-PRP-V2.0`): its exact URL could not be verified from the laptop's network; download it by hand.
+- Create an Earthdata account and a `~/.netrc` on Yuca before submitting `run_download_extra.slurm`.
+
+## 2026-11-13: job to re-download what was missing
+
+**What was done**
+
+- **The USGS bucket** (`asc-pds-services`, prefix `mosaic/`) was checked for the real file names:
+  - THEMIS Night only exists as `Mars_MO_THEMIS-IR-Night_mosaic_60N60S_100m_v14.tif` (15.2 GB, 60°N–60°S). That is why the global URL returned 404.
+  - For the Moon, `Lunar_LRO_LROC-WAC_Mosaic_global_100m_June2013.tif` (6.0 GB, a real reflectance mosaic) was chosen instead of the ClrShade.
+  - `Moon_IceFavorabilityIndex_{90S,90N}000E_591mp.tif` (~4 MB each) was added; it is useful for a permanent base at the pole.
+- **New job `run_download_missing.slurm`:**
+  - downloads the files above;
+  - resumes Copernicus GLO-90 with the list cleaned of `\r`;
+  - saves the failures to `copernicus_90m_fallidos_<job>.txt`;
+  - checks counts and quota at the end.
+
+  It runs with `sbatch`, not with `nohup` on the login node.
+- **`process_analogs.py`** now reads THEMIS Night and WAC with their new names (`wac_reflectance` replaces `lola_albedo_shade`).
+
+**Pending**
+
+- SSH to Yuca was blocked from the network in use at the time, so the job was ready but had not run.
+- The `p089` quota was checked: 78.9 GB used of 18.63 TB (15,839 files). There is plenty of room for the ~75–80 GB estimated.
+- After the download, move to `_to_delete/` the `Lunar_LRO_LOLA_Albedo_Global_128ppd.tif` (it is ClrShade) and the failed attempt `Mars_ODY_THEMIS_IR_Night_Mosaic_100m.tif`, if it is still there.
+
+## 2026-11-13: value proposition
+
+- **The document:** Claude drafted [value_proposition.md](value_proposition.md) for the pitch and video team. It covers:
+  - the problem and the value proposition;
+  - what the project adds to what NASA asks;
+  - the differentiators against other teams;
+  - Mexican candidates from the prototype.
+- **Limits:** it lists what must not be claimed yet, because of the prototype's limitations.
+- **A hypothesis:** the differentiator against other teams cannot be checked, since their projects are not visible before submission.
+- **Shared copy:** the same content was uploaded to a Claude doc for the team, [Propuesta de valor: Planetary Analog Finder](https://claude.ai/artifact/563rMStp47364hAEc9pCmV). It stays private until it is shared.
+
+## 2026-11-13: review of the prototype and the repository
+
+**What was done**
+
+- The scripts, logs and `output.zip` (without the rasters) were downloaded from Yuca.
+- Claude reviewed the scripts, logs and outputs.
+- The folder was organised: logs in `logs/`, output JSON in `output/`, documentation in `docs/`.
+- The GitHub repository was created (private), and the team was invited with write access: Javier033x, FernyBoy, EmiB-05, FlorMMF and verdielias.
+
+**State of the prototype**
+
+The pipeline runs end to end: the Mars and Moon DEMs, then 40 archetypes per body with IAU names, then the top 5 terrestrial analogs. `output/analogs.json` can already feed the app.
+
+**Points to improve, by priority**
+
+1. **Scale.** The windows are ~118 km on Mars (256 px × 463 m), ~30 km on the Moon (256 × 118 m) and ~46 km on Earth (512 × 90 m). Slope and roughness depend on resolution, so everything must be resampled to a common resolution, with windows of the same extent in km.
+2. **Arid mask.** There is no vegetation filter (`masks/` is empty), so many lunar analogs land in the Himalaya, Tibet and the Colombian Andes.
+3. **Lunar layer.** The file called "Albedo" was downloaded from the `ClrShade` URL (colour-shaded relief). The URL must point to a real albedo or roughness layer.
+4. **Earth coverage.** Only 6,983 of 26,475 tiles, so the analogs fall between 0.4° and 45.8° N. The overnight download stopped, and 976 tiles failed because of a `\r` in the URLs, which is already fixed in the script.
+5. **THEMIS Night.** The `..._v14.tif` URL returns 404; the right one is still to be found.
+6. **Targets.** The k-means is global; the challenge's real targets (lunar south pole / Artemis, Mars landing sites) are missing.
+7. **Score.** Move from `100/(1+0.35d)` to the master plan's RBF with a σ per dimension.
+8. **Minor:**
+   - `tri` is really the absolute deviation from the median;
+   - `themis_ir_day` holds raw values;
+   - lunar IAU labels are often satellite craters;
+   - `analyze_earth_tile` ignores errors silently.
+
+## 2026-11-12: downloads and first runs on Yuca
+
+- Download of MOLA, THEMIS Day and LOLA LDEM (`logs/descargas/download.log`).
+- Overnight Copernicus GLO-90 download; it stopped halfway (`logs/descargas/night_download.log`).
+- Clustering runs (jobs 2241770, 2241771, 2241773) and matching runs (2241781, 2241782, 2241783). Details in [pipeline.md](pipeline.md).
+
+## Before 12 November
+
+- The team's ideas and their evaluation: [ideas.md](ideas.md).
+- Master plan: [master_plan.md](master_plan.md).
