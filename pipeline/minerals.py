@@ -291,8 +291,31 @@ def emit_origin(left: float, top: float, dx: float, dy: float, corner: bool | No
     return left, top, False
 
 
-def load_emit_grids(path: Path, corner: bool | None = None) -> dict[str, Grid]:
-    """Read the EMIT-10 mineral variables (mass fraction, %), skipping the ``_UQ_`` uncertainty variables."""
+def grids_from_coords(
+    arrays: dict[str, np.ndarray], lat: np.ndarray, lon: np.ndarray, corner: bool | None = None
+) -> dict[str, Grid]:
+    """Grids from 2-D ``(lat, lon)`` arrays and their 1-D coordinate vectors (ascending or descending latitude).
+
+    ``corner`` says whether the coordinate values are the upper-left corner of each cell (the EMIT guide) or
+    the cell centre; ``None`` detects it from the lattice, as in :func:`emit_origin`.
+    """
+    lat_v, lon_v = np.asarray(lat, dtype=np.float64), np.asarray(lon, dtype=np.float64)
+    dx, dy = float(np.median(np.diff(lon_v))), float(np.median(np.abs(np.diff(lat_v))))
+    data = {k: np.asarray(v, dtype=np.float64) for k, v in arrays.items()}
+    if lat_v[0] < lat_v[-1]:  # south first: flip so that row 0 is the northmost
+        lat_v = lat_v[::-1]
+        data = {k: v[::-1] for k, v in data.items()}
+    if corner is None:
+        corner = _on_lattice(float(lon_v[0]), dx) and _on_lattice(float(lat_v[0]), dy)
+    west = float(lon_v[0]) if corner else float(lon_v[0]) - dx / 2.0
+    north = float(lat_v[0]) if corner else float(lat_v[0]) + dy / 2.0
+    logger.info("EMIT coordinates treated as %s values", "corner" if corner else "centre")
+    return {
+        k: Grid(v, west, west + dx * v.shape[1], north, north - dy * v.shape[0]) for k, v in data.items()
+    }
+
+
+def _emit_via_gdal(path: Path, corner: bool | None) -> dict[str, Grid]:
     import rasterio
 
     wanted = {v.file_token: v.key for v in EMIT.vars}
@@ -300,10 +323,7 @@ def load_emit_grids(path: Path, corner: bool | None = None) -> dict[str, Grid]:
     with rasterio.open(path) as src:
         subs = list(src.subdatasets)
     if not subs:
-        raise RuntimeError(
-            f"GDAL found no variables in {path}. Is the netCDF driver available (rasterio.Env().drivers())? "
-            "If not, install h5py or netCDF4 and extend load_emit_grids."
-        )
+        raise RuntimeError("GDAL found no variables (is the netCDF driver available?)")
     for sub in subs:
         var = sub.rsplit(":", 1)[-1]
         key = _name_key(var)
@@ -311,16 +331,57 @@ def load_emit_grids(path: Path, corner: bool | None = None) -> dict[str, Grid]:
             continue
         with rasterio.open(sub) as ds:
             data = ds.read(1).astype(np.float64)
-            data[(data == EMIT_FILL) | (data == (ds.nodata if ds.nodata is not None else EMIT_FILL))] = np.nan
+            data[data == EMIT_FILL] = np.nan
+            if ds.nodata is not None:
+                data[data == ds.nodata] = np.nan
             b = ds.bounds
             dx, dy = (b.right - b.left) / ds.width, (b.top - b.bottom) / ds.height
             left, top, is_corner = emit_origin(b.left, b.top, dx, dy, corner)
             grids[wanted[key]] = Grid(data, left, left + dx * ds.width, top, top - dy * ds.height)
             logger.info("EMIT variable %r -> %s (corner convention: %s)", var, wanted[key], is_corner)
     if not grids:
-        names = [s.rsplit(":", 1)[-1] for s in subs]
-        raise RuntimeError(f"No EMIT-10 mineral variable found in {path}; variables are {names}")
+        raise RuntimeError(f"no EMIT-10 mineral variable among {[s.rsplit(':', 1)[-1] for s in subs]}")
     return grids
+
+
+def _emit_via_xarray(path: Path, corner: bool | None) -> dict[str, Grid]:
+    import xarray as xr
+
+    wanted = {v.file_token: v.key for v in EMIT.vars}
+    with xr.open_dataset(path) as ds:
+        lat_name = next((n for n in ("latitude", "lat") if n in ds.variables), None)
+        lon_name = next((n for n in ("longitude", "lon") if n in ds.variables), None)
+        if lat_name is None or lon_name is None:
+            raise RuntimeError(f"no latitude/longitude variable; variables are {list(ds.variables)}")
+        arrays: dict[str, np.ndarray] = {}
+        for name in ds.data_vars:
+            key = _name_key(str(name))
+            if "uq" in key or key not in wanted or ds[name].ndim != 2:
+                continue
+            arr = np.asarray(ds[name].values, dtype=np.float64)
+            arr[arr == EMIT_FILL] = np.nan
+            arrays[wanted[key]] = arr
+        if not arrays:
+            raise RuntimeError(f"no EMIT-10 mineral variable among {list(ds.data_vars)}")
+        return grids_from_coords(arrays, np.asarray(ds[lat_name].values), np.asarray(ds[lon_name].values), corner)
+
+
+def load_emit_grids(path: Path, corner: bool | None = None) -> dict[str, Grid]:
+    """Read the EMIT-10 mineral variables (mass fraction, %), skipping the ``_UQ_`` uncertainty variables.
+
+    GDAL (through rasterio) is tried first because it is what the tests exercise; xarray is the fallback
+    for environments whose GDAL has no netCDF driver (the Yuca environment has xarray).
+    """
+    errors: list[str] = []
+    for name, reader in (("GDAL", _emit_via_gdal), ("xarray", _emit_via_xarray)):
+        try:
+            grids = reader(Path(path), corner)
+            logger.info("EMIT read with %s: %s", name, sorted(grids))
+            return grids
+        except Exception as exc:  # noqa: BLE001 - report every backend before giving up
+            errors.append(f"{name}: {type(exc).__name__}: {exc}")
+            logger.warning("EMIT reader %s failed: %s", name, exc)
+    raise RuntimeError(f"Could not read {path}. " + " | ".join(errors))
 
 
 def load_kaguya_grids(directory: Path) -> dict[str, Grid]:
@@ -380,8 +441,10 @@ def summarize_moon(values: dict[str, float | None]) -> str:
 def summarize_mars(values: dict[str, float | None]) -> str:
     top = _ranked(values, ["olivine", "orthopyroxene", "clinopyroxene", "plagioclase"])
     parts: list[str] = []
-    if top:
+    if top and top[0][1] >= DETECTION_PCT:
         parts.append(f"Most abundant of the four silicates: {_label(TES, top[0][0]).lower()} ({top[0][1]:.0f}%)")
+    elif top:
+        parts.append(f"No silicate above the TES detection level (about {DETECTION_PCT:g}%)")
     hem = values.get("hematite")
     if hem is not None and hem >= DETECTION_PCT:
         parts.append(f"hematite present ({hem:.0f}%)")

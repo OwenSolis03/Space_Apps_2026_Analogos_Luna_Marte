@@ -1,7 +1,8 @@
-import type { Analog, Dimension, Limit, Mismatch, Target } from "../lib/types";
+import type { Analog, Dimension, Limit, Mismatch, Target, MineralogyMeta } from "../lib/types";
 import type { RankedTarget } from "../lib/msi";
 import { fmtLat, fmtLon, fmtNum, pct } from "../lib/msi";
 import { BODY_LABEL, DIM_LABEL, FEATURE_LABEL, GEO_CLASS_LABEL, fmtValue, limitLabel, suggestedUses } from "../lib/content";
+import { MineralogyPanel } from "./MineralogyPanel";
 import { Radar } from "./Radar";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   analogIndex: number;
   onAnalog: (i: number) => void;
   limits: Limit[];
+  mineralogyMeta?: MineralogyMeta;
 }
 
 type Row = { key: string; label: string; unit: string; target: number | string | null | undefined; earth: number | string | null | undefined };
@@ -45,7 +47,7 @@ function MatchCell({ mm }: { mm: Mismatch | undefined }) {
 
 const km = (v: number | null | undefined) => (v == null ? "n/a" : `${Math.round(v).toLocaleString("en-US")} km`);
 
-export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
+export function Dossier({ ranked, analogIndex, onAnalog, limits, mineralogyMeta }: Props) {
   const t = ranked.target;
   const { analog: a, score } = ranked.analogs[analogIndex];
   const body = BODY_LABEL[t.body].name;
@@ -223,52 +225,7 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
           <p className="mt-2 text-xs text-muted">Rule of thumb from slope and roughness, plus the site notes from the pipeline.</p>
         </div>
 
-        {(t.mineralogy || a.mineralogy) && (
-          <div className="panel p-4">
-            <span className="rule mb-3" aria-hidden="true" />
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="eyebrow">Mineralogy context · display only</div>
-              <span className="tag tag-outline">not scored</span>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 text-xs">
-              <div className="bg-surface-2 p-3">
-                <div className="eyebrow text-faint">{body} ({t.mineralogy?.source ?? "spectral map"})</div>
-                <p className="mt-1 text-sm font-medium">
-                  {t.mineralogy?.summary ?? t.mineralogy?.note ?? "No mineral retrieval at this site."}
-                </p>
-                {t.mineralogy?.values && (
-                  <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
-                    {Object.entries(t.mineralogy.values).filter(([_, v]) => v != null).map(([k, v]) => (
-                      <div key={k} className="flex justify-between border-b border-line pb-0.5">
-                        <span className="text-muted capitalize">{k.replace(/_/g, " ")}</span>
-                        <span className="num font-semibold">{v}</span>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </div>
-              <div className="bg-surface-2 p-3">
-                <div className="eyebrow text-faint">Earth (EMIT L3 ASA)</div>
-                <p className="mt-1 text-sm font-medium">
-                  {a.mineralogy?.summary ?? a.mineralogy?.note ?? (a.country ? "Outside EMIT arid mineral footprint." : "No data.")}
-                </p>
-                {a.mineralogy?.values && (
-                  <dl className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
-                    {Object.entries(a.mineralogy.values).filter(([_, v]) => v != null && v > 0).map(([k, v]) => (
-                      <div key={k} className="flex justify-between border-b border-line pb-0.5">
-                        <span className="text-muted capitalize">{k.replace(/_/g, " ")}</span>
-                        <span className="num font-semibold">{v}%</span>
-                      </div>
-                    ))}
-                  </dl>
-                )}
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-muted">
-              Mineral maps show local surface composition from orbital spectroscopy (Kaguya MI on Moon, TES on Mars, EMIT on Earth). They are display-only context and do not enter the mathematical similarity score.
-            </p>
-          </div>
-        )}
+        <MineralogyPanel target={t} analog={a} meta={mineralogyMeta} bodyName={body} />
       </div>
 
       <div className="grid min-w-0 content-start gap-4">

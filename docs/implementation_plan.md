@@ -4,7 +4,7 @@ Plan for version 2 of the pipeline and the app. It is written so that a coding a
 
 Read first: [pipeline.md](pipeline.md) (data, scales and Yuca resources) and [HISTORY.md](HISTORY.md) (what was wrong with v1 and why each decision was made).
 
-**Detailed plans:** T4 and later tasks have their own documents: [plan_t4.md](plan_t4.md), [plan_t5.md](plan_t5.md), [plan_t6.md](plan_t6.md), [plan_t7_t8.md](plan_t7_t8.md) and, beyond terrain (geology, dust and seasons, water and ice), [plan_t12_t15.md](plan_t12_t15.md), plus the missing-data policy for the MSI in [plan_t16_missing_data.md](plan_t16_missing_data.md) and the plain-language explanations of the app controls in [plan_t17_plain_language.md](plan_t17_plain_language.md). Where they disagree with this document, the detailed plan wins.
+**Detailed plans:** T4 and later tasks have their own documents: [plan_t4.md](plan_t4.md), [plan_t5.md](plan_t5.md), [plan_t6.md](plan_t6.md), [plan_t7_t8.md](plan_t7_t8.md) and, beyond terrain (geology, dust and seasons, water and ice), [plan_t12_t15.md](plan_t12_t15.md), plus the missing-data policy for the MSI in [plan_t16_missing_data.md](plan_t16_missing_data.md) and the plain-language explanations of the app controls in [plan_t17_plain_language.md](plan_t17_plain_language.md) and the mineralogy context (display only, not scored) in [plan_mineralogy_context.md](plan_mineralogy_context.md). Where they disagree with this document, the detailed plan wins.
 
 ---
 

@@ -171,6 +171,13 @@ Run `2242506` outputs:
 - `target_presets.csv`: Tabular audit of target status across all presets (`target_id,preset,status,coverage,missing_dims,available_dims`).
 - `t7_checks.json` & `t7_report.md`: Verification suite results (10 hard checks, 7 soft checks, all passed).
 
+## Mineralogy context (T18)
+
+Display only, not scored. `pipeline/minerals.py` adds a `mineralogy` block to every target (Moon: Kaguya MI, Mars: MGS TES) and to every Earth analog (EMIT L3 ASA v002) of `analogs_universe.json`, without touching the matching. Sources, units, caveats and the decision are in [plan_mineralogy_context.md](plan_mineralogy_context.md).
+
+- Moon and Mars targets are already in the committed JSON (computed from the public Kaguya and ASU files).
+- Earth analogs: `cd /lustre/proyectos/p089/code && git pull && sbatch jobs/t18_minerals.slurm`. It finds the EMIT file that option B downloaded to `data/raw/earth/emit/l3asa/` (or downloads it with `tools/download_emit.py`, which needs `~/.netrc`), writes `runs/<job>/analogs_universe.json` and `mineral_report.md`, and reads data only.
+
 ## Exploring the data
 
 `jobs/explore_datasets.slurm` builds a report of everything downloaded. It only reads; it never modifies `data/`.

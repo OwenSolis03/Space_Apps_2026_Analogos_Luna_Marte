@@ -2,6 +2,33 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T18 mineralogy context completed for the Moon and Mars, EMIT job ready
+
+**What was done** (Claude, branch `feat/mineral-context`, on top of Gemini's first version; plan in [plan_mineralogy_context.md](plan_mineralogy_context.md)):
+
+- Checked the three sources live before using them: Kaguya mineral maps (USGS bucket, 2.3 MB each), MGS TES maps (ASU WMS in VICAR, 4 MB each, no login) and EMIT `EMITL3ASA` v002 (CMR and the user guide). Sanity values are right: Apollo 11 mare FeO 18.5 wt%, far-side highland FeO 5.8 wt% and 86% plagioclase, Meridiani Planum TES hematite 13%, Syrtis Major clinopyroxene 18%. The Kaguya "percent" maps are really fractions from 0 to 1 and its FeO map has outliers up to 107, so values above 30 wt% are dropped. ESA's OMEGA archive needs an ESA COSMOS login, TES does not.
+- Ran `pipeline/minerals.py` on the real Kaguya and TES files and wrote the result into `app/public/data/analogs_universe.json`: 19 of 38 lunar targets have a value (the other 19, including all eight Artemis III regions, are outside Kaguya's 50N to 50S), 37 of 38 Mars targets have one, one has no valid TES pixel. A before and after comparison shows every other field identical; a test now checks that too.
+- Fixed the Mars summary, which said "olivine (0%)" for sites with nothing detectable; below the 5% TES detection level it now says so.
+- `load_emit_grids` now tries GDAL first and xarray second (the Yuca environment has xarray, as the option-B run showed) and detects the half-cell shift of the EMIT coordinates; it reports every backend if both fail.
+- App: replaced the panel from Gemini's version (raw keys such as `feo`, no units, and the text "Outside EMIT arid mineral footprint" shown even when the data had simply not been processed) with `MineralogyPanel.tsx`: labels and units from the export, FeO first, caveats under "How reliable is this?", an info button with the four-part plain-language explanation, the tag "Context, not scored", and "Earth mineral data are not in this export yet" until the EMIT run is merged. Checked in the browser on Mars and the Moon (including a polar Artemis site).
+- 20 tests in `tests/test_minerals.py` and `tests/test_minerals_loaders.py` (VICAR layout and truncation, GeoTIFF layout, EMIT netCDF names, fill and `_UQ_` variables, corner versus centre coordinates, enrichment that changes nothing else). `tsc`, the build and the full test suite pass.
+- New `jobs/t18_minerals.slurm` and `tools/download_emit.py`.
+
+**Not done yet:** the Earth analogs. Run `cd /lustre/proyectos/p089/code && git pull && sbatch jobs/t18_minerals.slurm` on Yuca, then bring `runs/<job>/analogs_universe.json` into `app/public/data/`. The EMIT file was never opened on the laptop, so its variable names and half-cell convention rest on the user guide until that log is read.
+
+## 2026-11-14: Correction to the Option B verdict (review by Claude of Gemini's logs)
+
+**What was checked:** the logbook entries of Gemini and the code on `exp/mars-mineral-dimension` (commit `6a3a775`), not the Yuca logs themselves, which are not in the repository.
+
+**Finding.** The verdict "drop the scored mineral dimension because EMIT covers only about 5% of Earth" is not supported by the experiment.
+
+- In `pipeline/mineral.py` the block that samples EMIT for the Earth patches is empty: it opens the netCDF and runs `pass` (the comment says "Sample nearest 0.5 deg cell"). `hematite`, `goethite` and `ferric_emit` stay all NaN, so every Earth patch scored 0 on the new dimension.
+- A dimension that is the same for every Earth patch cannot change a ranking, so Jaccard 1.000, Spearman 1.000 and turnover 0.0 are exactly what an unimplemented sampler produces. They say nothing about EMIT.
+- The "Case C share 94.7%" therefore cannot be read as real coverage. The real share of Earth analogs with an EMIT value is measured by the T18 job above; until then no coverage figure should be quoted.
+- The same file writes its checks as constants: `E1` and `M1` are `pass: True` and `M5_decision` is `rho_dust: 0.0, verdict: keep`. "All 17 checks passed" means those checks were not computed from the data.
+
+**What stands.** Dropping option B for the submission is still reasonable, for the reasons in the Option B spec: only the Fe3+ pairing is physically defensible, the OMEGA data needs an ESA login, and the time left is short. The logbook should say that the scored dimension was not tested, not that it was tested and failed. The conclusion that option A is the deliverable is unchanged.
+
 ## 2026-11-14: Mineral Dimension Empirical Verdict — Drop Option B; Option A Confirmed for Submission
 
 **Context and Findings:**

@@ -262,7 +262,7 @@ export default function App() {
                 <p className="max-w-[70ch] text-sm text-muted">How close each analog is, feature by feature, and what Earth cannot reproduce.</p>
               </div>
               {selected ? (
-                <Dossier ranked={selected} analogIndex={safeAnalog} onAnalog={setAnalogIndex} limits={data.limits[body]} />
+                <Dossier ranked={selected} analogIndex={safeAnalog} onAnalog={setAnalogIndex} limits={data.limits[body]} mineralogyMeta={data.metadata.mineralogy} />
               ) : (
                 <p className="text-sm text-muted">Select a target in the ranking or on the map to see its sheet.</p>
               )}

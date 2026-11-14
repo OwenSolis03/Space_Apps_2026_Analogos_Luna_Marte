@@ -112,7 +112,7 @@ The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](
 | [HISTORY.md](docs/HISTORY.md) | How the project was built and why each decision was made, with commits and Slurm jobs |
 | [handoff.md](docs/handoff.md) | Current status per task, run ids and the queue of pending cluster commands |
 | [implementation_plan.md](docs/implementation_plan.md) | The v2 specification, task by task (T0–T11), and the data contract |
-| [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md), [plan_t7_t8.md](docs/plan_t7_t8.md), [plan_t12_t15.md](docs/plan_t12_t15.md), [plan_t16_missing_data.md](docs/plan_t16_missing_data.md), [plan_t17_plain_language.md](docs/plan_t17_plain_language.md) | Detailed plans per task |
+| [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md), [plan_t7_t8.md](docs/plan_t7_t8.md), [plan_t12_t15.md](docs/plan_t12_t15.md), [plan_t16_missing_data.md](docs/plan_t16_missing_data.md), [plan_t17_plain_language.md](docs/plan_t17_plain_language.md), [plan_mineralogy_context.md](docs/plan_mineralogy_context.md) | Detailed plans per task |
 | [pipeline.md](docs/pipeline.md) | Data, scales and nodata per file, Yuca resources and the run log |
 | [logbook.md](docs/logbook.md) | Day-by-day log |
 | [submission.md](docs/submission.md) | What is submitted, checklist and timeline for 14–15 November |
