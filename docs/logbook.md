@@ -2,6 +2,20 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16 specification, missing data was a free pass in the MSI
+
+**What was found** (by Owen in the app, diagnosed by Claude on run 2242490):
+
+- With the dust preset, Mars targets landed in Antarctica; with the ice preset, in the Sahara.
+- Cause: `msi()` drops a null sub-score and renormalises the rest, so missing data acts as a free pass. MODIS Deep Blue AOD has no values over ice and snow (1,057 of 2,908 Mars analogs have no dust score, 739 in Antarctica). All 17 Mars targets whose top dust-preset analog is Antarctic had dust null. For ice, only 1 of 38 Mars targets and 8 of 38 Moon targets have ice data, so the preset's 50% ice weight vanished for the rest and terrain plus aridity decided (deserts). The pipeline and the app share the formula, so both were affected.
+
+**What was decided** ([plan_t16_missing_data.md](plan_t16_missing_data.md), for the coding agent):
+
+- Three cases: not applicable to the body (ignored; presets only for the bodies in `applies_to`), missing on the target (ignored, but if less than 60% of the preset weight is left the target is not ranked for that preset), missing on the Earth patch while the target has it (scores 0: no evidence, no credit).
+- Missing NDVI on snow and ice keeps counting as bare ground.
+- Expected after the re-run: no Mars dust-preset winner without dust data; ice preset ranks 1 Mars target (Arcadia) and 8 Moon targets; no dust preset on the Moon; mobility, construction and geology presets unchanged.
+- Nothing is implemented yet. The app part goes on top of `feat/app-seven-dimensions`.
+
 ## 2026-11-14 (morning): T15 matching and export complete (7 dimensions, 5 presets), following Claude's §5.8 review
 
 **What was done and why** (code written by Gemini from Claude's approval in [`docs/plan_t12_t15.md`](plan_t12_t15.md) §5.8, commits `d3a255f`, `bda0acf`):
