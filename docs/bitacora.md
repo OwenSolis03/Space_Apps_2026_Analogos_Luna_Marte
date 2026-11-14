@@ -2,6 +2,10 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: prompt de trabajo para Gemini
+
+- Claude escribió [prompt_gemini.md](prompt_gemini.md): instrucciones para que Gemini implemente el plan tarea por tarea (qué leer primero, reglas de commits y bitácora, reglas de Yuca, formato de respuesta) y el orden sugerido de sesiones.
+
 ## 2026-11-13: descargas enviadas en Yuca
 
 - Se clonó el repo en `/lustre/proyectos/p089/code`; los jobs se envían desde ahí. Las copias viejas de los scripts en la raíz de `p089/` quedan sin uso.
