@@ -2,6 +2,20 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T16.2 — export available_dims, preset_status and earth_missing_dims
+
+**What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §4):
+
+- Added `"available_dims"` and `"preset_status"` to `REQUIRED_TARGET_KEYS`, and `"earth_missing_dims"` to `REQUIRED_ANALOG_KEYS` in `pipeline/export.py`.
+- Updated `build_universe_dict()`:
+  - Per target: exports `available_dims` (sorted list of available dimensions) and `preset_status` (dict mapping each preset key to `{"status": ..., "coverage": ..., "missing_dims": [...]}`). Derived from `matches_meta["preset_status"]` or computed via `available_dims()` and `preset_status()`.
+  - Per analog: exports `earth_missing_dims` (list of dimensions available on target but missing on Earth) and sets `msi_by_preset[pkey] = None` when the target's preset status is not `"ok"`.
+  - Added `metadata.scoring_policy` detailing `earth_missing_score = 0.0`, `min_preset_coverage = 0.6`, and the 4 scoring policy rules.
+  - Added `metadata.preset_status_summary` counting targets per status across bodies and presets.
+  - Updated `run_t7_checks` check 1 (`coverage`) to check coverage >= 20 only for presets where `preset_status == "ok"`.
+- Updated Universe schema docstring in `pipeline/export.py`.
+- Verified on local test suite: 79 passed, 2 skipped.
+
 ## 2026-11-14: T16.1 — missing-data policy in MSI and preset selection
 
 **What was done and why** (code written by Gemini per `docs/plan_t16_missing_data.md` §3):

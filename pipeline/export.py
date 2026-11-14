@@ -1,5 +1,21 @@
 """Export v2 matching results into analogs_universe.json, run T7/T8 hard checks,
 and generate t7_report.md (T8).
+
+Universe schema (v2.0.0 with T16 missing-data policy):
+- metadata: version, generated_at, runs, scoring_policy, preset_status_summary, ...
+- mission_presets: presets with label, applies_to, weights
+- limits: physical limits for Moon and Mars
+- targets: list of target entries, each with:
+  - id, type, body, name, lat, lon, category, why, ...
+  - available_dims: list of dimension names available for this target
+  - preset_status: dict mapping preset_key to {status, coverage, missing_dims}
+  - analogs: list of analog entries, each with:
+    - id, lat, lon, country, classification, ...
+    - sub_scores: raw S_* scores (null where missing)
+    - msi_by_preset: MSI per preset (null if target's preset status is not "ok")
+    - selected_by: list of presets that selected this analog
+    - earth_missing_dims: list of target available dimensions missing on Earth
+    - ...
 """
 
 from __future__ import annotations
@@ -21,20 +37,24 @@ from .config import BODY_RADII_M, YUCA_PROJECT_DIR
 from .geology_rules import GEO_CLASSES, GEO_SIMILARITY
 from .match import (
     DIMENSIONS,
+    EARTH_MISSING_SCORE,
     ICE_CAP_EXEMPT_PRESETS,
     MATCH_FEATURES,
     MAX_ICE_SURFACE_PER_PRESET,
+    MIN_PRESET_COVERAGE,
     MIN_SEP_KM,
     PRESET_KEYS,
     PRESETS,
     Normalizer,
     TargetVec,
+    available_dims,
     build_earth_arrays,
     format_earth_id,
     haversine_km,
     load_layers,
     mismatches,
     msi,
+    preset_status,
     score_target,
     select_diverse,
     thermal_ranks,
@@ -69,6 +89,8 @@ REQUIRED_TARGET_KEYS: set[str] = {
     "iau_label",
     "features",
     "aux",
+    "available_dims",
+    "preset_status",
     "geology",
     "dust",
     "ice",
@@ -93,6 +115,7 @@ REQUIRED_ANALOG_KEYS: set[str] = {
     "ice",
     "subsurface_note",
     "mismatches",
+    "earth_missing_dims",
 }
 
 
@@ -439,10 +462,77 @@ def build_universe_dict(
     target_entries: list[dict[str, object]] = []
     missing_earth_ids: list[str] = []
 
+    meta_status_records = meta_in.get("preset_status", [])
+    meta_status_map: dict[tuple[str, str], dict[str, object]] = {}
+    if isinstance(meta_status_records, list):
+        for rec in meta_status_records:
+            if isinstance(rec, dict) and "target_id" in rec and "preset" in rec:
+                meta_status_map[(str(rec["target_id"]), str(rec["preset"]))] = rec
+
     for _, t_row in ordered_targets.iterrows():
         tid = str(t_row["target_id"])
         body = str(t_row["body"])
         m_rows = matches_by_target.get(tid, [])
+
+        target_preset_status: dict[str, dict[str, object]] = {}
+        avail_dims_set: set[str] = set()
+        has_meta_status = all((tid, pkey) in meta_status_map for pkey in PRESET_KEYS)
+
+        if has_meta_status:
+            for pkey in PRESET_KEYS:
+                rec = meta_status_map[(tid, pkey)]
+                miss = rec.get("missing_dims", "")
+                miss_list = (
+                    [d.strip() for d in miss.split(",") if d.strip()]
+                    if isinstance(miss, str)
+                    else list(miss)
+                )
+                av = rec.get("available_dims", "")
+                av_list = (
+                    [d.strip() for d in av.split(",") if d.strip()]
+                    if isinstance(av, str)
+                    else list(av)
+                )
+                avail_dims_set.update(av_list)
+                target_preset_status[pkey] = {
+                    "status": str(rec.get("status", "ok")),
+                    "coverage": round(float(rec.get("coverage", 1.0)), 3),
+                    "missing_dims": miss_list,
+                }
+            available_dims_list = sorted(avail_dims_set)
+        else:
+            zt_val = _finite_float(t_row.get("themis_delta"))
+            if zt_val is None:
+                d = _finite_float(t_row.get("themis_day"))
+                n = _finite_float(t_row.get("themis_night"))
+                if d is not None and n is not None:
+                    zt_val = d - n
+            tv = TargetVec(
+                body=str(body),
+                z_t=np.zeros(6, dtype=np.float64),
+                zt_t=float(zt_val) if zt_val is not None else float("nan"),
+                lat=float(_finite_float(t_row.get("lat")) or 0.0),
+                geo_class=_clean_str(t_row.get("geo_class")),
+                dust_level_rank=float(_finite_float(t_row.get("dust_level_rank")) if _finite_float(t_row.get("dust_level_rank")) is not None else float("nan")),
+                dust_season_rank=float(_finite_float(t_row.get("dust_seasonality_rank")) if _finite_float(t_row.get("dust_seasonality_rank")) is not None else float("nan")),
+                dust_phase=float(_finite_float(t_row.get("dust_peak_phase_deg")) if _finite_float(t_row.get("dust_peak_phase_deg")) is not None else float("nan")),
+                cold_rank=float(_finite_float(t_row.get("cold_rank_T")) if _finite_float(t_row.get("cold_rank_T")) is not None else float("nan")),
+                ice_t=float(_finite_float(t_row.get("ice_T")) if _finite_float(t_row.get("ice_T")) is not None else float("nan")),
+            )
+            tdims = available_dims(tv)
+            available_dims_list = sorted(tdims)
+            for pkey in PRESET_KEYS:
+                status, cov, miss = preset_status(
+                    PRESETS[pkey]["weights"],
+                    body,
+                    PRESETS[pkey].get("applies_to"),
+                    tdims,
+                )
+                target_preset_status[pkey] = {
+                    "status": status,
+                    "coverage": round(float(cov), 3),
+                    "missing_dims": miss,
+                }
 
         analogs_list: list[dict[str, object]] = []
         for m_row in m_rows:
@@ -462,7 +552,11 @@ def build_universe_dict(
                 "ice": _round_val(m_row.get("S_ice"), 3),
             }
             msi_by_preset = {
-                pkey: _round_val(m_row.get(f"msi_{pkey}"), 3)
+                pkey: (
+                    None
+                    if target_preset_status[pkey]["status"] != "ok"
+                    else _round_val(m_row.get(f"msi_{pkey}"), 3)
+                )
                 for pkey in PRESET_KEYS
             }
             selected_by = [tok for tok in str(m_row.get("selected_by", "")).split(",") if tok]
@@ -485,6 +579,14 @@ def build_universe_dict(
             }
             mm_raw = m_row.get("mismatches_json")
             mm_list = json.loads(mm_raw) if isinstance(mm_raw, str) and mm_raw else []
+
+            raw_emd = m_row.get("earth_missing_dims")
+            if isinstance(raw_emd, str):
+                earth_missing_dims = [d.strip() for d in raw_emd.split(",") if d.strip()]
+            elif isinstance(raw_emd, (list, tuple, set)):
+                earth_missing_dims = list(raw_emd)
+            else:
+                earth_missing_dims = []
 
             analogs_list.append(
                 {
@@ -513,6 +615,7 @@ def build_universe_dict(
                         else None
                     ),
                     "mismatches": mm_list,
+                    "earth_missing_dims": earth_missing_dims,
                 }
             )
 
@@ -547,6 +650,8 @@ def build_universe_dict(
                 "iau_label": _clean_str(t_row.get("iau_label")),
                 "features": t_features,
                 "aux": _target_aux_dict(t_row, body),
+                "available_dims": available_dims_list,
+                "preset_status": target_preset_status,
                 "geology": {
                     "unit": _clean_str(t_row.get("geo_unit")),
                     "geo_class": _clean_str(t_row.get("geo_class")),
@@ -629,6 +734,36 @@ def build_universe_dict(
         "citations": CITATIONS,
         "not_modelled": NOT_MODELLED,
         "datasets": default_datasets(),
+        "scoring_policy": {
+            "earth_missing_score": EARTH_MISSING_SCORE,
+            "min_preset_coverage": MIN_PRESET_COVERAGE,
+            "rules": [
+                "A dimension that does not apply to the target's body is ignored, and presets are only computed for the bodies in applies_to.",
+                "A dimension the target has no data for is ignored, but if the preset weight left is below 60% the target is not ranked for that preset.",
+                "If the target has a dimension and the Earth patch does not, that dimension scores 0 (no evidence, no credit).",
+                "Missing NDVI (permanent snow and ice) still counts as bare ground for the aridity dimension.",
+            ],
+        },
+        "preset_status_summary": {
+            b: {
+                pkey: {
+                    st: sum(
+                        1
+                        for t in target_entries
+                        if t["body"] == b and t["preset_status"][pkey]["status"] == st
+                    )
+                    for st in sorted(
+                        set(
+                            t["preset_status"][pkey]["status"]
+                            for t in target_entries
+                            if t["body"] == b
+                        )
+                    )
+                }
+                for pkey in PRESET_KEYS
+            }
+            for b in sorted(set(t["body"] for t in target_entries))
+        },
     }
 
     mission_presets = {
@@ -743,8 +878,11 @@ def run_t7_checks(
     ok_targets = targets_df[targets_df["status"] == "ok"] if "status" in targets_df.columns else targets_df
     ok_ids = [str(tid) for tid in ok_targets["target_id"].tolist()]
 
-    # 1. Coverage (>= 20 per preset per ok target)
+    # 1. Coverage (>= 20 per preset per ok target for presets with status ok)
     low_no_retry: list[dict[str, object]] = []
+    target_status_map = {
+        str(t["id"]): t.get("preset_status", {}) for t in universe.get("targets", [])
+    }
     if matches_df.empty:
         low_no_retry = [{"target_id": tid, "preset": "all", "count": 0} for tid in ok_ids]
     else:
@@ -754,7 +892,10 @@ def run_t7_checks(
             if grp is None or grp.empty:
                 low_no_retry.append({"target_id": tid, "preset": "all", "count": 0})
                 continue
+            t_status = target_status_map.get(tid, {})
             for pkey in PRESET_KEYS:
+                if t_status and t_status.get(pkey, {}).get("status") != "ok":
+                    continue
                 col = f"rank_{pkey}"
                 cnt = int(grp[col].notna().sum()) if col in grp.columns else 0
                 if cnt < MIN_COVERAGE_PER_PRESET:
