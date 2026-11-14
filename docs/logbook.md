@@ -2,6 +2,14 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T18 complete, EMIT run 2242552 in the app
+
+**Run** (`jobs/t18_minerals.slurm`, job `2242552` on Yuca, `--emit-scale 100`): the GDAL reader cannot open the EMIT file on Yuca (no HDF5 plugin), so the xarray fallback read the ten minerals; the coordinates were detected as upper-left corner values; the units check gave a largest sum of 79.22.
+
+**Verified by Claude on the file Owen put in `app/public/data/`:** everything outside `mineralogy` and the three metadata lists is identical to the committed JSON, and the Moon and Mars target blocks are unchanged. Coverage is as in the first run: of 3,651 distinct Earth locations, 2,213 have a value (60.6%), 896 are outside 52N to 52S and 542 have no value in their cell. Values are now plausible for desert soils: median calcite 12.1%, illite + muscovite 6.6%, goethite 1.0%, hematite 0.5%; the ten minerals add up to 30.5% at the median site and 79.2% at most; no site is left with the summary "No EMIT-10 mineral above 0.5%". The EMIT caveat about the missing units attribute is in the metadata. Checked in the app on Mars: a site with values, one outside coverage and one with no value in its cell each show the right card; no console errors; `tsc`, the build and the 108+ tests pass.
+
+**Still true:** the unit is an inference (fractions read as percent), and the half-cell shift was applied by detection, not by documentation. Both are stated on the site sheet or here.
+
 ## 2026-11-14: T18 EMIT unit decided: fractions, shown as percent (inferred)
 
 **Evidence** (Owen read the netCDF on Yuca): the variables carry no units attribute, only `long_name` (`Calcite_Baseline`, `Chlorite_Baseline`...); the maximum of `Calcite` is 0.79, of `Chlorite` 0.57 and of `Dolomite` 0.60. The file has no variable called `latitude`, so the coordinate names differ from the guide; the sites were nevertheless placed correctly (GDAL cannot open the file on Yuca, it has no HDF5 plugin, so the xarray fallback did the reading; its coordinate names are `lat` and `lon`) (all of Antarctica, Greenland and Svalbard outside coverage, Atacama with values, the richest calcite cells on the Mauritanian coast and the Hadhramaut plateau).
