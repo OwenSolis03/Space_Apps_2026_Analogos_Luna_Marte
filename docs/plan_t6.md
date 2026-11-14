@@ -1,6 +1,6 @@
 # Plan detallado T6: capas terrestres (NDVI, LST, logística, país y análogos conocidos)
 
-Especificación completa de T6. Amplía la sección T6 de [plan_implementacion.md](plan_implementacion.md). Si algo choca, **este documento manda para T6**. Escrito por Claude el 2026-11-13 sobre `main` en `115e0c3`, con los datos de Yuca revisados ese día.
+Especificación completa de T6. Amplía la sección T6 de [implementation_plan.md](implementation_plan.md). Si algo choca, **este documento manda para T6**. Escrito por Claude el 2026-11-13 sobre `main` en `115e0c3`, con los datos de Yuca revisados ese día.
 
 T6 no barre la Tierra (eso es T5). T6 entrega:
 
@@ -438,13 +438,13 @@ Después se bajan por OOD Files los 3 PNG de `runs/<JOBID>/` para revisarlos. Ag
 
 ## 8. Bitácora y documentación (mismo commit, y una actualización tras el job)
 
-- **`docs/bitacora.md`:** entrada nueva con lo hecho, el JOBID, la tabla de verificaciones (duras y blandas) y la nota de que el código lo escribió Gemini a partir de este plan.
+- **`docs/logbook.md`:** entrada nueva con lo hecho, el JOBID, la tabla de verificaciones (duras y blandas) y la nota de que el código lo escribió Gemini a partir de este plan.
 - **`docs/pipeline.md`:**
   - en la tabla de datos, agregar las dos cachés derivadas;
   - en la tabla de escalas, agregar MOD13C2 (`/10000`, fill −3000) y MOD11C3 (`×0.02`, fill 0) con la advertencia de convenciones opuestas;
   - la nota "GDAL sin HDF4: usar pyhdf";
   - la corrida T6.
-- **`docs/progreso_handoff.md`:** T6 como hecho, con el JOBID y las rutas de la caché.
+- **`docs/handoff.md`:** T6 como hecho, con el JOBID y las rutas de la caché.
 
 ---
 

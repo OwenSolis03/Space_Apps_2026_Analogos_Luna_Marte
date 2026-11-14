@@ -9,7 +9,7 @@ Antes de pegar el prompt, cambia dos cosas:
 
 Reparto de papeles: Claude escribe los planes detallados (`docs/plan_*.md`), Gemini escribe el código y Owen aprueba y corre lo que Gemini no pueda correr.
 
-Si no hay SSH (por ejemplo, en la sede del hackathon), lee primero [operacion_sin_ssh.md](operacion_sin_ssh.md): Yuca sigue disponible por Open OnDemand, con Owen como puente.
+Si no hay SSH (por ejemplo, en la sede del hackathon), lee primero [working_without_ssh.md](working_without_ssh.md): Yuca sigue disponible por Open OnDemand, con Owen como puente.
 
 ---
 
@@ -20,11 +20,11 @@ Repositorio: https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte
 ANTES DE ESCRIBIR CÓDIGO, lee completos y en este orden:
 1. El plan detallado de la tarea de hoy, si existe: docs/plan_<tarea>.md (por ejemplo docs/plan_t4.md).
    Ese documento manda sobre todo lo demás para esa tarea.
-2. docs/plan_implementacion.md   ← especificación general (T0–T11, contrato JSON, orden).
-3. docs/progreso_handoff.md      ← estado real de cada tarea y JOBIDs de las corridas.
-4. docs/bitacora.md              ← historial, decisiones y pendientes.
+2. docs/implementation_plan.md   ← especificación general (T0–T11, contrato JSON, orden).
+3. docs/handoff.md      ← estado real de cada tarea y JOBIDs de las corridas.
+4. docs/logbook.md              ← historial, decisiones y pendientes.
 5. docs/pipeline.md              ← datos en Yuca, escalas/nodata de cada raster y corridas.
-6. docs/operacion_sin_ssh.md     ← solo si estás en MODO B.
+6. docs/working_without_ssh.md     ← solo si estás en MODO B.
 Luego dime en 5 líneas qué entendiste de la tarea de hoy, qué archivos vas a crear o tocar y en qué MODO estás.
 Espera mi "ok" antes de escribir código.
 
@@ -41,9 +41,9 @@ CÓMO TRABAJAR
   ("T7: RBF matching, MSI presets and diversity selection"). Desde el 2026-11-13 todo lo nuevo va en inglés:
   mensajes de commit, docstrings y comentarios de código nuevo, entradas nuevas de la bitácora y documentos
   nuevos. No reescribas commits viejos ni hagas `git push --force`: docs/HISTORY.md cuenta la historia en inglés.
-- En el mismo commit, agrega una entrada arriba en docs/bitacora.md (en inglés): fecha, qué se hizo, por qué,
+- En el mismo commit, agrega una entrada arriba en docs/logbook.md (en inglés): fecha, qué se hizo, por qué,
   qué falta, y que el código lo escribió Gemini a partir del plan de Claude. Si cambias datos, corridas o el pipeline, actualiza
-  docs/pipeline.md y la tabla de docs/progreso_handoff.md.
+  docs/pipeline.md y la tabla de docs/handoff.md.
 - No borres ni reescribas los scripts v1 de la raíz (process_analogs.py, match_earth_analogs.py,
   enrich_nomenclature.py) y NO los importes: no tienen `if __name__ == "__main__"` y al importarlos se ejecutan
   y reescriben archivos en /lustre/proyectos/p089/output/.
@@ -84,14 +84,14 @@ MODO A (hay SSH a Yuca):
 MODO B (no tienes SSH; Yuca sigue disponible para Owen por Open OnDemand):
 - No intentes conectarte a Yuca. Trabaja en el clon local de la laptop.
 - Escribe el código y pruébalo en local con los tests sintéticos (no hay rasters en la laptop).
-  Si hace falta un dato real, usa el kit offline de ~/p089_offline (docs/operacion_sin_ssh.md §4) y di qué
+  Si hace falta un dato real, usa el kit offline de ~/p089_offline (docs/working_without_ssh.md §4) y di qué
   archivo usaste.
 - Cuando algo deba correr en Yuca: commit y push a GitHub, y dame los comandos EXACTOS, cada uno en su propio
   bloque, desde /lustre/proyectos/p089/code y empezando por `git pull`. Yo los corro en la terminal de Open
   OnDemand, que también es el login node: las reglas de Yuca aplican igual.
 - Dime qué log o archivo necesitas de vuelta (ruta exacta). Te pegaré el texto del log o te pasaré el archivo
   bajado por OOD. Léelo completo antes de responder.
-- Agrega cada comando pendiente a la sección "Cola para cuando haya SSH" de docs/progreso_handoff.md, para que
+- Agrega cada comando pendiente a la sección "Cola para cuando haya SSH" de docs/handoff.md, para que
   haya una sola lista, y tacha los que ya corrí.
 
 AL TERMINAR CADA TAREA, responde con:
@@ -108,13 +108,13 @@ AL TERMINAR CADA TAREA, responde con:
 
 | Sesión | "Tarea de hoy" | Plan detallado | Necesita Yuca | Estado |
 | --- | --- | --- | --- | --- |
-| 1 | T1 y T2 | `plan_implementacion.md` | No | Hecho |
-| 2 | T9 y T3 | `plan_implementacion.md` | Sí | Hecho (`2242278`) |
+| 1 | T1 y T2 | `implementation_plan.md` | No | Hecho |
+| 2 | T9 y T3 | `implementation_plan.md` | Sí | Hecho (`2242278`) |
 | 3 | T4 (blancos curados y clusters) | [plan_t4.md](plan_t4.md) | Para la corrida sí; código y tests no | Hecho (`2242423`) |
 | 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | Para cachear MODIS sí; el código no | Plan listo |
 | 5 | T5 (`earth_features.py` + job array) | [plan_t5.md](plan_t5.md) | Sí: es la corrida más pesada (después de T6) | Plan listo |
 | 6 | T7 y T8 (`match.py`, `export.py`) | [plan_t7_t8.md](plan_t7_t8.md) (English) | Para la corrida sí; se puede desarrollar con la prueba de T5 (`runs/2242432`) | Plan listo |
-| En paralelo (Javier) | T10 (app) con `app/public/data/sample.json` | `plan_implementacion.md` | No | Esqueleto en `main` |
+| En paralelo (Javier) | T10 (app) con `app/public/data/sample.json` | `implementation_plan.md` | No | Esqueleto en `main` |
 
 ## Notas sobre el modo Orchestrator (Argon)
 

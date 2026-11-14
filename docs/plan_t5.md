@@ -1,6 +1,6 @@
 # Plan detallado T5: barrido de la Tierra
 
-Especificación completa de T5. Amplía la sección T5 de [plan_implementacion.md](plan_implementacion.md); si algo choca, **este documento manda para T5**. Escrito por Claude el 2026-11-13 sobre `main` en `5b33704`, con los tiles de Copernicus revisados en Yuca ese día.
+Especificación completa de T5. Amplía la sección T5 de [implementation_plan.md](implementation_plan.md); si algo choca, **este documento manda para T5**. Escrito por Claude el 2026-11-13 sobre `main` en `5b33704`, con los tiles de Copernicus revisados en Yuca ese día.
 
 **Depende de T6:** usa `EarthLayers` y la caché `data/derived/{ndvi_max_2023,lst_2023}.tif` de [plan_t6.md](plan_t6.md). El código de T5 se puede escribir en paralelo, pero la corrida de T5 va **después** de la corrida de T6.
 
@@ -328,14 +328,14 @@ cd /lustre/proyectos/p089 && tar -czf kit/t5_<PREP>.tar.gz runs/<PREP>/features_
 
 ## 8. Bitácora y documentación
 
-- **`docs/bitacora.md`:** entrada nueva con los JOBID de prepare, array y merge, `prefilter_stats` y la tabla de verificaciones. Aclarar que el código lo escribió Gemini a partir de este plan.
+- **`docs/logbook.md`:** entrada nueva con los JOBID de prepare, array y merge, `prefilter_stats` y la tabla de verificaciones. Aclarar que el código lo escribió Gemini a partir de este plan.
 - **`docs/pipeline.md`:**
   - el VRT en datos derivados;
   - la nota "Copernicus: sin nodata, mar = 0.0, ancho variable por latitud";
   - la excepción del directorio de corrida compartido;
   - la corrida.
-- **`docs/progreso_handoff.md`:** T5 hecho, con `runs/<PREP>/features_earth.parquet` como entrada de T7.
-- **`docs/operacion_sin_ssh.md`:** agregar el kit `t5_<PREP>.tar.gz` a la sección del kit.
+- **`docs/handoff.md`:** T5 hecho, con `runs/<PREP>/features_earth.parquet` como entrada de T7.
+- **`docs/working_without_ssh.md`:** agregar el kit `t5_<PREP>.tar.gz` a la sección del kit.
 
 ---
 

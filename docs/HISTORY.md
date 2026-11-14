@@ -1,6 +1,6 @@
 # Project history
 
-How Planetary Analog Finder was built, in English, with the reasoning behind each decision. Every step points to the commits and Slurm jobs that back it up. Most commit messages up to 2026-11-13 are in Spanish; this file is their English record. The commits are not rewritten, because their hashes are cited in the docs and in the Slurm logs. Day-by-day detail (in Spanish until 2026-11-13) is in [bitacora.md](bitacora.md).
+How Planetary Analog Finder was built, in English, with the reasoning behind each decision. Every step points to the commits and Slurm jobs that back it up. Most commit messages up to 2026-11-13 are in Spanish; this file is their English record. The commits are not rewritten, because their hashes are cited in the docs and in the Slurm logs. Day-by-day detail (in Spanish until 2026-11-13) is in [logbook.md](logbook.md).
 
 **Who did what**
 
@@ -18,11 +18,11 @@ The venue (NASA Space Apps Sonora, Tec de Monterrey) allowed the team to start o
 
 ## 1. Idea and first plan (before 2026-11-12)
 
-- [ideas.md](../ideas.md) records how the idea evolved:
+- [ideas.md](ideas.md) records how the idea evolved:
   - from "process every layer of the whole planet with image models";
   - to "a pre-computed set of sites with adjustable weights and a 'where the analogy breaks' section";
   - to "a numeric similarity index plus unsupervised clustering, computed on Yuca".
-- [plan_maestro_y_especificaciones_del_proyecto.md](../plan_maestro_y_especificaciones_del_proyecto.md) set the target: a web app that ranks Earth sites against Moon and Mars targets with a Mission Similarity Index (MSI) built from Gaussian (RBF) kernels per dimension, with presets per mission type and a mandatory "limits of the analog" panel.
+- [master_plan.md](master_plan.md) set the target: a web app that ranks Earth sites against Moon and Mars targets with a Mission Similarity Index (MSI) built from Gaussian (RBF) kernels per dimension, with presets per mission type and a mandatory "limits of the analog" panel.
 
 **Why:** the challenge asks for analogies justified with data, explicitly says where they fail, and rewards finding sites beyond the famous ones (Atacama, Antarctica, Iceland, Hawaii). A weighted, explainable score fits that better than a black-box model.
 
@@ -51,7 +51,7 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 
 **Commits:** `5cbf360`, `e977c5e`, `a382beb`, `7fec550` (PR #1), `0866e5c`, `9b3341a`, `3f92906`, `3ed3f94`, `2bd255b`, `89c2cf7`, `0acfb72`.
 
-- **Repository and value proposition:** the repository was created and [propuesta_de_valor.md](propuesta_de_valor.md) written for the pitch team.
+- **Repository and value proposition:** the repository was created and [value_proposition.md](value_proposition.md) written for the pitch team.
 - **Data download:** everything was (re-)downloaded with Slurm jobs, never on the login node.
 
 | Job | Result |
@@ -62,9 +62,9 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 
 - **Explorer:** `tools/explore_datasets.py` generates an HTML report of every downloaded dataset.
 
-**Why these datasets:** they map to the challenge's official resources (PDS, LRO, LRO Diviner, NASA Earthdata, NASA Worldview/GIBS, Copernicus). The mapping is in `plan_implementacion.md` §2.
+**Why these datasets:** they map to the challenge's official resources (PDS, LRO, LRO Diviner, NASA Earthdata, NASA Worldview/GIBS, Copernicus). The mapping is in `implementation_plan.md` §2.
 
-## 4. The v2 design (commit `9b3341a`, `plan_implementacion.md`)
+## 4. The v2 design (commit `9b3341a`, `implementation_plan.md`)
 
 | Decision | Why |
 | --- | --- |
@@ -117,7 +117,7 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 
 **Commits:** `51678d9`, `501aef2`, `0e1e43c`.
 
-- **Remote access:** the venue network blocks SSH, so work goes through **Open OnDemand** (HTTPS). Gemini codes locally and pushes; Owen pulls and submits jobs in the OOD shell and passes logs back. Documented in [operacion_sin_ssh.md](operacion_sin_ssh.md).
+- **Remote access:** the venue network blocks SSH, so work goes through **Open OnDemand** (HTTPS). Gemini codes locally and pushes; Owen pulls and submits jobs in the OOD shell and passes logs back. Documented in [working_without_ssh.md](working_without_ssh.md).
 - **Offline kit:** an 88 MB kit (T3 outputs, IAU gazetteer, Natural Earth, Diviner cache) lets development continue without the cluster.
 - **Safety rules for every job:** account `p089`, logs in `output/`, a new `runs/<jobid>/` directory per run, no `rm -rf`, no TLS bypass, and a group limit of 500 CPUs.
 - **Incident without damage:** importing the v1 script `enrich_nomenclature.py` executed it, because it has no `__main__` guard, and it rewrote a v1 output file. The content came out identical. Rule since then: never import the v1 scripts.
@@ -186,7 +186,7 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
   - Hacking: Saturday 14 November, 9:00–21:00.
   - Pitches: Sunday 15 November, morning.
   - Pitch: 3 minutes, with an English write-up, a ≤ 30 s English video and a deployed app.
-  - Checklist and timeline: [entrega.md](entrega.md).
+  - Checklist and timeline: [submission.md](submission.md).
 - **Language:** from this point on, commit messages, new documentation and new code comments are in **English**.
 
 ---

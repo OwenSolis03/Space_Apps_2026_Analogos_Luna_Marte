@@ -119,7 +119,7 @@ Es un `tar` de unos cuantos MB: corre en segundos y está permitido en el login.
 | T10 app | Completa, con `sample.json` y después con el JSON real | — |
 | T11 contenido | Completo | — |
 
-**Regla para Gemini en MODO B:** cada comando de Yuca que quede pendiente se agrega a la sección "Cola para cuando haya SSH" de [progreso_handoff.md](progreso_handoff.md#cola-para-cuando-haya-ssh), aunque se vaya a correr por OOD. Así Owen tiene una sola lista.
+**Regla para Gemini en MODO B:** cada comando de Yuca que quede pendiente se agrega a la sección "Cola para cuando haya SSH" de [handoff.md](handoff.md#cola-para-cuando-haya-ssh), aunque se vaya a correr por OOD. Así Owen tiene una sola lista.
 
 ---
 
@@ -137,8 +137,8 @@ No intentar túneles, proxies ni nada que rodee el bloqueo de la red de la insti
 
 ## 7. Si no hay ningún acceso a Yuca
 
-Es el plan B de `plan_implementacion.md` §6. La app funciona sola con `app/public/data/sample.json`, que es la v1 convertida al esquema v2. En la presentación:
+Es el plan B de `implementation_plan.md` §6. La app funciona sola con `app/public/data/sample.json`, que es la v1 convertida al esquema v2. En la presentación:
 
 - decir que es el resultado de la v1 y mostrar la metodología v2 con las pruebas;
 - enseñar la corrida T3 (mapas del kit) y los blancos definidos en `plan_t4.md`;
-- **no** afirmar resultados v2 que no se corrieron (ver "lo que no debe afirmarse" en `propuesta_de_valor.md`).
+- **no** afirmar resultados v2 que no se corrieron (ver "lo que no debe afirmarse" en `value_proposition.md`).

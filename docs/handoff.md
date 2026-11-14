@@ -3,12 +3,12 @@
 Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca (`/lustre/proyectos/p089/code`, rama `main`).
 
 - **Último commit previo en `main`:** `57f4f36` (`2026-11-13`)
-- **Especificación fuente de verdad:** `docs/plan_implementacion.md`
-- **Estado de datos y corridas en Yuca:** `docs/pipeline.md` y `docs/bitacora.md`
-- **Instrucciones operativas de trabajo y SLURM:** `docs/prompt_gemini.md` (MODO A con SSH / MODO B sin SSH)
+- **Especificación fuente de verdad:** `docs/implementation_plan.md`
+- **Estado de datos y corridas en Yuca:** `docs/pipeline.md` y `docs/logbook.md`
+- **Instrucciones operativas de trabajo y SLURM:** `docs/gemini_prompt.md` (MODO A con SSH / MODO B sin SSH)
 - **Plan detallado de la siguiente tarea:** `docs/plan_t4.md`
-- **Entrega y cronograma real (NASA Space Apps Sonora, Tec de Monterrey):** `docs/entrega.md`
-- **Sin SSH (sede del hackathon, 14 y 15 de noviembre):** `docs/operacion_sin_ssh.md`. Yuca sigue accesible por Open OnDemand (HTTPS): Gemini trabaja en local, Owen hace `git pull` y `sbatch` en la terminal de OOD y le pasa los logs
+- **Entrega y cronograma real (NASA Space Apps Sonora, Tec de Monterrey):** `docs/submission.md`
+- **Sin SSH (sede del hackathon, 14 y 15 de noviembre):** `docs/working_without_ssh.md`. Yuca sigue accesible por Open OnDemand (HTTPS): Gemini trabaja en local, Owen hace `git pull` y `sbatch` en la terminal de OOD y le pasa los logs
 
 ---
 
@@ -118,8 +118,8 @@ Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuc
   - soporte polar para Shackleton;
   - 8 blancos curados lunares y 8 marcianos con fuentes;
   - clusters, salidas, pruebas y comandos.
-- Actualizó [prompt_gemini.md](prompt_gemini.md) para Gemini 4 Orchestrator (Argon) con MODO A (SSH) y MODO B (sin SSH).
-- Escribió [operacion_sin_ssh.md](operacion_sin_ssh.md) y armó el kit offline `/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz` (88 MB).
+- Actualizó [gemini_prompt.md](gemini_prompt.md) para Gemini 4 Orchestrator (Argon) con MODO A (SSH) y MODO B (sin SSH).
+- Escribió [working_without_ssh.md](working_without_ssh.md) y armó el kit offline `/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz` (88 MB).
 - Incidente sin daño: Claude importó `enrich_nomenclature.py` para revisar el gacetero. Como no tiene `if __name__ == "__main__"`, el script se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El resultado quedó byte a byte idéntico a `code/output/planetary_baselines.json`; solo cambió la fecha de modificación. Regla nueva: no importar los scripts v1.
 
 ---

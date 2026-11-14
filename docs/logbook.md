@@ -52,7 +52,7 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
   - documentación y video de 30 s en inglés;
   - app publicada;
   - criterios de evaluación: innovación, impacto social, documentación y escalabilidad.
-- Se actualizó el README (sede, horario y reglas) y se creó [entrega.md](entrega.md) con la lista de entregables, el cronograma ajustado a un solo día útil, el checklist y el plan B. Se marcó como reemplazado el cronograma de 48 horas de `plan_implementacion.md`.
+- Se actualizó el README (sede, horario y reglas) y se creó [submission.md](submission.md) con la lista de entregables, el cronograma ajustado a un solo día útil, el checklist y el plan B. Se marcó como reemplazado el cronograma de 48 horas de `implementation_plan.md`.
 - La sede dio permiso al equipo de empezar a trabajar desde el 13 de noviembre. Con eso queda resuelto el pendiente de la entrada "revisión del prototipo y repositorio", que preguntaba si las corridas previas contaban como trabajo previo.
 
 ## 2026-11-13: T4 — blancos curados, soporte polar T4.0 y clusters globales
@@ -97,10 +97,10 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
   - Coordenadas de aterrizaje verificadas para 8 sitios en Marte; quedan `TODO(verificar)` en Spirit, Oxia y Arcadia.
   - Se agrega soporte de parches que contienen el polo (Shackleton) sin cambiar T3.
   - Clusters k-means (30 por cuerpo) sobre los rasgos de T3.
-- [prompt_gemini.md](prompt_gemini.md) se reescribió para Gemini 4 en modo Orchestrator (Argon) de Antigravity, que ya tiene acceso a Yuca. Tiene MODO A (con SSH) y MODO B (sin SSH), y reglas reforzadas: nada de `pytest` en el login y no importar los scripts v1.
-- [operacion_sin_ssh.md](operacion_sin_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre, pero Open OnDemand (HTTPS) sí funciona; así se trabajó el 13. El documento cubre el flujo con OOD (Gemini en local, push a GitHub, Owen corre `git pull`/`sbatch` en la terminal de OOD y le pasa los logs), la lista para esta noche, el kit offline, qué avanzar en cada lado y el plan B.
+- [gemini_prompt.md](gemini_prompt.md) se reescribió para Gemini 4 en modo Orchestrator (Argon) de Antigravity, que ya tiene acceso a Yuca. Tiene MODO A (con SSH) y MODO B (sin SSH), y reglas reforzadas: nada de `pytest` en el login y no importar los scripts v1.
+- [working_without_ssh.md](working_without_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre, pero Open OnDemand (HTTPS) sí funciona; así se trabajó el 13. El documento cubre el flujo con OOD (Gemini en local, push a GitHub, Owen corre `git pull`/`sbatch` en la terminal de OOD y le pasa los logs), la lista para esta noche, el kit offline, qué avanzar en cada lado y el plan B.
   - El kit offline (`/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz`, 88 MB) tiene los parquet de T3, el gacetero IAU, Natural Earth y la caché de Diviner.
-- [progreso_handoff.md](progreso_handoff.md) se actualizó y ahora incluye la "Cola para cuando haya SSH".
+- [handoff.md](handoff.md) se actualizó y ahora incluye la "Cola para cuando haya SSH".
 - Incidente sin daño: al revisar el gacetero, Claude importó `enrich_nomenclature.py`, que se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El contenido quedó idéntico a la copia del repo.
 
 **Qué falta**
@@ -230,7 +230,7 @@ Para correrla: `cd app && npm install && npm run dev`.
 
 ## 2026-11-13: prompt de trabajo para Gemini
 
-- Claude escribió [prompt_gemini.md](prompt_gemini.md): instrucciones para que Gemini implemente el plan tarea por tarea (qué leer primero, reglas de commits y bitácora, reglas de Yuca, formato de respuesta) y el orden sugerido de sesiones.
+- Claude escribió [gemini_prompt.md](gemini_prompt.md): instrucciones para que Gemini implemente el plan tarea por tarea (qué leer primero, reglas de commits y bitácora, reglas de Yuca, formato de respuesta) y el orden sugerido de sesiones.
 
 ## 2026-11-13: descargas enviadas en Yuca
 
@@ -246,7 +246,7 @@ Para correrla: `cd app && npm install && npm run dev`.
 **Qué se hizo**
 
 - Se revisó la pestaña Resources del challenge. Ya usamos PDS, LRO (LOLA, LROC WAC) y Copernicus. Faltaban Diviner (temperaturas polares) y NASA Earthdata (MODIS); CSA RADARSAT, ESA Open Science Catalog y JAXA G-Portal quedan fuera de alcance.
-- Claude escribió [plan_implementacion.md](plan_implementacion.md): tareas T0–T11 con archivos, fórmulas, criterios de aceptación, contrato JSON v2 y cronograma. El código lo implementará Gemini a partir de ese plan.
+- Claude escribió [implementation_plan.md](implementation_plan.md): tareas T0–T11 con archivos, fórmulas, criterios de aceptación, contrato JSON v2 y cronograma. El código lo implementará Gemini a partir de ese plan.
 - Decisiones clave del plan: parches de 32 × 32 km a 500 m/px en proyección AEQD local para los tres cuerpos; máscara con NDVI de MODIS; blancos curados (Artemis III, sitios de aterrizaje en Marte) más clusters; puntaje RBF por dimensión; etiqueta de análogos conocidos.
 - Nuevo job `run_download_extra.slurm` con `download_earthdata.py`: Natural Earth (carreteras, aeropuertos) y MODIS NDVI (MOD13C2) y LST (MOD11C3) de 2023 vía `earthaccess`.
 - Se verificaron las URLs de tiles de NASA GIBS (Tierra) y NASA Trek (Luna y Marte) para la app.
@@ -275,7 +275,7 @@ Para correrla: `cd app && npm install && npm run dev`.
 
 ## 2026-11-13: propuesta de valor
 
-- Claude redactó [propuesta_de_valor.md](propuesta_de_valor.md) para el equipo de presentación y video: problemática, propuesta de valor, qué agrega el proyecto frente a lo que pide la NASA, diferenciador frente a otros equipos y candidatos en México del prototipo.
+- Claude redactó [value_proposition.md](value_proposition.md) para el equipo de presentación y video: problemática, propuesta de valor, qué agrega el proyecto frente a lo que pide la NASA, diferenciador frente a otros equipos y candidatos en México del prototipo.
 - Incluye una lista de lo que no debe afirmarse todavía, por las limitaciones del prototipo.
 - El diferenciador frente a otros equipos es una hipótesis: sus proyectos no son visibles antes de la entrega.
 - Se subió el mismo contenido a un doc de Claude para el equipo: [Propuesta de valor: Planetary Analog Finder](https://claude.ai/artifact/563rMStp47364hAEc9pCmV). Es privado hasta que se comparta.
@@ -316,5 +316,5 @@ El pipeline corre completo: DEM de Marte y Luna, luego 40 arquetipos por cuerpo 
 
 ## Antes del 12 de noviembre
 
-- Ideas del equipo y su evaluación: [../ideas.md](../ideas.md).
-- Plan maestro: [../plan_maestro_y_especificaciones_del_proyecto.md](../plan_maestro_y_especificaciones_del_proyecto.md).
+- Ideas del equipo y su evaluación: [ideas.md](ideas.md).
+- Plan maestro: [master_plan.md](master_plan.md).

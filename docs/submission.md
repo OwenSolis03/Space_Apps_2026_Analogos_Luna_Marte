@@ -1,6 +1,6 @@
 # Entrega y cronograma (NASA Space Apps Sonora, 14 y 15 de noviembre)
 
-Qué hay que entregar, quién lo hace y en qué orden, según las reglas de la sede: [spaceappssonora.org](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches), revisadas el 2026-11-13. Reemplaza al cronograma de 48 horas de `plan_implementacion.md` §6, que suponía dos días completos de trabajo.
+Qué hay que entregar, quién lo hace y en qué orden, según las reglas de la sede: [spaceappssonora.org](https://spaceappssonora.org/) y su [guía de pitches](https://spaceappssonora.org/pitches), revisadas el 2026-11-13. Reemplaza al cronograma de 48 horas de `implementation_plan.md` §6, que suponía dos días completos de trabajo.
 
 **El tiempo real** es el sábado 14 de 9:00 a 21:00 más la mañana del domingo 15. Los pitches son el domingo entre las 9:00 y las 14:00, así que **todo debe estar entregado y publicado antes de que nos toque pasar**. Confirmar en el grupo de WhatsApp la hora límite exacta y nuestro número de equipo.
 
@@ -15,14 +15,14 @@ Qué hay que entregar, quién lo hace y en qué orden, según las reglas de la s
 | 3 | **Pitch** | Español permitido | **≤ 3 min**, sin preguntas. Láminas en **Canva**; la 1.ª con nombre del proyecto y **número de equipo** | P1 (orador) y P4 |
 | 4 | **App web publicada** | Inglés (ya lo está) | Que los jueces la puedan probar; verificar el enlace antes de entregar | Javier (T10) |
 | 5 | **Repositorio** con README para instalar | Inglés en la parte que vean los jueces | Instalación, código y dependencias, datos y fuentes citados, capturas | Owen y Gemini |
-| 6 | **Uso de IA** ("Super Intelligence") | Inglés | Lo exige la entrega global: describir cómo se usó la IA | Owen, a partir de `docs/bitacora.md` |
+| 6 | **Uso de IA** ("Super Intelligence") | Inglés | Lo exige la entrega global: describir cómo se usó la IA | Owen, a partir de `docs/logbook.md` |
 
 **Criterios de evaluación de la sede:**
 
 | Criterio | Qué lo respalda | Qué falta |
 | --- | --- | --- |
 | Innovación tecnológica | Comparación con la misma métrica a la misma escala en los tres cuerpos (parches AEQD de 32 km), corrida en Yuca | — |
-| Impacto social | **Poco trabajado.** Idea: sitios análogos accesibles y baratos en México y Latinoamérica para formar gente, probar instrumentos y hacer divulgación sin ir a la Antártida | Reforzarlo en `propuesta_de_valor.md` y en el minuto 3 del pitch |
+| Impacto social | **Poco trabajado.** Idea: sitios análogos accesibles y baratos en México y Latinoamérica para formar gente, probar instrumentos y hacer divulgación sin ir a la Antártida | Reforzarlo en `value_proposition.md` y en el minuto 3 del pitch |
 | Documentación | `docs/` completo, bitácora y planes | Página del proyecto en inglés y README en inglés |
 | Escalabilidad | La tubería es genérica: otro cuerpo u otra capa es otra fila de configuración; corre en HPC | Decirlo con un ejemplo concreto (ej. agregar Mercurio o una capa de radar) |
 
@@ -50,9 +50,9 @@ Los planes de T7/T8 todavía no existen; Claude los escribe cuando Owen lo pida.
 
 - [ ] Problema, solución y resultados, con números reales de la corrida.
 - [ ] Qué datos de NASA y de otras agencias se usaron, con enlaces: MOLA, THEMIS, LOLA, LROC WAC, Diviner, MODIS, Copernicus GLO-90, Natural Earth y el gacetero IAU.
-- [ ] Qué **no** se resolvió: límites del análogo, rugosidad por debajo de 500 m, sin mineralogía. Base: "lo que no debe afirmarse" en `propuesta_de_valor.md`.
+- [ ] Qué **no** se resolvió: límites del análogo, rugosidad por debajo de 500 m, sin mineralogía. Base: "lo que no debe afirmarse" en `value_proposition.md`.
 - [ ] Enlaces a la app, al repositorio y al video.
-- [ ] Uso de IA: Claude (planes, documentación, revisión), Gemini (código del pipeline) y lo que haya usado el resto del equipo. Base: `docs/bitacora.md`.
+- [ ] Uso de IA: Claude (planes, documentación, revisión), Gemini (código del pipeline) y lo que haya usado el resto del equipo. Base: `docs/logbook.md`.
 
 **Repositorio:**
 
@@ -90,5 +90,5 @@ En cualquier caso: **no afirmar resultados que no se corrieron.**
 ## 5. Riesgos que conviene tener presentes
 
 - **Trabajo previo al 14 de noviembre: resuelto.** La sede dio permiso al equipo de empezar a trabajar desde el 13 de noviembre (confirmado por Owen). En la página del proyecto conviene decirlo así: la bitácora registra con fecha lo que se hizo cada día.
-- **Red de la sede:** SSH bloqueado, OOD funciona ([operacion_sin_ssh.md](operacion_sin_ssh.md)). El despliegue de la app no depende de Yuca.
+- **Red de la sede:** SSH bloqueado, OOD funciona ([working_without_ssh.md](working_without_ssh.md)). El despliegue de la app no depende de Yuca.
 - **Un solo día útil:** si una corrida falla, diagnosticar antes de reenviarla. El tiempo no alcanza para varios intentos a ciegas.

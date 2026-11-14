@@ -1,6 +1,6 @@
 # Detailed plan T7 + T8: matching, scoring and export
 
-Full specification of T7 (`pipeline/match.py`) and T8 (`pipeline/export.py`). It expands sections T7 and T8 of [plan_implementacion.md](plan_implementacion.md). Where they disagree, **this document wins**. Written by Claude on 2026-11-13 on `main` at `a2b2073`, using the real outputs of T3 (`runs/2242278`), T4 (`runs/2242423`) and the T5 smoke test (`runs/2242432`).
+Full specification of T7 (`pipeline/match.py`) and T8 (`pipeline/export.py`). It expands sections T7 and T8 of [implementation_plan.md](implementation_plan.md). Where they disagree, **this document wins**. Written by Claude on 2026-11-13 on `main` at `a2b2073`, using the real outputs of T3 (`runs/2242278`), T4 (`runs/2242423`) and the T5 smoke test (`runs/2242432`).
 
 This is the first plan written in English. Code comments, docstrings, log messages and commit messages for T7/T8 are in **English**, and so is the bitácora entry.
 
@@ -119,7 +119,7 @@ Arid Earth is smooth at this scale. Earth's p95 slope is 6.9° and its maximum 2
 | `construction_and_base` | Base construction and landing | 0.55 | 0.25 | 0.10 | 0.10 |
 | `dust_and_thermal` | Dust and thermal environment | 0.15 | 0.15 | 0.40 | 0.30 |
 
-These are the same weights as `plan_implementacion.md` and the app sample. The logistics adjustment `MSI_log = MSI · (1 − λ + λ · exp(−dist_road_km / 100))` happens **in the app**; T7 only exports `dist_road_km`.
+These are the same weights as `implementation_plan.md` and the app sample. The logistics adjustment `MSI_log = MSI · (1 − λ + λ · exp(−dist_road_km / 100))` happens **in the app**; T7 only exports `dist_road_km`.
 
 ### 2.5 Candidate search, diversity and the ice cap
 
@@ -269,7 +269,7 @@ It follows `app/src/lib/types.ts`. Fields marked *new* are additions that the ap
 - **Order:**
   - analogs sorted by `msi_by_preset.mobility_and_traction`, descending;
   - targets ordered curated first (Moon, then Mars, in the `targets.json` order), then clusters by body and rank.
-- **Datasets list.** Each entry carries a name, source and URL; take the URLs from `docs/pipeline.md` and `plan_implementacion.md` §2. Entries:
+- **Datasets list.** Each entry carries a name, source and URL; take the URLs from `docs/pipeline.md` and `implementation_plan.md` §2. Entries:
   - MGS MOLA DEM;
   - THEMIS IR Day/Night;
   - LRO LOLA LDEM;
@@ -291,7 +291,7 @@ It follows `app/src/lib/types.ts`. Fields marked *new* are additions that the ap
 { "version": "...", "Moon": [ { "factor": "gravity", "earth": "1 g", "target": "0.166 g", "consequence": "...", "source": "https://..." } ], "Mars": [ ... ] }
 ```
 
-- **Who writes it:** T11 is content written by the team (P3), with a minimum of 6 factors per body (`plan_implementacion.md` §T11).
+- **Who writes it:** T11 is content written by the team (P3), with a minimum of 6 factors per body (`implementation_plan.md` §T11).
 - **Fallback:** if `limits.json` does not exist, `export.py` copies `limits` from `app/public/data/sample.json`, sets `metadata.limits_source = "provisional (sample.json)"` and logs a warning. If it exists, `export.py` validates that every entry has the 5 keys and a non-empty `source`.
 
 ---
@@ -405,10 +405,10 @@ Then the app switches `DATA_URL` in `app/src/App.tsx` from `sample.json` to `ana
 
 ## 8. Documentation (same commit, then update after the run)
 
-- **`docs/bitacora.md`:** new entry **in English** with what was done and why, the job ids, the hard check table, and the score distribution from the report.
+- **`docs/logbook.md`:** new entry **in English** with what was done and why, the job ids, the hard check table, and the score distribution from the report.
 - **`docs/HISTORY.md`:** add a "T7/T8" section with the decisions of §2 and their reasons.
 - **`docs/pipeline.md`:** add the run.
-- **`docs/progreso_handoff.md`:** mark T7/T8 as done, with the path of the JSON.
+- **`docs/handoff.md`:** mark T7/T8 as done, with the path of the JSON.
 
 ## 9. What NOT to do
 

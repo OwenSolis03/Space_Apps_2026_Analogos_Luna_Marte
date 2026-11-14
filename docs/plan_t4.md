@@ -1,8 +1,8 @@
 # Plan detallado T4: blancos curados y clusters
 
-Especificación completa de T4 para implementarla sin adivinar. Amplía la sección T4 de [plan_implementacion.md](plan_implementacion.md); si algo choca, **este documento manda para T4**. Escrito por Claude el 2026-11-13 con el código de `main` en `51678d9` y la corrida T3 `2242278`.
+Especificación completa de T4 para implementarla sin adivinar. Amplía la sección T4 de [implementation_plan.md](implementation_plan.md); si algo choca, **este documento manda para T4**. Escrito por Claude el 2026-11-13 con el código de `main` en `51678d9` y la corrida T3 `2242278`.
 
-Leer antes: sección 0 (reglas) de `plan_implementacion.md`, y `pipeline/planet_features.py` completo.
+Leer antes: sección 0 (reglas) de `implementation_plan.md`, y `pipeline/planet_features.py` completo.
 
 ---
 
@@ -495,7 +495,7 @@ def main(argv=None): ...   # argparse: --t3-dir (obligatorio), --out-dir (obliga
 - **`clusters_mars.parquet`, `clusters_moon.parquet`:** el `summary_df` de cada cuerpo.
 - **`targets.json`:** lo mismo que `targets.parquet`, como `{"metadata": {...}, "targets": [...]}`.
   - Floats redondeados a 4 decimales; NaN → `null`.
-  - Los rasgos van anidados en `features` (los 6 de comparación más `mean_elev_m`) y `aux`, con los mismos nombres que la sección 5 de `plan_implementacion.md`, para que T8 los copie directo.
+  - Los rasgos van anidados en `features` (los 6 de comparación más `mean_elev_m`) y `aux`, con los mismos nombres que la sección 5 de `implementation_plan.md`, para que T8 los copie directo.
   - `metadata` lleva `slurm_job_id`, `t3_run`, `k`, `seed`, `generated_at` y el commit (`git rev-parse --short HEAD`).
 - **`map_targets_mars.png`, `map_targets_moon.png`.**
 
@@ -620,7 +620,7 @@ tail -n 120 /lustre/proyectos/p089/output/t4_targets_<JOBID>.log
 
 ## 12. Bitácora y documentación (mismo commit)
 
-- **`docs/bitacora.md`:** entrada nueva arriba. Debe decir:
+- **`docs/logbook.md`:** entrada nueva arriba. Debe decir:
   - que el código lo escribió Gemini a partir de este plan de Claude;
   - el JOBID de la corrida y los conteos de curados y clusters;
   - qué curados quedaron fuera y por qué;
@@ -628,7 +628,7 @@ tail -n 120 /lustre/proyectos/p089/output/t4_targets_<JOBID>.log
 - **`docs/pipeline.md`:**
   - agregar la corrida T4 a "Corridas registradas";
   - agregar una línea en "Flujo" con `pipeline/targets.py` → `runs/<id>/targets.parquet`.
-- **`docs/progreso_handoff.md`:** marcar T4 como hecho y dejar el JOBID para T7.
+- **`docs/handoff.md`:** marcar T4 como hecho y dejar el JOBID para T7.
 
 ---
 

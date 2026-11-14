@@ -2,13 +2,13 @@
 
 Plan para construir la versión 2 del pipeline y la app. Está escrito para que otro agente de código (Gemini) o una persona del equipo lo implemente tarea por tarea sin tener que adivinar. Cada tarea dice qué archivo crear, qué debe hacer, con qué fórmulas y cómo saber que quedó bien.
 
-Leer antes: [pipeline.md](pipeline.md) (cómo funciona la v1 y recursos de Yuca) y [bitacora.md](bitacora.md) (qué está mal en la v1).
+Leer antes: [pipeline.md](pipeline.md) (cómo funciona la v1 y recursos de Yuca) y [logbook.md](logbook.md) (qué está mal en la v1).
 
 ---
 
 ## 0. Reglas para quien implemente
 
-1. **Una tarea, un commit.** Mensaje que diga qué tarea es. Hasta el 2026-11-13 los mensajes iban en español (`T3: features globales de Marte y Luna`); **desde entonces van en inglés** (`T7: RBF matching and MSI presets`). La historia completa en inglés está en [HISTORY.md](HISTORY.md). Agregar una entrada en `docs/bitacora.md` en el mismo commit.
+1. **Una tarea, un commit.** Mensaje que diga qué tarea es. Hasta el 2026-11-13 los mensajes iban en español (`T3: features globales de Marte y Luna`); **desde entonces van en inglés** (`T7: RBF matching and MSI presets`). La historia completa en inglés está en [HISTORY.md](HISTORY.md). Agregar una entrada en `docs/logbook.md` en el mismo commit.
 2. **No borrar la v1.** Los scripts de la raíz (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) se quedan como referencia. El código nuevo va en `pipeline/`.
 3. **Nada pesado en el repo.** Rasters, parquet y shards van en Yuca (`/lustre/proyectos/p089/...`). Al repo solo sube el JSON final que consume la app (`app/public/data/`) si pesa menos de 20 MB.
 4. **Reglas de Yuca (obligatorias):**
@@ -349,7 +349,7 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
   - Luna: gravedad, vacío, radiación, ciclo térmico, iluminación polar y regolito.
   - Marte: gravedad, presión, radiación, ciclo térmico, polvo y percloratos.
 - Protocolo de prueba por preset (texto corto que la app muestra según la dimensión que más pesa).
-- Pitch, presentación y video de respaldo. Base: [propuesta_de_valor.md](propuesta_de_valor.md).
+- Pitch, presentación y video de respaldo. Base: [value_proposition.md](value_proposition.md).
 - Descripción del uso de IA, sacada de la bitácora.
 
 ---
@@ -414,7 +414,7 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 
 ## 6. Orden y tiempos (48 horas desde el 14 de noviembre, 9:00)
 
-> **Reemplazado por [entrega.md](entrega.md).** La sede real (NASA Space Apps Sonora, Tec de Monterrey) da el sábado de 9:00 a 21:00 y pitches el domingo en la mañana, no 48 horas. La tabla de abajo queda como referencia del orden de las tareas.
+> **Reemplazado por [submission.md](submission.md).** La sede real (NASA Space Apps Sonora, Tec de Monterrey) da el sábado de 9:00 a 21:00 y pitches el domingo en la mañana, no 48 horas. La tabla de abajo queda como referencia del orden de las tareas.
 
 | Horas | Pipeline (Owen + Gemini) | App (Javier) | Contenido |
 | --- | --- | --- | --- |

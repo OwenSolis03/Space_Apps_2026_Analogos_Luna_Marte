@@ -91,4 +91,4 @@ Para que el pitch aguante preguntas de los jueces:
 - **No vender mineralogía, térmica o polvo como comparados** hasta que estén en el pipeline. Hoy solo el relieve entra al puntaje.
 - **Los blancos del reto** (polo sur lunar / Artemis, sitios de aterrizaje en Marte) aún no son objetivos explícitos; los arquetipos salen de un k-means global.
 
-Detalle y prioridades de corrección en la [bitácora](bitacora.md).
+Detalle y prioridades de corrección en la [bitácora](logbook.md).

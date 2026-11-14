@@ -2,7 +2,7 @@
 
 Proyecto del equipo Endurance CXXV: **Planetary Analog Finder**, un buscador de sitios en la Tierra análogos a sitios de la Luna y Marte, comparados con datos abiertos de topografía y capas térmicas. El procesamiento pesado corre en la supercomputadora Yuca (UniSon) y la app consume el JSON resultante.
 
-Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en la [bitácora](docs/bitacora.md).
+Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en la [bitácora](docs/logbook.md).
 
 ## Estructura
 
@@ -12,23 +12,23 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 | `run_download_missing.slurm` | Job que baja lo que faltó, con URLs corregidas |
 | `run_download_extra.slurm`, `download_earthdata.py` | Job de capas terrestres extra: MODIS (NDVI, LST) y Natural Earth |
 | `tools/explore_datasets.py`, `jobs/explore_datasets.slurm` | Reporte HTML para explorar los datasets descargados |
-| `docs/plan_implementacion.md` | Plan de la v2 tarea por tarea (para implementar con Gemini) |
+| `docs/implementation_plan.md` | Plan de la v2 tarea por tarea (para implementar con Gemini) |
 | `docs/plan_t4.md` | Plan detallado de T4 (blancos curados y clusters) |
-| `docs/prompt_gemini.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
-| `docs/progreso_handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
+| `docs/gemini_prompt.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
+| `docs/handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
 | `docs/HISTORY.md` | Project history in English: decisions, reasons, commits and Slurm jobs |
-| `docs/entrega.md` | Qué se entrega, checklist y cronograma del 14 y 15 de noviembre |
-| `docs/operacion_sin_ssh.md` | Trabajar sin SSH: flujo por Open OnDemand, kit offline y plan B |
+| `docs/submission.md` | Qué se entrega, checklist y cronograma del 14 y 15 de noviembre |
+| `docs/working_without_ssh.md` | Trabajar sin SSH: flujo por Open OnDemand, kit offline y plan B |
 | `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |
 | `enrich_nomenclature.py` | Nombres IAU para cada arquetipo |
 | `match_earth_analogs.py`, `run_earth_matching.slurm` | Búsqueda de análogos en Copernicus GLO-90 |
 | `output/` | `planetary_baselines.json` y `analogs.json` de la última corrida |
 | `logs/` | Logs de descargas y de los jobs de Slurm |
 | `docs/pipeline.md` | Cómo funciona el pipeline, datos y corridas |
-| `docs/propuesta_de_valor.md` | Problemática, propuesta de valor y diferenciadores, para presentación y video |
-| `docs/bitacora.md` | Registro de lo que se ha hecho y pendientes |
-| `plan_maestro_y_especificaciones_del_proyecto.md` | Plan completo (meta, no estado actual) |
-| `ideas.md` | Ideas del equipo y su evaluación |
+| `docs/value_proposition.md` | Problemática, propuesta de valor y diferenciadores, para presentación y video |
+| `docs/logbook.md` | Registro de lo que se ha hecho y pendientes |
+| `docs/master_plan.md` | Plan completo (meta, no estado actual) |
+| `docs/ideas.md` | Ideas del equipo y su evaluación |
 
 Los rasters (~32 GB más los tiles de Copernicus) viven en Yuca en `/lustre/proyectos/p089/data` y no se suben al repo.
 
@@ -65,11 +65,11 @@ El equipo está inscrito en **NASA Space Apps Sonora 2026**, en el Tec de Monter
 - **Contacto:** el grupo de WhatsApp de participantes, que es obligatorio, más Instagram y Facebook. La página no publica correo ni nombres de los organizadores.
 - **Mentores:** Edgar León (Tec de Monterrey), Julio Waissman (UNISON), Eddy Varela, Jesús Medina, Octavio López y Michelle Sesteaga.
 - **Hora límite de entrega:** la página no la da. El cierre global es el 15 a las 23:59, pero los pitches son el domingo en la mañana, así que todo debe estar listo **antes del pitch**. Confirmarlo en el grupo de WhatsApp.
-- **Red:** la red de la sede bloquea SSH; usar Open OnDemand ([operacion_sin_ssh.md](docs/operacion_sin_ssh.md)).
+- **Red:** la red de la sede bloquea SSH; usar Open OnDemand ([working_without_ssh.md](docs/working_without_ssh.md)).
 
 ### Qué hay que entregar (reglas de la sede)
 
-Checklist completa y cronograma ajustado en [docs/entrega.md](docs/entrega.md).
+Checklist completa y cronograma ajustado en [docs/submission.md](docs/submission.md).
 
 - **Pitch:**
   - máximo **3 minutos**, sin preguntas;
