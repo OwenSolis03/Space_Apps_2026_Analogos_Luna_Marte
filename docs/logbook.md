@@ -2,6 +2,7 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+<<<<<<< HEAD
 ## 2026-11-14: T16.4 — tests for the missing-data policy
 
 **What was done and why** (tests written by Gemini per `docs/plan_t16_missing_data.md` §6):
@@ -72,6 +73,18 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 - Missing NDVI on snow and ice keeps counting as bare ground.
 - Expected after the re-run: no Mars dust-preset winner without dust data; ice preset ranks 1 Mars target (Arcadia) and 8 Moon targets; no dust preset on the Moon; mobility, construction and geology presets unchanged.
 - Nothing is implemented yet. The app part goes on top of `feat/app-seven-dimensions`.
+
+## 2026-11-14: app reads the final export and scores all seven dimensions
+
+**What was done and why** (code written by Claude, branch `feat/app-seven-dimensions`):
+
+- The app still loaded `sample.json` (v1 data converted for the T10 skeleton) and only knew four dimensions, so geology, dust and ice were ignored: the `isru_and_ice` preset put 50% of its weight on a dimension the browser dropped, and most targets scored 99.x.
+- `App.tsx` now loads `app/public/data/analogs_universe.json` (run 2242490). Types, MSI, sliders and radar cover the seven dimensions; dimensions that do not apply to a body (thermal and dust on the Moon) are disabled with "not modelled for the Moon".
+- MSI in the browser (`Σ w·S / Σ w` over non-null sub-scores) reproduces the pipeline's `msi_by_preset` for all 25,050 analog-preset pairs (max error 0.0009). Spot checks in the running app: Haworth rim with `isru_and_ice` 55.2, Shackleton rim with `mobility_and_traction` 73.0, mars-cluster-29 with `isru_and_ice` 68.8, all equal to the export.
+- New controls: road-distance factor λ (0 to 0.3, `MSI · (1 − λ + λ·exp(−road_km/100))`) and "only new candidates" (hides `KNOWN_ANALOG` sites).
+- Site sheet: mission context of the target (category, why, geology unit, source), Earth logistics (road, airport), NDVI and day-night ΔT, rows for rock class, dust ranks, cold-trap rank and any other mismatch, non-numeric mismatches (rock class) shown as "differs", pipeline site notes (lava-tube terrain, polar cold), and a source link per physical limit.
+- Removed v1 leftovers: "best v1 similarity", "road distance arrives with T6", the T11 "provisional" notes and the `sample.json` error message. The header now shows mission sites and new Earth candidate sites; Methodology lists the dimensions, what is not modelled, datasets and references from the export metadata. Footer venue updated to NASA Space Apps Sonora.
+- Checked with `tsc -b`, `npm run build` and in the browser (Mars and Moon, all presets, λ, no console errors).
 
 ## 2026-11-14 (morning): T15 matching and export complete (7 dimensions, 5 presets), following Claude's §5.8 review
 

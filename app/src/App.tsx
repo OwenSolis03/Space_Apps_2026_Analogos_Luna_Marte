@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import type { Body, Dimension, Universe, Weights } from "./lib/types";
+import type { Body, Dimension, DimensionInfo, Universe, Weights } from "./lib/types";
+import { ZERO_WEIGHTS, fullWeights } from "./lib/types";
 import { availableDimensions, fmtLat, fmtLon, pct, rankTargets } from "./lib/msi";
 import { BODY_LABEL, TILES } from "./lib/content";
 import { ScenarioPanel } from "./components/ScenarioPanel";
@@ -7,7 +8,7 @@ import { SiteMap, type MapPoint } from "./components/SiteMap";
 import { RankList } from "./components/RankList";
 import { Dossier } from "./components/Dossier";
 
-const DATA_URL = `${import.meta.env.BASE_URL}data/sample.json`;
+const DATA_URL = `${import.meta.env.BASE_URL}data/analogs_universe.json`;
 const BODIES: Body[] = ["Mars", "Moon"];
 
 type Load = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; data: Universe };
@@ -16,8 +17,10 @@ export default function App() {
   const [load, setLoad] = useState<Load>({ state: "loading" });
   const [body, setBody] = useState<Body>("Mars");
   const [presetId, setPresetId] = useState<string | null>(null);
-  const [weights, setWeights] = useState<Weights>({ topography: 0.5, roughness: 0.5, environment: 0, thermal: 0 });
+  const [weights, setWeights] = useState<Weights>({ ...ZERO_WEIGHTS, topography: 0.5, roughness: 0.5 });
   const [minScore, setMinScore] = useState(0);
+  const [lambda, setLambda] = useState(0);
+  const [newOnly, setNewOnly] = useState(false);
   const [targetId, setTargetId] = useState<string | null>(null);
   const [analogIndex, setAnalogIndex] = useState(0);
 
@@ -32,7 +35,7 @@ export default function App() {
         const first = Object.keys(data.mission_presets)[0];
         if (first) {
           setPresetId(first);
-          setWeights(data.mission_presets[first].weights);
+          setWeights(fullWeights(data.mission_presets[first].weights));
         }
       })
       .catch((e: Error) => setLoad({ state: "error", message: e.message }));
@@ -44,8 +47,13 @@ export default function App() {
 
   const data = load.state === "ready" ? load.data : null;
   const bodyTargets = useMemo(() => data?.targets.filter((t) => t.body === body) ?? [], [data, body]);
-  const available = useMemo(() => availableDimensions(data?.targets ?? []), [data]);
-  const ranked = useMemo(() => rankTargets(bodyTargets, weights, minScore), [bodyTargets, weights, minScore]);
+  const available = useMemo(() => availableDimensions(bodyTargets), [bodyTargets]);
+  const dimInfo = useMemo(() => {
+    const out: Partial<Record<Dimension, DimensionInfo>> = {};
+    for (const d of data?.metadata.dimensions ?? []) out[d.key] = d;
+    return out;
+  }, [data]);
+  const ranked = useMemo(() => rankTargets(bodyTargets, weights, minScore, lambda, newOnly), [bodyTargets, weights, minScore, lambda, newOnly]);
   const selected = ranked.find((r) => r.target.id === targetId) ?? ranked[0] ?? null;
   const safeAnalog = selected && analogIndex < selected.analogs.length ? analogIndex : 0;
 
@@ -90,10 +98,15 @@ export default function App() {
   const choosePreset = (id: string) => {
     if (!data) return;
     setPresetId(id);
-    setWeights(data.mission_presets[id].weights);
+    setWeights(fullWeights(data.mission_presets[id].weights));
   };
 
-  const best = bodyTargets.length ? Math.max(...bodyTargets.flatMap((t) => t.analogs.map((a) => a.v1_similarity ?? 0))) : 0;
+  const newSites = useMemo(() => {
+    const ids = new Set<string>();
+    for (const t of bodyTargets) for (const a of t.analogs) if (a.classification === "NEW_CANDIDATE") ids.add(a.id);
+    return ids.size;
+  }, [bodyTargets]);
+  const curated = bodyTargets.filter((t) => t.type === "CURATED").length;
   const B = BODY_LABEL[body];
 
   return (
@@ -146,12 +159,12 @@ export default function App() {
               <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data?.metadata.earth_patches_evaluated?.toLocaleString("en-US") ?? "..."}</dd>
             </div>
             <div className="pt-3 pr-3">
-              <dt className="text-xs text-muted">{B.adj} terrain targets</dt>
+              <dt className="text-xs text-muted">{B.adj} targets ({curated} mission sites)</dt>
               <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data ? bodyTargets.length : "..."}</dd>
             </div>
             <div className="pt-3">
-              <dt className="text-xs text-muted">best v1 similarity</dt>
-              <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data ? best.toFixed(1) : "..."}</dd>
+              <dt className="text-xs text-muted">new Earth candidate sites</dt>
+              <dd className="num font-display text-2xl font-semibold sm:text-3xl">{data ? newSites.toLocaleString("en-US") : "..."}</dd>
             </div>
           </dl>
         </section>
@@ -161,7 +174,7 @@ export default function App() {
           <div role="alert" className="my-6 rounded-panel border border-bad bg-surface p-4">
             <p className="font-semibold text-bad">The analog data could not be loaded.</p>
             <p className="mt-1 text-sm text-muted">
-              {load.message}. Check that <code className="num">app/public/data/sample.json</code> exists (generate it with <code className="num">python tools/v1_to_sample.py</code>).
+              {load.message}. Check that <code className="num">app/public/data/analogs_universe.json</code> exists (exported by <code className="num">pipeline/export.py</code>).
             </p>
           </div>
         )}
@@ -172,7 +185,7 @@ export default function App() {
               <div className="mb-5 grid gap-1">
                 <h2 id="explorar-h" className="text-2xl font-semibold">Explorer</h2>
                 <p className="max-w-[70ch] text-sm text-muted">
-                  Pick a mission case and adjust the weights. The ranking is recalculated in your browser. Dimensions the current pipeline has no data for are disabled.
+                  Pick a mission case and adjust the weights. The ranking is recalculated in your browser. Dimensions that do not apply to {B.name} are disabled.
                 </p>
               </div>
               <div className="grid gap-4 md:grid-cols-[16rem_minmax(0,1fr)] xl:grid-cols-[16rem_minmax(0,1fr)_20rem]">
@@ -183,8 +196,14 @@ export default function App() {
                   weights={weights}
                   onWeight={changeWeight}
                   available={available}
+                  dimInfo={dimInfo}
+                  bodyName={B.name}
                   minScore={minScore}
                   onMinScore={setMinScore}
+                  lambda={lambda}
+                  onLambda={setLambda}
+                  newOnly={newOnly}
+                  onNewOnly={setNewOnly}
                 />
                 <div className="grid min-w-0 content-start gap-4">
                   <SiteMap
@@ -227,11 +246,14 @@ export default function App() {
               <h2 id="metodo-h" className="mb-5 text-2xl font-semibold">Methodology</h2>
               <ol className="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-5">
                 {[
-                  ["Targets", "Terrain windows on Mars (MOLA-HRSC) and the Moon (LOLA), clustered into 40 archetypes per body."],
-                  ["Earth cells", `${data.metadata.earth_patches_evaluated?.toLocaleString("en-US")} Copernicus DEM cells with slope, P90, elevation σ and TRI.`],
-                  ["Sub-scores", "RBF kernel per feature, averaged per dimension: S = exp(-(x_T - x_E)² / 2σ²)."],
-                  ["MSI", "MSI = Σ w·S / Σ w with the mission case weights, recalculated in the browser."],
-                  ["Where it breaks", "Features more than 1.5 σ from the target, plus the fixed physical limits of each body."],
+                  ["Targets", "Mission sites (Artemis III regions, Mars landing sites) plus terrain archetypes clustered from MOLA and LOLA."],
+                  [
+                    "Same measurement",
+                    `${data.metadata.earth_patches_evaluated?.toLocaleString("en-US")} bare-ground Earth patches and every target measured on the same ${data.metadata.patch?.size_km ?? 32} km patch at ${data.metadata.patch?.res_m ?? 500} m per pixel.`,
+                  ],
+                  ["Sub-scores", "Seven dimensions: terrain uses an RBF kernel on robust z-scores; thermal, dust and ice compare ranks within each planet."],
+                  ["MSI", "MSI = Σ w·S / Σ w over the dimensions that apply, recalculated in the browser; optional road-distance factor λ."],
+                  ["Where it breaks", "Features beyond 1.5 σ or a different rock class, plus the fixed physical limits of each body."],
                 ].map(([h, p], i) => (
                   <li key={h} className="border-t-2 border-fg pt-3">
                     <span className="num text-xs text-accent">{i + 1}</span>
@@ -240,20 +262,59 @@ export default function App() {
                   </li>
                 ))}
               </ol>
+              <div className="mt-6 grid gap-6 lg:grid-cols-2">
+                <div className="grid content-start gap-2 text-sm">
+                  <h3 className="text-base font-semibold">Dimensions</h3>
+                  <ul className="grid gap-2">
+                    {(data.metadata.dimensions ?? []).map((d) => (
+                      <li key={d.key}>
+                        <b className="font-semibold">{d.label}</b> <span className="text-xs text-faint">({d.bodies.join(", ")})</span>
+                        <span className="block text-muted">{d.description}</span>
+                        <span className="block text-xs text-faint">{d.source}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="grid content-start gap-2 text-sm">
+                  <h3 className="text-base font-semibold">Not modelled</h3>
+                  <ul className="grid gap-2">
+                    {(data.metadata.not_modelled ?? []).map((n) => (
+                      <li key={n.item}>
+                        <b className="font-semibold">{n.item}</b>
+                        <span className="block text-muted">{n.note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
               <div className="mt-6 grid gap-2 text-sm">
                 <h3 className="text-base font-semibold">Source data</h3>
                 <ul className="grid gap-1 sm:grid-cols-2">
-                  {data.metadata.datasets.map((d) => (
+                  {(data.metadata.datasets ?? []).map((d) => (
                     <li key={d.name}>
-                      <a className="underline decoration-line underline-offset-2 hover:decoration-fg" href={d.url} target="_blank" rel="noreferrer">
-                        {d.name}
-                      </a>{" "}
+                      {d.url ? (
+                        <a className="underline decoration-line underline-offset-2 hover:decoration-fg" href={d.url} target="_blank" rel="noreferrer">
+                          {d.name}
+                        </a>
+                      ) : (
+                        d.name
+                      )}{" "}
                       <span className="text-muted">· {d.source}</span>
                     </li>
                   ))}
                 </ul>
+                {(data.metadata.citations ?? []).length > 0 && (
+                  <details className="text-xs text-muted">
+                    <summary className="cursor-pointer">References</summary>
+                    <ul className="mt-2 grid gap-1">
+                      {data.metadata.citations!.map((c) => (
+                        <li key={c}>{c}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
                 <p className="text-xs text-muted">
-                  Sample data: {data.metadata.source}. Version {data.metadata.version}.
+                  {data.metadata.source}. Version {data.metadata.version}, generated {data.metadata.generated_at.slice(0, 10)}.
                 </p>
               </div>
             </section>
@@ -263,7 +324,7 @@ export default function App() {
 
       <footer className="mx-auto flex max-w-[82rem] flex-wrap justify-between gap-4 border-t border-line px-4 pt-6 pb-10 text-sm text-muted">
         <span>Planetary Analog Finder · prototype</span>
-        <span>Endurance CXXV · NASA Space Apps Challenge 2026 · UTH Hermosillo</span>
+        <span>Endurance CXXV · NASA Space Apps Challenge 2026 · NASA Space Apps Sonora, Hermosillo</span>
       </footer>
     </div>
   );
