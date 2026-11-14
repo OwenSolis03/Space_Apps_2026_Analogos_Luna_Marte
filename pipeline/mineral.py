@@ -65,7 +65,17 @@ def ferric_box_mean(
     try:
         from rasterio.windows import from_bounds
 
-        window = from_bounds(min_lon, min_lat, max_lon, max_lat, raster.transform)
+        # If raster coordinate reference system is projected in meters (e.g. OMEGA equirectangular meters)
+        crs = getattr(raster, "crs", None)
+        is_projected_meters = raster.transform[0] > 10.0 or (crs is not None and not getattr(crs, "is_geographic", True))
+        if is_projected_meters:
+            min_x = math.radians(min_lon) * r_mars_m
+            max_x = math.radians(max_lon) * r_mars_m
+            min_y = math.radians(min_lat) * r_mars_m
+            max_y = math.radians(max_lat) * r_mars_m
+            window = from_bounds(min_x, min_y, max_x, max_y, raster.transform)
+        else:
+            window = from_bounds(min_lon, min_lat, max_lon, max_lat, raster.transform)
         data = raster.read(1, window=window).astype(np.float64)
         if raster.nodata is not None:
             data[data == raster.nodata] = np.nan
