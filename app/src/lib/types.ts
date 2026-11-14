@@ -56,8 +56,17 @@ export interface Analog {
   ice?: { cold_rank?: number; ice_E?: number } | null;
   polar_cold?: boolean;
   subsurface_note?: string | null;
+  mineralogy?: MineralogyBlock | null;
   mismatches: Mismatch[];
   earth_missing_dims?: Dimension[];
+}
+
+export interface MineralogyBlock {
+  source: string;
+  status: "ok" | "outside_coverage" | "no_data";
+  note?: string;
+  summary?: string;
+  values?: Record<string, number | null>;
 }
 
 export interface Target {
@@ -87,6 +96,7 @@ export interface Target {
   geology?: { unit?: string; geo_class?: string; geo_class_share?: number } | null;
   dust?: { level_rank?: number; seasonality_rank?: number; peak_phase_deg?: number } | null;
   ice?: { cold_rank?: number; ice_T?: number; ice_source?: string } | null;
+  mineralogy?: MineralogyBlock | null;
   analogs: Analog[];
 }
 

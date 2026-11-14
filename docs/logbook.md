@@ -2,6 +2,16 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Option A (T18) — Mineralogy context as display-only in UI and pipeline
+
+**What was done** (branch `feat/mineral-context`):
+
+- **Pipeline enrichment module (`pipeline/minerals.py`):** Added a self-contained enrichment utility that reads orbital mineral maps (Moon: Kaguya MI 4 ppd, Mars: TES Bandfield 2002 4 ppd, Earth: EMIT L3 ASA 0.5 deg) and attaches structured `mineralogy` blocks to targets and analogs in `analogs_universe.json`. No score or matching logic is modified.
+- **Unit test suite (`tests/test_minerals.py`):** Added 7 synthetic unit tests covering `Grid` window extraction, boundary/polar clipping, plain-language mineralogy summaries (Moon FeO and silicates, Mars TES silicates and hematite, Earth EMIT minerals), and non-invasive universe enrichment. All 7 tests pass.
+- **Frontend types (`app/src/lib/types.ts`):** Added `MineralogyBlock` interface with `source`, `status`, `note`, `summary`, and optional `values`. Extended `Target` and `Analog` interfaces with `mineralogy?: MineralogyBlock | null`.
+- **UI Site Sheet (`app/src/components/Dossier.tsx`):** Added display-only mineralogy callouts to the target and analog summary cards, plus a dedicated "Mineralogy context · display only" `.panel` featuring side-by-side spectral summaries and modal mineral compositions.
+- **Verification:** `tsc -b` and `vite build` pass with 0 errors.
+
 ## 2026-11-14: RETICULA design system applied to the app
 
 **What was done** (Claude, branch `feat/reticula-design-system`; design system from the Claude artifact https://claude.ai/artifact/KKCjB4XjYzGiXQKt78yi74, last changed by "Fer" according to its `design-system.json`):
