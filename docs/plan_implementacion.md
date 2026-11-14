@@ -188,7 +188,10 @@ Antes de calcular, rellenar los NaN restantes con la mediana del parche.
 **Capas auxiliares por parche** (mediana dentro del parche, también con `extract_patch` y `Resampling.average`, NaN si no hay cobertura):
 
 - Marte: `themis_day`, `themis_night` (valores crudos del mosaico; documentar que no son temperatura) y `themis_delta = themis_day - themis_night`.
-- Luna: `wac_reflectance`; `ice_favorability` (solo en los polos); y, si existe T0.3, `diviner_tmax_k`, `diviner_tavg_k`, `ice_depth_m` interpolados desde la tabla PRP.
+- Luna: `wac_reflectance`; `ice_favorability` (solo en los polos); y `diviner_tmax_k`, `diviner_tavg_k`, `ice_depth_m` desde la tabla PRP (T0.3, ya descargada).
+  - Formato de `dlre_prp_south.tab`: CSV con encabezado y espacios; columnas `tri1_x, tri1_y, tri1_z, tri2_x, …, tri3_z, tri_clon, tri_clat, tri_calt, temp_avg, temp_max, ice_depth`. Usar solo `tri_clon`, `tri_clat` (centro del triángulo, grados), `temp_avg`, `temp_max` (K) e `ice_depth` (m; `-999` = sin hielo estable → NaN para la mediana, pero contar como "sin hielo").
+  - 2.88 millones de filas (577 MB): leer con `pandas.read_csv(..., usecols=[...], skipinitialspace=True)` una sola vez y guardar en `data/derived/diviner_prp_south.parquet`.
+  - Para cada parche polar, tomar los triángulos cuyo centro cae dentro del parche (con `scipy.spatial.cKDTree` sobre coordenadas polares estereográficas) y usar la mediana. Cobertura: de ~76°S a 90°S.
 
 **Paralelismo:** job array por franjas de latitud (por ejemplo 16 franjas, `--array=0-15`, 8 CPUs cada una, `multiprocessing.Pool`). Cada tarea escribe `runs/<id>/features_<body>_<franja>.parquet`.
 

@@ -6,6 +6,8 @@ Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo
 
 - Se encontró el Diviner Polar Resource Product en el paquete PDS4 `lro_diviner_derived1`, colección `data_derived_prp` (Yuca sí llega a PDS Geosciences; la laptop no).
 - Nuevo `jobs/download_diviner.slurm`: baja `dlre_prp_south.tab` (604800210 bytes), `.lbl` y `.xml` a `data/raw/moon/diviner/`. El polo norte (mismo tamaño) no se baja porque los blancos están en el sur.
+- Descargado y verificado en Yuca: `.tab` de 604800210 bytes exactos, sin `.aria2`. Se envió dos veces por error, pero el segundo job (2242221) solo encontró los archivos ya completos.
+- Formato real (CSV con encabezado): `tri1_x..tri3_z` (vértices de la malla, en km), `tri_clon`, `tri_clat` (centro del triángulo, grados), `tri_calt`, `temp_avg` y `temp_max` (K), `ice_depth` (m; `-999` = sin hielo estable). La malla es un cuadrado centrado en el polo, así que en las esquinas llega hasta ~75.9°S.
 
 ## 2026-11-13: explorador de datasets
 
