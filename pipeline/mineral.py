@@ -191,7 +191,9 @@ def run_mineral(
     logger.info("Wrote %s (%d rows)", targets_out, len(mineral_targets))
 
     # 3. Earth T5 patches
-    t5_path = t5_dir / "earth_features.parquet"
+    t5_path = t5_dir / "features_earth.parquet"
+    if not t5_path.exists():
+        t5_path = t5_dir / "earth_features.parquet"
     logger.info("Loading Earth T5 patches from %s", t5_path)
     t5_df = pd.read_parquet(t5_path)
 
