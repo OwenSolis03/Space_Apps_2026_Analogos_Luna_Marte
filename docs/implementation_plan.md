@@ -1,73 +1,75 @@
-# Plan de implementación v2
+# Implementation plan v2
 
-Plan para construir la versión 2 del pipeline y la app. Está escrito para que otro agente de código (Gemini) o una persona del equipo lo implemente tarea por tarea sin tener que adivinar. Cada tarea dice qué archivo crear, qué debe hacer, con qué fórmulas y cómo saber que quedó bien.
+Plan for version 2 of the pipeline and the app. It is written so that a coding agent (Gemini) or a team member can implement it task by task without guessing. For each task it says which file to create, what the file must do, with which formulas, and how to know it is done.
 
-Leer antes: [pipeline.md](pipeline.md) (cómo funciona la v1 y recursos de Yuca) y [logbook.md](logbook.md) (qué está mal en la v1).
+Read first: [pipeline.md](pipeline.md) (data, scales and Yuca resources) and [HISTORY.md](HISTORY.md) (what was wrong with v1 and why each decision was made).
 
----
-
-## 0. Reglas para quien implemente
-
-1. **Una tarea, un commit.** Mensaje que diga qué tarea es. Hasta el 2026-11-13 los mensajes iban en español (`T3: features globales de Marte y Luna`); **desde entonces van en inglés** (`T7: RBF matching and MSI presets`). La historia completa en inglés está en [HISTORY.md](HISTORY.md). Agregar una entrada en `docs/logbook.md` en el mismo commit.
-2. **No borrar la v1.** Los scripts de la raíz (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) se quedan como referencia. El código nuevo va en `pipeline/`.
-3. **Nada pesado en el repo.** Rasters, parquet y shards van en Yuca (`/lustre/proyectos/p089/...`). Al repo solo sube el JSON final que consume la app (`app/public/data/`) si pesa menos de 20 MB.
-4. **Reglas de Yuca (obligatorias):**
-   - Todo lo que tarde más de un minuto corre con `sbatch`. Nunca `nohup`, `&` ni `python` largo en el login node.
-   - Cada job declara `-A p089`, `-p cpu`, `--time`, `--mem`, y escribe su log en `/lustre/proyectos/p089/output/`.
-   - Las salidas de cada corrida van a un directorio nuevo: `/lustre/proyectos/p089/runs/<SLURM_JOB_ID>/`. Nunca sobrescribir corridas anteriores.
-   - No usar `rm -rf`. Para limpiar, mover a `/lustre/proyectos/p089/_to_delete/`.
-   - No desactivar verificación TLS (`curl -k`, `verify=False`, etc.).
-   - Límite del grupo: 500 CPUs y 4 GPUs en total. Nodos CPU de 64 núcleos y ~1 TB RAM.
-5. **El código vive en Yuca en** `/lustre/proyectos/p089/code/` (copia del repo). Se actualiza con `scp -r` o `git pull` desde ahí.
-6. **Entorno:** conda `spaceapps_2026`. Dependencias nuevas se agregan a `pipeline/requirements.txt` y se instalan con `pip install -r` dentro de un job o en el login si es rápido.
-7. **Si un dato o URL no se puede verificar, no inventarlo.** Dejar `null` y un `TODO(verificar)` con la fuente sugerida.
+**Detailed plans:** T4 and later tasks have their own documents: [plan_t4.md](plan_t4.md), [plan_t5.md](plan_t5.md), [plan_t6.md](plan_t6.md) and [plan_t7_t8.md](plan_t7_t8.md). Where they disagree with this document, the detailed plan wins.
 
 ---
 
-## 1. Qué cambia respecto a la v1
+## 0. Rules for whoever implements
 
-| Problema de la v1 | Solución en la v2 |
+1. **One task, one commit.** The message says which task it is. Until 2026-11-13 messages were in Spanish (`T3: features globales de Marte y Luna`); **since then they are in English** (`T7: RBF matching and MSI presets`). Add an entry to [logbook.md](logbook.md) in the same commit. The English history is in [HISTORY.md](HISTORY.md).
+2. **Do not delete v1.** The root scripts (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) stay as reference, and they must not be imported. New code goes in `pipeline/`.
+3. **Nothing heavy in the repo.** Rasters, parquet files and shards stay on Yuca (`/lustre/proyectos/p089/...`). Only the final app JSON (`app/public/data/`) is committed, and only if it is under 20 MB.
+4. **Yuca rules (mandatory):**
+   - Anything that takes more than a minute runs with `sbatch`. Never `nohup`, `&` or long `python` on the login node.
+   - Every job declares `-A p089`, `-p cpu`, `--time` and `--mem`, and writes its log to `/lustre/proyectos/p089/output/`.
+   - The outputs of each run go to a new directory, `/lustre/proyectos/p089/runs/<SLURM_JOB_ID>/`. Never overwrite previous runs.
+   - No `rm -rf`. To clean up, move files to `/lustre/proyectos/p089/_to_delete/`.
+   - Never disable TLS verification (`curl -k`, `verify=False`, etc.).
+   - Group limit: 500 CPUs and 4 GPUs in total. CPU nodes have 64 cores and ~1 TB RAM.
+5. **The code lives on Yuca** in `/lustre/proyectos/p089/code/`, a clone of the repository, updated with `git pull`.
+6. **Environment:** the conda environment `spaceapps_2026`. New dependencies go into `pipeline/requirements.txt`.
+7. **If a fact or URL cannot be verified, do not invent it.** Leave `null` and a `TODO(verify)` with the suggested source.
+
+---
+
+## 1. What changes from v1
+
+| v1 problem | v2 solution |
 | --- | --- |
-| Ventanas de distinto tamaño y resolución (Marte ~118 km a 463 m, Luna ~30 km a 118 m, Tierra ~46 km a 90 m) | **Todos los cuerpos se comparan en parches de 32 × 32 km remuestreados a 500 m/px (64 × 64 px)**, proyectados localmente sin distorsión |
-| La proyección equirectangular estira el eje X lejos del ecuador y la v1 no lo corrige | Cada parche se reproyecta a una proyección azimutal equidistante (AEQD) centrada en el parche |
-| Sin máscara de vegetación | Máscara con NDVI máximo anual de MODIS (NASA Earthdata) |
-| Blancos = solo clusters globales | Blancos curados del reto (regiones Artemis en el polo sur lunar, sitios de aterrizaje en Marte) **más** los clusters globales como modo exploración |
-| Puntaje `100/(1+0.35d)` | Kernel RBF por dimensión y MSI ponderado, recalculable en la app |
-| No dice dónde se rompe la analogía | Cada análogo lleva la lista de rasgos que no coinciden y los límites físicos del cuerpo |
-| No distingue sitios famosos | Etiqueta `KNOWN_ANALOG` / `NEW_CANDIDATE` según una lista de regiones análogas conocidas |
-| Sin logística | Distancia a carretera y aeropuerto (Natural Earth) |
+| Windows of different size and resolution (Mars ~118 km at 463 m, Moon ~30 km at 118 m, Earth ~46 km at 90 m) | **Every body is compared in 32 × 32 km patches resampled to 500 m/px (64 × 64 px)**, projected locally without distortion |
+| The equirectangular projection stretches the X axis away from the equator, and v1 does not correct it | Each patch is reprojected to an azimuthal equidistant (AEQD) projection centred on the patch |
+| No vegetation mask | Mask from MODIS annual maximum NDVI (NASA Earthdata) |
+| Targets = only global clusters | The challenge's curated targets (Artemis regions near the lunar south pole, Mars landing sites) **plus** global clusters as an exploration mode |
+| Score `100/(1+0.35d)` | RBF kernel per dimension and a weighted MSI that the app can recompute |
+| It does not say where the analogy breaks | Every analog carries the list of features that do not match, and the body's physical limits |
+| It does not distinguish famous sites | Label `KNOWN_ANALOG` / `NEW_CANDIDATE` from a list of known analog regions |
+| No logistics | Distance to road and airport (Natural Earth) |
 
 ---
 
-## 2. Recursos oficiales del challenge y cómo los usamos
+## 2. Official challenge resources and how we use them
 
-Fuente: pestaña Resources del challenge (revisada el 2026-11-13).
+Source: the challenge's Resources tab, checked on 2026-11-13.
 
-| Recurso oficial | ¿Lo usamos? | Producto concreto |
+| Official resource | Used? | Product |
 | --- | --- | --- |
-| NASA Planetary Data System (PDS) | Sí | MOLA DEM 463 m, THEMIS IR Day/Night 100 m, LOLA LDEM 118 m, LROC WAC 100 m (mosaicos de USGS Astrogeology a partir de PDS) |
-| NASA Lunar Reconnaissance Orbiter (LRO) | Sí | LOLA (topografía), LROC WAC (reflectancia) |
-| NASA LRO Diviner Lunar Data | **Pendiente** | Diviner Polar Resource Product (PDS `LRO-L-DLRE-5-PRP-V2.0`, archivo `DLRE_PRP_SOUTH.TAB`): temperatura media y máxima anual y profundidad de estabilidad del hielo, 80–90°S. Ver T0.3 |
-| NASA Earthdata Search | **Nuevo** | MODIS MOD13C2 (NDVI mensual) y MOD11C3 (temperatura superficial día/noche), 0.05° |
-| NASA Worldview | En la app | Capas base de NASA GIBS (la tecnología detrás de Worldview) para el mapa de la Tierra |
-| Copernicus Data Space Ecosystem (ESA) | Sí | Copernicus DEM GLO-90 |
-| ESA Open Science Catalog | No | Opcional: no aporta algo que no tengamos |
-| CSA RADARSAT / tutorial SAR | No (fuera de alcance) | Mencionar en "trabajo futuro": rugosidad centimétrica por radar |
-| JAXA G-Portal | No | Opcional: precipitación / nieve como alternativa al NDVI |
+| NASA Planetary Data System (PDS) | Yes | MOLA DEM 463 m, THEMIS IR Day/Night 100 m, LOLA LDEM 118 m, LROC WAC 100 m (USGS Astrogeology mosaics built from PDS) |
+| NASA Lunar Reconnaissance Orbiter (LRO) | Yes | LOLA (topography), LROC WAC (brightness) |
+| NASA LRO Diviner Lunar Data | Yes | Diviner Polar Resource Product (PDS `LRO-L-DLRE-5-PRP-V2.0`, file `DLRE_PRP_SOUTH.TAB`): annual mean and maximum temperature, and ice stability depth, 80–90°S |
+| NASA Earthdata Search | Yes | MODIS MOD13C2 (monthly NDVI) and MOD11C3 (day/night land surface temperature), 0.05° |
+| NASA Worldview | In the app | NASA GIBS base layers (the technology behind Worldview) for the Earth map |
+| Copernicus Data Space Ecosystem (ESA) | Yes | Copernicus DEM GLO-90 |
+| ESA Open Science Catalog | No | Optional: adds nothing we do not already have |
+| CSA RADARSAT / SAR tutorial | No (out of scope) | Mention as future work: centimetre-scale roughness from radar |
+| JAXA G-Portal | No | Optional: precipitation or snow as an alternative to NDVI |
 
-Además, fuera de la lista: índice de favorabilidad de hielo lunar (USGS) y Natural Earth (logística).
+Also used, outside the list: the USGS lunar ice favorability index and Natural Earth (logistics).
 
 ---
 
-## 3. Arquitectura v2
+## 3. v2 architecture
 
-```
-Datos crudos (Yuca, /lustre/proyectos/p089/data/raw)
+```text
+Raw data (Yuca, /lustre/proyectos/p089/data/raw)
    │
    ├── T3  pipeline/planet_features.py   (job array)  ─► runs/<id>/features_{mars,moon}.parquet
-   ├── T5  pipeline/earth_features.py    (job array)  ─► runs/<id>/features_earth_*.parquet
-   │        └── usa T6 pipeline/earth_layers.py (NDVI, LST, logística, regiones conocidas)
-   ├── T4  pipeline/targets.py + pipeline/data/targets.json  ─► blancos curados + clusters
+   ├── T5  pipeline/earth_features.py    (job array)  ─► runs/<id>/features_earth.parquet
+   │        └── uses T6 pipeline/earth_layers.py (NDVI, LST, logistics, known regions)
+   ├── T4  pipeline/targets.py + pipeline/data/targets.json  ─► curated targets + clusters
    │
    ├── T7  pipeline/match.py   ─► runs/<id>/matches.parquet
    └── T8  pipeline/export.py  ─► runs/<id>/analogs_universe.json  ─► app/public/data/
@@ -75,200 +77,249 @@ Datos crudos (Yuca, /lustre/proyectos/p089/data/raw)
                                                T10 app/ (React + Vite) ◄─┘
 ```
 
-Todo el cálculo de rasgos usa **una sola función** (T1 + T2) para los tres cuerpos. Esa es la garantía de que la comparación es justa.
+All feature computation uses **one function** (T1 + T2) for the three bodies. That is what guarantees a fair comparison.
 
-### Estructura de carpetas
+### Folder layout
 
-```
+```text
 pipeline/
   __init__.py
-  config.py            # constantes: tamaño de parche, resolución, rutas, radios
-  geo.py               # T1: extraer parche AEQD de cualquier raster
-  features.py          # T2: rasgos geomorfométricos de un parche
-  planet_features.py   # T3: barrido global de Marte y Luna
-  targets.py           # T4: blancos curados + clusters
-  earth_layers.py      # T6: NDVI, LST, logística, regiones conocidas
-  earth_features.py    # T5: barrido de la Tierra
-  match.py             # T7: RBF, MSI, diversidad, dónde se rompe
-  export.py            # T8: JSON para la app
+  config.py            # constants: patch size, resolution, paths, radii
+  geo.py               # T1: extract an AEQD patch from any raster
+  features.py          # T2: terrain features of a patch
+  planet_features.py   # T3: global Mars and Moon sweep
+  iau.py               # T4: IAU gazetteer helpers
+  targets.py           # T4: curated targets + clusters
+  earth_layers.py      # T6: NDVI, LST, logistics, known regions
+  earth_features.py    # T5: Earth sweep
+  match.py             # T7: RBF, MSI, diversity, where it breaks
+  export.py            # T8: JSON for the app
   data/
-    targets.json       # T4: blancos curados (con fuente por cada uno)
-    known_analogs.json # T6: regiones análogas famosas
-    limits.json        # T11: límites físicos por cuerpo (texto de P3)
+    targets.json       # T4: curated targets (with a source for each)
+    known_analogs.json # T6: famous analog regions
+    limits.json        # T11: physical limits per body (team content)
   requirements.txt
 jobs/
   t3_planet_features.slurm
-  t5_earth_features.slurm
+  t4_targets.slurm
+  t5_prepare.slurm, t5_earth_features.slurm, t5_merge.slurm, t5_submit.sh
+  t6_earth_layers.slurm
   t7_match.slurm
 tests/
-  test_geo.py
-  test_features.py
-  test_match.py
+  test_geo.py, test_features.py, test_planet_features.py, test_iau.py, test_targets.py,
+  test_earth_layers.py, test_earth_features.py, test_match.py, test_export.py
 app/                   # T10
 ```
 
 ---
 
-## 4. Tareas
+## 4. Tasks
 
-### T0. Datos (Owen, en Yuca, antes de todo)
+### T0. Data (Owen, on Yuca, before everything else)
 
-Comandos en la sección 7. Resumen:
+Commands in section 7.
 
-| ID | Qué | Job | Estado |
+| ID | What | Job | Status |
 | --- | --- | --- | --- |
-| T0.1 | THEMIS Night, LROC WAC, hielo lunar, resto de Copernicus | `run_download_missing.slurm` | Corriendo (job 2242198, enviado el 2026-11-13) |
-| T0.2 | Natural Earth (carreteras, aeropuertos) + MODIS NDVI y LST 2023 | `run_download_extra.slurm` | Hecho (job 2242203) |
-| T0.3 | Diviner Polar Resource Product (sur): `dlre_prp_south.tab` (604800210 bytes) + `.lbl` + `.xml` | `jobs/download_diviner.slurm` | Listo. Fuente: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
-| T0.4 | Mosaico virtual de Copernicus | Dentro de T5 | `gdalbuildvrt copernicus_90m.vrt copernicus_90m/*.tif` (en un job) |
+| T0.1 | THEMIS Night, LROC WAC, lunar ice, the rest of Copernicus | `run_download_missing.slurm` | Done (job 2242198): 26,475 tiles, 0 failures |
+| T0.2 | Natural Earth (roads, airports, countries) and MODIS NDVI and LST 2023 | `run_download_extra.slurm` | Done (job 2242203) |
+| T0.3 | Diviner Polar Resource Product (south): `dlre_prp_south.tab` (604,800,210 bytes) + `.lbl` + `.xml` | `jobs/download_diviner.slurm` | Done. Source: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
+| T0.4 | Copernicus virtual mosaic | Inside T5 | `data/derived/copernicus_90m.vrt`, with the sea masked ([plan_t5.md](plan_t5.md)) |
 
-### T1. `pipeline/geo.py`: extraer un parche sin distorsión
+### T1. `pipeline/geo.py`: extract a patch without distortion
 
-**Objetivo:** dado cualquier raster (Tierra, Luna o Marte) y un punto (lat, lon), devolver un arreglo de 64 × 64 elevaciones a 500 m/px en una proyección azimutal equidistante centrada en ese punto.
+**Goal:** given any raster (Earth, Moon or Mars) and a point (lat, lon), return a 64 × 64 array of elevations at 500 m/px in an azimuthal equidistant projection centred on that point.
 
-**Función principal:**
+**Main function:**
 
 ```python
 def extract_patch(src, lat, lon, body, size_km=32.0, res_m=500.0, resampling=Resampling.average) -> np.ndarray | None
 ```
 
-**Pasos:**
+**Steps:**
 
-1. Radio del cuerpo: Tierra usa el elipsoide WGS84; Luna `R = 1737400 m`; Marte `R = 3396190 m`. Si el CRS del raster trae el radio, tomarlo de ahí con `pyproj.CRS(src.crs).ellipsoid.semi_major_metre` y verificar que coincide.
-2. CRS destino: `+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0 +units=m` más `+R={R}` (Luna, Marte) o `+datum=WGS84` (Tierra).
-3. Transformación destino: `Affine(res_m, 0, -size_km*500, 0, -res_m, size_km*500)`, forma `(64, 64)`.
-4. Calcular los límites del parche en el CRS fuente con `rasterio.warp.transform_bounds(dst_crs, src.crs, *bounds, densify_pts=21)`, convertir a ventana con `src.window(...)`, agregar margen de 2 px y recortar al raster. Cuidado con el antimeridiano: si la ventana cruza ±180°, leer en dos partes o saltar el parche (en la v2 basta con saltarlo y contarlo).
-5. Si la resolución fuente es mucho más fina que 500 m (Copernicus 90 m, LOLA 118 m), leer la ventana con `out_shape` reducido (factor `floor(500 / res_fuente)`) y `Resampling.average`, para no leer millones de píxeles de más.
-6. `rasterio.warp.reproject` del arreglo leído al destino, `dst_nodata = np.nan`.
-7. Devolver `None` si menos del 90 % de los píxeles es válido.
+1. **Body radius:** Earth uses the WGS84 ellipsoid, the Moon `R = 1737400 m`, Mars `R = 3396190 m`. If the raster's CRS carries the radius, read it with `pyproj.CRS(src.crs).ellipsoid.semi_major_metre` and check that it matches.
+2. **Target CRS:** `+proj=aeqd +lat_0={lat} +lon_0={lon} +x_0=0 +y_0=0 +units=m`, plus `+R={R}` (Moon, Mars) or `+datum=WGS84` (Earth).
+3. **Target transform:** `Affine(res_m, 0, -size_km*500, 0, -res_m, size_km*500)`, shape `(64, 64)`.
+4. **Source window:**
+   - Compute the patch bounds in the source CRS with `rasterio.warp.transform_bounds(dst_crs, src.crs, *bounds, densify_pts=21)`, convert them to a window with `src.window(...)`, add a 2-px margin and clip to the raster.
+   - **Antimeridian:** if the window crosses ±180°, skip the patch and count it.
+   - **Poles:** patches that contain a pole read a full latitude band ([plan_t4.md](plan_t4.md) T4.0).
+5. **Reduced read:** if the source resolution is much finer than 500 m (Copernicus 90 m, LOLA 118 m), read the window with a reduced `out_shape` (factor `floor(500 / source_res)`) and `Resampling.average`, so millions of extra pixels are not read.
+6. **Reprojection:** `rasterio.warp.reproject` of the array into the target grid, with `dst_nodata = np.nan`.
+7. **Validity:** return `None` if less than 90 % of the pixels are valid.
 
-**Nodata:** convertir `src.nodata` y valores con `|z| > 1e5` a NaN.
+**Nodata and scale:** turn `src.nodata` and values with `|z| > 1e5` into NaN, **then** apply `value = raw · scale + offset` (LOLA stores half-metres; see [pipeline.md](pipeline.md)).
 
-**Criterios de aceptación (tests en `tests/test_geo.py`):**
+**Acceptance criteria (tests in `tests/test_geo.py`):**
 
-- Raster sintético equirectangular de la Luna con un plano inclinado conocido: el parche en lat 0° y en lat 70° debe dar la misma pendiente (±0.2°). En la v1 esto falla.
-- Un parche de la Tierra que cruza el borde de dos tiles de Copernicus (usando el VRT) no tiene huecos.
-- Un parche en el océano devuelve `None`.
+- On a synthetic equirectangular Moon raster with a known tilted plane, the patch at lat 0° and at lat 70° gives the same slope (±0.2°). v1 fails this.
+- An Earth patch that crosses the edge between two Copernicus tiles (through the VRT) has no holes.
+- A patch over the ocean returns `None`.
 
-### T2. `pipeline/features.py`: rasgos del parche
+### T2. `pipeline/features.py`: patch features
 
-**Entrada:** arreglo `z` de 64 × 64 (metros), `res_m = 500`.
+**Input:** a 64 × 64 array `z` (metres), with `res_m = 500`.
 
-**Rasgos** (todos en float32; nombres exactos, se usan en el JSON):
+**Features** (all float32, with exact names, because they are used in the JSON):
 
-| Nombre | Fórmula | Dimensión |
+| Name | Formula | Dimension |
 | --- | --- | --- |
-| `mean_slope_deg` | `gy, gx = np.gradient(z, res_m)`; `slope = degrees(arctan(hypot(gx, gy)))`; media | topografía |
-| `p90_slope_deg` | percentil 90 de `slope` | topografía |
-| `relief_m` | `p95(z) - p5(z)` | topografía |
-| `hypsometric_integral` | `(mean(z) - min(z)) / (max(z) - min(z))`; 0.5 si `max == min` | topografía |
-| `detrended_std_m` | ajustar plano `z ≈ a·x + b·y + c` por mínimos cuadrados; desviación estándar del residuo | rugosidad |
-| `tri_m` | TRI de Riley: para cada píxel interior, `sqrt(Σ (z_vecino - z_centro)²)` sobre 8 vecinos; media | rugosidad |
-| `mean_elev_m` | media de `z` | se guarda, **no** se usa para comparar (los datums de cada cuerpo no son comparables) |
+| `mean_slope_deg` | `gy, gx = np.gradient(z, res_m)`; `slope = degrees(arctan(hypot(gx, gy)))`; mean | topography |
+| `p90_slope_deg` | 90th percentile of `slope` | topography |
+| `relief_m` | `p95(z) − p5(z)` | topography |
+| `hypsometric_integral` | `(mean(z) − min(z)) / (max(z) − min(z))`; 0.5 if `max == min` | topography |
+| `detrended_std_m` | Fit a plane `z ≈ a·x + b·y + c` by least squares; standard deviation of the residual | roughness |
+| `tri_m` | Riley's TRI: for each interior pixel, `sqrt(Σ (z_neighbour − z_centre)²)` over 8 neighbours; mean | roughness |
+| `mean_elev_m` | Mean of `z` | Stored but **not** compared: the datums of different bodies are not comparable |
 
-Antes de calcular, rellenar los NaN restantes con la mediana del parche.
+Before computing, fill the remaining NaNs with the patch median.
 
-**Criterios de aceptación (`tests/test_features.py`):**
+**Acceptance criteria (`tests/test_features.py`):**
 
-- Plano inclinado 10°: `mean_slope_deg ≈ 10` (±0.1), `detrended_std_m ≈ 0`, `tri_m` constante y conocido.
-- Plano horizontal: todo ≈ 0, `hypsometric_integral = 0.5`.
-- Cono sintético: `hypsometric_integral ≈ 1/3` (±0.05).
+- 10° tilted plane: `mean_slope_deg ≈ 10` (±0.1), `detrended_std_m ≈ 0`, `tri_m` constant and known.
+- Horizontal plane: everything ≈ 0, and `hypsometric_integral = 0.5`.
+- Synthetic cone: `hypsometric_integral ≈ 1/3` (±0.05).
 
 ### T3. `pipeline/planet_features.py` + `jobs/t3_planet_features.slurm`
 
-**Objetivo:** barrer Marte y la Luna con parches de 32 km y guardar sus rasgos.
+**Goal:** sweep Mars and the Moon with 32 km patches and store their features.
 
-**Grilla de centros (igual para todos los cuerpos, incluida la Tierra):**
+**Grid of centres** (the same for every body, Earth included):
 
-- Paso en latitud: `dlat = degrees(32000 / R)` (Marte ≈ 0.54°, Luna ≈ 1.06°, Tierra ≈ 0.29°).
-- Para cada latitud, paso en longitud: `dlon = dlat / cos(lat)`.
-- Latitudes de −88° a 88° (en el polo la AEQD funciona; el límite lo pone la cobertura del raster).
-- Marte ≈ 141 mil parches; Luna ≈ 37 mil.
+- Latitude step: `dlat = degrees(32000 / R)` (Mars ≈ 0.54°, Moon ≈ 1.06°, Earth ≈ 0.29°).
+- Longitude step at each latitude: `dlon = dlat / cos(lat)`.
+- Latitudes from −88° to 88°. AEQD works at the pole; raster coverage sets the limit.
+- Mars ≈ 141 thousand patches; Moon ≈ 37 thousand.
 
-**Capas auxiliares por parche** (mediana dentro del parche, también con `extract_patch` y `Resampling.average`, NaN si no hay cobertura):
+**Auxiliary layers per patch.** Each is the median within the patch, also extracted with `extract_patch` and `Resampling.average`; NaN where there is no coverage.
 
-- Marte: `themis_day`, `themis_night` (valores crudos del mosaico; documentar que no son temperatura) y `themis_delta = themis_day - themis_night`.
-- Luna: `wac_reflectance`; `ice_favorability` (solo en los polos); y `diviner_tmax_k`, `diviner_tavg_k`, `ice_depth_m` desde la tabla PRP (T0.3, ya descargada).
-  - Formato de `dlre_prp_south.tab`: CSV con encabezado y espacios; columnas `tri1_x, tri1_y, tri1_z, tri2_x, …, tri3_z, tri_clon, tri_clat, tri_calt, temp_avg, temp_max, ice_depth`. Usar solo `tri_clon`, `tri_clat` (centro del triángulo, grados), `temp_avg`, `temp_max` (K) e `ice_depth` (m; `-999` = sin hielo estable → NaN para la mediana, pero contar como "sin hielo").
-  - 2.88 millones de filas (577 MB): leer con `pandas.read_csv(..., usecols=[...], skipinitialspace=True)` una sola vez y guardar en `data/derived/diviner_prp_south.parquet`.
-  - Para cada parche polar, tomar los triángulos cuyo centro cae dentro del parche (con `scipy.spatial.cKDTree` sobre coordenadas polares estereográficas) y usar la mediana. Cobertura: de ~76°S a 90°S.
+- **Mars:**
+  - `themis_day` and `themis_night`: raw mosaic values; document that they are not temperature;
+  - `themis_delta = themis_day − themis_night`.
+- **Moon:**
+  - `wac_reflectance`: relative brightness, compared as a percentile within the Moon;
+  - `ice_favorability`: poles only;
+  - `diviner_tmax_k`, `diviner_tavg_k` and `ice_depth_m`, from the PRP table (T0.3).
+- **Format of `dlre_prp_south.tab`:** CSV with a header and spaces. Columns `tri1_x, tri1_y, tri1_z, tri2_x, …, tri3_z, tri_clon, tri_clat, tri_calt, temp_avg, temp_max, ice_depth`. Use only:
+  - `tri_clon`, `tri_clat`: triangle centre, in degrees;
+  - `temp_avg`, `temp_max`: in K;
+  - `ice_depth`: in m. `−999` means no stable ice; it becomes NaN for the median but counts as "no ice".
+- **Reading it:** 2.88 million rows (577 MB). Read once with `pandas.read_csv(..., usecols=[...], skipinitialspace=True)` and cache it in `data/derived/diviner_prp_south.parquet`.
+- **Sampling it:** for each polar patch, take the triangles whose centre falls inside the patch (`scipy.spatial.cKDTree` on south polar stereographic coordinates), and use the median. Coverage runs from ~76°S to 90°S.
 
-**Paralelismo:** job array por franjas de latitud (por ejemplo 16 franjas, `--array=0-15`, 8 CPUs cada una, `multiprocessing.Pool`). Cada tarea escribe `runs/<id>/features_<body>_<franja>.parquet`.
+**Parallelism:** a job array over latitude stripes (16 stripes, `--array=0-15`, 8 CPUs each, `multiprocessing.Pool`). Each task writes `runs/<id>/features_<body>_<stripe>.parquet`, and `--merge` combines them.
 
-**Salida (columnas):** `body, lat, lon, <rasgos de T2>, <auxiliares>, valid_frac`.
+**Output columns:** `body, lat, lon, <T2 features>, <auxiliary layers>, valid_frac`.
 
-**Criterio de aceptación:** el número de parches válidos por cuerpo coincide con lo esperado (±10 %) y un mapa rápido de `mean_slope_deg` (scatter lat/lon, guardado como PNG en `runs/<id>/`) muestra rasgos reconocibles: Valles Marineris y Olympus Mons en Marte, las tierras altas frente a los mares en la Luna.
+**Acceptance criteria:**
+
+- The number of valid patches per body matches the expectation (±10 %).
+- A quick `mean_slope_deg` map (lat/lon scatter, PNG in `runs/<id>/`) shows recognisable features: Valles Marineris and Olympus Mons on Mars; highlands against maria on the Moon.
+
+**Done:** runs 2242278 and 2242279.
 
 ### T4. `pipeline/targets.py` + `pipeline/data/targets.json`
 
-**Objetivo:** definir contra qué sitios de la Luna y Marte se buscan análogos.
+**Goal:** define which Moon and Mars sites the analogs are searched against.
 
-> **Especificación detallada:** [plan_t4.md](plan_t4.md) (coordenadas verificadas, anclas IAU, soporte polar, firmas, salidas y pruebas). Para T4 manda ese documento.
+> **Detailed specification:** [plan_t4.md](plan_t4.md) (verified coordinates, IAU anchors, polar support, signatures, outputs and tests). It wins over this section.
 
-**Dos tipos de blanco:**
+**Two kinds of target:**
 
-1. **Curados (`CURATED`)**, en `targets.json`. Cada uno con `id`, `body`, `name`, `lat`, `lon`, `category`, `why` (una línea), `source_url`. **Las coordenadas se toman de la fuente oficial**; si no se encuentran, `lat/lon = null` y el blanco se omite.
-   - Luna, polo sur: las regiones candidatas de Artemis III publicadas por NASA (en la actualización de 2024: Peak near Cabeus B, Haworth, Malapert Massif, Mons Mouton Plateau, Mons Mouton, Nobile Rim 1, Nobile Rim 2, de Gerlache Rim 2, Slater Plain; confirmar la lista vigente en nasa.gov). Más el borde del cráter Shackleton.
-   - Marte: Jezero (Perseverance), Gale (Curiosity), Gusev (Spirit), Meridiani Planum (Opportunity), Utopia Planitia (Zhurong), Elysium Planitia (InSight), Oxia Planum (Rosalind Franklin), y una región con hielo somero de los mapas SWIM (Arcadia Planitia). Coordenadas desde la página de cada misión.
-2. **Clusters (`CLUSTER`)**: k-means sobre los rasgos de T3 (rasgos de topografía y rugosidad estandarizados), 30 clusters por cuerpo. El representante es el parche más cercano al centroide. Nombre con el rasgo IAU más cercano, reutilizando la lógica de `enrich_nomenclature.py`.
+1. **Curated (`CURATED`),** in `targets.json`.
+   - **Fields:** `id`, `body`, `name`, `lat`, `lon`, `category`, `why` (one line), `source_url`.
+   - **Coordinates** come from the official source. If they cannot be found, `lat`/`lon = null` and the target is skipped.
+   - **Moon, south pole:** the Artemis III candidate regions published by NASA (2024 update: Peak near Cabeus B, Haworth, Malapert Massif, Mons Mouton Plateau, Mons Mouton, Nobile Rim 1, Nobile Rim 2, de Gerlache Rim 2, Slater Plain), plus the rim of Shackleton crater. NASA does not publish centre coordinates, so they are anchored on IAU features (see plan_t4).
+   - **Mars:** Jezero (Perseverance), Gale (Curiosity), Gusev (Spirit), Meridiani Planum (Opportunity), Utopia Planitia (Zhurong), Elysium Planitia (InSight), Oxia Planum (Rosalind Franklin), and a shallow-ice region from the SWIM maps (Arcadia Planitia).
+2. **Clusters (`CLUSTER`):**
+   - k-means on the T3 features (standardised topography and roughness features), 30 clusters per body;
+   - the representative is the patch closest to the centroid;
+   - its name is the nearest IAU feature.
 
-**Rasgos del blanco:** se extraen con exactamente las mismas funciones T1 + T2 en sus coordenadas. Para un blanco curado se promedian los rasgos de un parche central y 4 vecinos (desplazados 16 km), para no depender de un solo parche.
+**Target features:** extracted with exactly the same T1 + T2 functions at the target's coordinates. A curated target averages several patches (a centre and 4 neighbours at 16 km, or 8 patches on a crater rim), so it does not depend on a single patch.
 
-**Criterio de aceptación:** `targets.json` tiene al menos 6 blancos lunares y 6 marcianos con `source_url`, y cada uno tiene rasgos válidos.
+**Acceptance criterion:** `targets.json` has at least 6 lunar and 6 Martian targets with `source_url`, and every one of them has valid features.
 
-### T5. `pipeline/earth_features.py` + `jobs/t5_earth_features.slurm`
+**Done:** run 2242423 (16/16 curated targets, 60 clusters).
 
-**Objetivo:** lo mismo que T3, pero para la Tierra, filtrando antes lo que no sirve.
+### T5. `pipeline/earth_features.py` + Slurm jobs
 
-> **Especificación detallada:** [plan_t5.md](plan_t5.md) (VRT con mar enmascarado, prefiltro en una etapa `prepare`, array balanceado, `merge` con verificaciones). Para T5 manda ese documento.
+**Goal:** the same as T3, but for Earth, filtering out what is useless first.
 
-**Pasos:**
+> **Detailed specification:** [plan_t5.md](plan_t5.md) (VRT with the sea masked, prefilter in a `prepare` stage, a balanced array, and a `merge` stage with checks). It wins over this section.
 
-1. Crear (una vez, dentro del job) el VRT de Copernicus: `gdalbuildvrt /lustre/proyectos/p089/data/derived/copernicus_90m.vrt .../copernicus_90m/*.tif`.
-2. Generar la grilla global de centros (misma función que T3, con el radio de la Tierra).
-3. **Prefiltro barato** antes de extraer el parche, con las capas de T6 a 0.05°:
-   - Descartar si `ndvi_max > 0.25` (vegetación).
-   - Descartar si no hay tile de Copernicus en esa celda de 1°.
-4. Extraer el parche del VRT y calcular los rasgos de T2.
-5. Adjuntar las capas de T6: `ndvi_max`, `lst_day_c`, `lst_night_c`, `lst_amplitude_c`, `dist_road_km`, `dist_airport_km`, `known_region` (nombre o null).
+**Steps:**
 
-**Paralelismo:** job array por franjas de latitud, por ejemplo `--array=0-31`, 16 CPUs cada una: hasta 512 CPUs, que pasa el límite. Usar `%30` en el array (`--array=0-31%30`) para no rebasar 500 CPUs entre todas.
+1. Build (once, inside the job) the Copernicus VRT.
+2. Generate the global grid of centres (same function as T3, with Earth's radius).
+3. **Cheap prefilter** before extracting the patch, using the T6 layers at 0.05°:
+   - drop if `ndvi_max > 0.25` (vegetation);
+   - drop if there is no Copernicus tile in that 1° cell.
+4. Extract the patch from the VRT and compute the T2 features.
+5. Attach the T6 layers: `ndvi_max`, `lst_day_c`, `lst_night_c`, `lst_amplitude_c`, `dist_road_km`, `dist_airport_km`, `known_region` (name or null).
 
-**Criterio de aceptación:** entre 40 mil y 120 mil parches válidos en la Tierra; ningún parche en la Amazonía, el Congo o Indonesia ecuatorial; Atacama, Sahara, desiertos de Sonora, Australia central y los Valles Secos de la Antártida presentes.
+**Parallelism:** a job array over latitude stripes, `--array=0-31%30`, 16 CPUs each. The `%30` keeps the group under 500 CPUs.
 
-### T6. `pipeline/earth_layers.py`: capas terrestres
+**Acceptance criteria:**
 
-Funciones que cargan una vez (en memoria, por proceso) y responden por (lat, lon):
+- Between 30 and 80 thousand valid Earth patches. This was 40–120 thousand before measuring the real cache.
+- At most 5 patches each in the Amazon, the Congo and equatorial Indonesia.
+- The Atacama, the Sahara, the Sonoran desert, central Australia and the McMurdo Dry Valleys are present.
 
-> **Especificación detallada:** [plan_t6.md](plan_t6.md) (MODIS con pyhdf porque GDAL no tiene HDF4, convenciones de escala, logística densificada, `EarthLayers` para T5, regiones conocidas y verificaciones). Para T6 manda ese documento.
+**Status:** smoke test passed (runs 2242432–2242434); the full run is pending.
 
-- **NDVI máximo anual:** de los 12 HDF de MOD13C2 (subdataset `CMG 0.05 Deg Monthly NDVI`, factor de escala 0.0001, valores < −0.3 o el fill → NaN), tomar el máximo por píxel. Guardar como GeoTIFF en `data/derived/ndvi_max_2023.tif` la primera vez.
-- **Temperatura superficial (LST):** de MOD11C3, `LST_Day_CMG` y `LST_Night_CMG` (escala 0.02, en kelvin → °C). Media anual de día, de noche y la amplitud `día − noche`. Guardar en `data/derived/lst_2023.tif` (3 bandas).
-- **Logística:** con `geopandas` cargar `ne_10m_roads` y `ne_10m_airports`; construir `shapely.STRtree` y calcular la distancia geodésica aproximada en km al elemento más cercano. Para que sea rápido, calcular en la proyección `EPSG:4087` o con `sklearn.neighbors.BallTree` (métrica haversine) sobre vértices de las carreteras.
-- **Regiones conocidas:** `pipeline/data/known_analogs.json` con polígonos aproximados (bbox) y fuente de: Desierto de Atacama, Valles Secos de McMurdo, Islandia, Hawái (Mauna Kea / Kilauea), Isla Devon (cráter Haughton), Utah (MDRS, Hanksville), Río Tinto (España), Svalbard, Pilbara (Australia), Meteor Crater (Arizona), Lanzarote, Mojave. Un parche dentro de cualquiera recibe `classification = KNOWN_ANALOG`; si no, `NEW_CANDIDATE`.
+### T6. `pipeline/earth_layers.py`: Earth layers
 
-**Criterio de aceptación:** `ndvi_max` en el Sahara < 0.1 y en la Amazonía > 0.7; distancia a carretera en Hermosillo < 5 km.
+> **Detailed specification:** [plan_t6.md](plan_t6.md) (MODIS through pyhdf because GDAL has no HDF4, scale conventions, densified roads, `EarthLayers` for T5, known regions and checks). It wins over this section.
 
-### T7. `pipeline/match.py`: puntaje y selección
+Functions that load once (in memory, per process) and answer queries by (lat, lon):
 
-> **Detailed spec (English):** [plan_t7_t8.md](plan_t7_t8.md). It wins over this section for T7 and T8.
+- **Annual maximum NDVI:**
+  - read the 12 MOD13C2 files (subdataset `CMG 0.05 Deg Monthly NDVI`, divided by 10000; values below −0.3 or the fill value become NaN);
+  - take the per-pixel maximum;
+  - cache it as a GeoTIFF in `data/derived/ndvi_max_2023.tif`.
+- **Land surface temperature (LST):**
+  - from MOD11C3, `LST_Day_CMG` and `LST_Night_CMG` (× 0.02, kelvin → °C);
+  - annual mean by day, by night, and the amplitude `day − night`;
+  - cache in `data/derived/lst_2023.tif` (3 bands).
+- **Logistics:** distance in km to the nearest road (Natural Earth, without ferries) and the nearest non-military airport, with `BallTree` (haversine) on the road vertices densified every ~2 km.
+- **Known regions:** `pipeline/data/known_analogs.json`, with approximate bounding boxes and a source for each of 12 regions:
+  - Atacama Desert, McMurdo Dry Valleys, Iceland, Hawaii (Mauna Kea / Kilauea), Devon Island (Haughton crater), Utah (MDRS, Hanksville);
+  - Rio Tinto (Spain), Svalbard, Pilbara (Australia), Meteor Crater (Arizona), Lanzarote, Mojave.
 
-**1. Normalización común.** Juntar todos los parches (Tierra + blancos). A los rasgos con cola larga (`relief_m`, `detrended_std_m`, `tri_m`) aplicarles `log1p`. Luego, para cada rasgo, z robusto: `z = (x - mediana) / (1.4826 · MAD)`, con mediana y MAD **calculadas sobre la Tierra** (así las unidades son "desviaciones típicas terrestres").
+  A patch inside any of them is labelled `KNOWN_ANALOG`; otherwise `NEW_CANDIDATE`.
 
-**2. Dimensiones y RBF.**
+**Acceptance criteria:**
 
-| Dimensión `k` | Rasgos | σ por defecto |
+- `ndvi_max` in the Sahara < 0.12 and in the Amazon > 0.7.
+- Distance to road in Hermosillo < 5 km.
+
+**Done:** runs 2242426 and 2242430.
+
+### T7. `pipeline/match.py`: scoring and selection
+
+> **Detailed specification (English):** [plan_t7_t8.md](plan_t7_t8.md). It wins over this section for T7 and T8.
+
+**1. Common normalisation.**
+
+- Apply `log1p` to the long-tailed features (`relief_m`, `detrended_std_m`, `tri_m`).
+- For each feature, compute a robust z: `z = (x − median) / (1.4826 · MAD)`, with the median and MAD computed **on Earth**. Units are then "typical Earth deviations".
+
+**2. Dimensions and RBF.**
+
+| Dimension `k` | Features | Default σ |
 | --- | --- | --- |
 | `topography` | `mean_slope_deg`, `p90_slope_deg`, `relief_m`, `hypsometric_integral` | 1.0 |
 | `roughness` | `detrended_std_m`, `tri_m` | 1.0 |
-| `environment` | Aridez: `ndvi_max` del parche terrestre | ver abajo |
-| `thermal` | Solo Marte: z de `lst_amplitude_c` (Tierra) contra z de `themis_delta` (Marte), cada uno normalizado dentro de su cuerpo | 1.0 |
+| `environment` | Aridity: `ndvi_max` of the Earth patch | See below |
+| `thermal` | Mars only: rank of `lst_amplitude_c` (Earth) against rank of `themis_delta` (Mars), each within its own body | 1.0 |
 
-- Geomorfología: `d_k = ||z_tierra - z_blanco|| / sqrt(n_rasgos_k)`; `S_k = exp(-d_k² / (2 σ_k²))`.
-- Ambiente: `S_env = exp(-max(0, ndvi_max - 0.10)² / (2 · 0.10²))`. Un sitio sin vegetación vale 1.
-- Térmico: es una comparación por rango (qué tan extrema es la amplitud **dentro de su propio cuerpo**), no de temperaturas absolutas. Documentarlo así en la app. Para la Luna, `S_thermal = null` (no hay equivalente terrestre).
+- **Geomorphology:** `d_k = ||z_earth − z_target|| / sqrt(n_features_k)`, and `S_k = exp(−d_k² / (2 σ_k²))`.
+- **Environment:** `S_env = exp(−max(0, ndvi_max − 0.10)² / (2 · 0.10²))`. A site without vegetation scores 1.
+- **Thermal:** a comparison by rank (how extreme the amplitude is **within its own body**), not of absolute temperatures. The app says so. For the Moon, `S_thermal = null`, because there is no Earth equivalent.
 
-**3. MSI.** `MSI = Σ w_k · S_k / Σ w_k`, sobre las dimensiones no nulas. Presets (iguales que en el plan maestro, adaptados):
+**3. MSI.** `MSI = Σ w_k · S_k / Σ w_k`, over the non-null dimensions.
 
 | Preset | topography | roughness | environment | thermal |
 | --- | --- | --- | --- | --- |
@@ -276,85 +327,97 @@ Funciones que cargan una vez (en memoria, por proceso) y responden por (lat, lon
 | `construction_and_base` | 0.55 | 0.25 | 0.10 | 0.10 |
 | `dust_and_thermal` | 0.15 | 0.15 | 0.40 | 0.30 |
 
-`MSI_log = MSI · (1 - λ + λ · exp(-dist_road_km / 100))`, con λ entre 0 y 0.3 (lo controla la app).
+The app applies the logistics adjustment `MSI_log = MSI · (1 − λ + λ · exp(−dist_road_km / 100))`, with λ between 0 and 0.3.
 
-**4. Selección con diversidad.** Para cada blanco y cada preset: ordenar por MSI y tomar los mejores 30 que estén a más de 150 km entre sí (haversine). La unión de los tres presets (máximo 90 sitios por blanco) va al JSON, con sus `sub_scores`, para que la app pueda reordenar con cualquier peso.
+**4. Selection with diversity.**
 
-Para que sea rápido con ~100 mil parches: calcular primero la distancia en topografía + rugosidad con `sklearn.neighbors.NearestNeighbors` (k = 2000), y aplicar el MSI completo solo a esos candidatos.
+- For each target and each preset, sort by MSI and take the best 30 that are more than 150 km apart (haversine).
+- At most 3 of them can be "polar cold" patches (see plan_t7_t8).
+- The union of the three presets (at most 90 sites per target) goes into the JSON with its `sub_scores`, so the app can re-rank with any weights.
+- To keep it fast with tens of thousands of patches, first compute the topography + roughness distance with `sklearn.neighbors.NearestNeighbors` (k = 2000), and apply the full MSI only to those candidates.
 
-**5. Dónde se rompe la analogía (por sitio).** Para cada rasgo con `|z_tierra - z_blanco| > 1.5`, agregar a `mismatches` un objeto `{feature, earth, target, z_diff}` con los valores en unidades físicas. Además, copiar al JSON los límites fijos del cuerpo desde `limits.json` (T11).
+**5. Where the analogy breaks (per site).**
 
-**Criterios de aceptación (`tests/test_match.py` + revisión):**
+- For each feature with `|z_earth − z_target| > 1.5`, add an object `{feature, earth, target, z_diff}` to `mismatches`, with values in physical units.
+- Also copy the body's fixed limits from `limits.json` (T11) into the JSON.
 
-- Un blanco idéntico a un parche terrestre obtiene `S_topography = S_roughness = 1`.
-- Ningún par de análogos del mismo blanco está a menos de 150 km.
-- Revisión de sentido común: para un blanco en Olympus Mons, entre los 30 primeros debe aparecer algún volcán en escudo (Hawái, Galápagos, Islandia). Si no aparece, revisar escalas antes de seguir.
+**Acceptance criteria (`tests/test_match.py` and review):**
 
-### T8. `pipeline/export.py`: JSON para la app
+- A target identical to an Earth patch gets `S_topography = S_roughness = 1`.
+- No two analogs of the same target are less than 150 km apart.
+- Sanity review: for a target on Olympus Mons, the top 30 should include some shield or large volcano (Hawaii, the Galápagos, Iceland). If not, check the scales before moving on.
 
-Escribe `runs/<id>/analogs_universe.json` y una copia en `app/public/data/analogs_universe.json`. El esquema está en la sección 5. Redondear a 4 decimales las coordenadas y a 3 los puntajes. Si pesa más de 20 MB, partirlo en un archivo por cuerpo (`analogs_moon.json`, `analogs_mars.json`).
+### T8. `pipeline/export.py`: JSON for the app
 
-### T9. Pruebas
+- **Output:** `runs/<id>/analogs_universe.json`. Copying it to `app/public/data/analogs_universe.json` is a separate, reviewed step.
+- **Schema:** section 5 below and [plan_t7_t8.md](plan_t7_t8.md) §4.
+- **Rounding:** coordinates to 4 decimals and scores to 3.
+- **Size:** if it is over 20 MB, split it into one file per body (`analogs_moon.json`, `analogs_mars.json`).
 
-- `tests/` con `pytest`, solo con datos sintéticos (no tocan los rasters). Se corren en un job corto: `sbatch --wrap "pytest -q tests"` con `-A p089 -p cpu --time=00:15:00 --mem=4G`.
-- Antes de lanzar T3 o T5 completos, correr cada uno con `--limit 500` (opción de línea de comandos que limita el número de parches) y revisar la salida.
+### T9. Tests
+
+- **Unit tests:** `tests/` with `pytest`, synthetic data only (they never touch the rasters). They run in a short job: `sbatch --wrap 'bash -c "... pytest -q tests"'` with `-A p089 -p cpu --time=00:15:00 --mem=4G`.
+- **Test runs:** before running T3 or T5 in full, run each one with `--limit 500` (an option that limits the number of patches) and review the output.
 
 ### T10. App (Javier)
 
-**Stack:** React + Vite + TypeScript + Tailwind. Mapas con **MapLibre GL** (no necesita token, a diferencia de Mapbox) para la Tierra y **Leaflet** para la Luna y Marte. Gráficas con Recharts.
+**Stack:** React + Vite + TypeScript + Tailwind. Maps with **MapLibre GL** (no token needed, unlike Mapbox) for Earth and **Leaflet** for the Moon and Mars. Charts with Recharts. The current skeleton uses Leaflet for all three bodies and its own SVG radar (see [HISTORY.md](HISTORY.md) §7).
 
-**Capas base verificadas el 2026-11-13:**
+**Base layers verified on 2026-11-13:**
 
-| Mapa | URL de tiles |
+| Map | Tile URL |
 | --- | --- |
-| Tierra (NASA GIBS, relieve) | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg` |
-| Tierra (NASA GIBS, color real) | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2023-07-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg` |
-| Luna (NASA Trek, LROC WAC) | `https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
-| Luna (NASA Trek, relieve LOLA) | `https://trek.nasa.gov/tiles/Moon/EQ/LRO_LOLA_ClrShade_Global_128ppd_v04/1.0.0/default/default028mm/{z}/{y}/{x}.png` |
-| Marte (NASA Trek, Viking color) | `https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
-| Marte (NASA Trek, relieve MOLA) | `https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
+| Earth (NASA GIBS, relief) | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg` |
+| Earth (NASA GIBS, true colour) | `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/MODIS_Terra_CorrectedReflectance_TrueColor/default/2023-07-01/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg` |
+| Moon (NASA Trek, LROC WAC) | `https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
+| Moon (NASA Trek, LOLA relief) | `https://trek.nasa.gov/tiles/Moon/EQ/LRO_LOLA_ClrShade_Global_128ppd_v04/1.0.0/default/default028mm/{z}/{y}/{x}.png` |
+| Mars (NASA Trek, Viking colour) | `https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
+| Mars (NASA Trek, MOLA relief) | `https://trek.nasa.gov/tiles/Mars/EQ/Mars_MGS_MOLA_ClrShade_merge_global_463m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg` |
 
-Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en el nivel 0): en Leaflet usar `crs: L.CRS.EPSG4326`. Para el polo sur lunar, la vista equirectangular deforma mucho; mostrar un aviso y, como mínimo, centrar en la región. Buscar en trek.nasa.gov una capa polar sur (SP) si hay tiempo.
+The Trek tiles are in geographic projection (EPSG:4326, 2 tiles in X at level 0); in Leaflet use `crs: L.CRS.EPSG4326`. Near the lunar south pole the equirectangular view distorts heavily: show a notice and, at least, centre on the region. Look for a south polar (SP) layer on trek.nasa.gov if there is time.
 
-**Pantallas y componentes:**
+**Screens and components:**
 
-1. **Selector de escenario:** cuerpo (Luna / Marte), tipo de blanco (curado / cluster), preset de misión.
-2. **Panel de pesos:** un slider por dimensión (normalizar para que sumen 1), switch de prioridad logística (λ de 0 a 0.3) y filtro "solo nuevos candidatos".
-3. **Vista doble:** a la izquierda el blanco en Leaflet; a la derecha la Tierra en MapLibre con marcadores coloreados por MSI. Al hacer clic en un análogo se centra el mapa.
-4. **Lista de resultados:** tarjetas ordenadas por MSI recalculado en el navegador (`MSI = Σ w·S / Σ w` con los `sub_scores` del JSON; no se recalcula nada geofísico en el cliente).
-5. **Ficha del sitio:**
-   - Gráfica de radar con las 4 dimensiones
-   - Tabla de rasgos Tierra contra blanco, en unidades físicas
-   - Sección **"Dónde se rompe la analogía"**: los `mismatches` del sitio más los límites fijos del cuerpo
-   - Protocolo de prueba sugerido
-   - Logística (distancia a carretera y aeropuerto)
-   - Etiqueta `KNOWN_ANALOG` o `NEW_CANDIDATE`
-   - Enlaces a los datasets de origen
-6. **Comparar:** dos sitios lado a lado.
-7. **Exportar:** la ficha en JSON y en Markdown, y una vista de impresión con CSS.
-8. **Metodología:** página corta con las fórmulas de la sección T7 y la tabla de recursos de la sección 2.
+1. **Scenario selector:** body (Moon / Mars), target type (curated / cluster), mission preset.
+2. **Weights panel:** one slider per dimension (normalised to sum 1), a logistics priority switch (λ from 0 to 0.3), and a "new candidates only" filter.
+3. **Dual view:** the target in Leaflet on the left; Earth on the right, with markers coloured by MSI. Clicking an analog centres the map.
+4. **Results list:** cards ordered by the MSI recomputed in the browser (`MSI = Σ w·S / Σ w` with the JSON `sub_scores`; nothing geophysical is recomputed in the client).
+5. **Site card:**
+   - radar chart of the 4 dimensions;
+   - table of Earth vs. target features, in physical units;
+   - a **"Where the analogy breaks"** section: the site's `mismatches` plus the body's fixed limits;
+   - suggested test protocol;
+   - logistics (distance to road and airport);
+   - `KNOWN_ANALOG` or `NEW_CANDIDATE` label;
+   - links to the source datasets.
+6. **Compare:** two sites side by side.
+7. **Export:** the card as JSON and Markdown, and a print view with CSS.
+8. **Methodology:** a short page with the T7 formulas and the resource table of section 2.
 
-**Datos:** mientras T8 no esté, usar un JSON de ejemplo que siga el esquema de la sección 5 (`app/public/data/sample.json`), generado a mano o a partir de `output/analogs.json` de la v1.
+**Data:** until T8 exists, use a sample JSON that follows the section 5 schema (`app/public/data/sample.json`, converted from the v1 output by `tools/v1_to_sample.py`).
 
-**Despliegue:** GitHub Pages o Vercel desde la rama `main`.
+**Deployment:** GitHub Pages or Vercel from `main`. The venue requires a public link ([submission.md](submission.md)).
 
-**Criterio de aceptación:**
-- Mover un slider reordena la lista en menos de 50 ms.
-- Funciona sin conexión a Yuca.
-- Se ve bien en una laptop de 1366 × 768 y en el proyector.
+**Acceptance criteria:**
 
-### T11. Contenido (P1, P3, P4)
+- Moving a slider re-orders the list in under 50 ms.
+- It works without a connection to Yuca.
+- It looks right on a 1366 × 768 laptop and on a projector.
 
-- `pipeline/data/limits.json`: por cuerpo, una lista de `{factor, earth, target, consequence}` con fuente. Mínimo:
-  - Luna: gravedad, vacío, radiación, ciclo térmico, iluminación polar y regolito.
-  - Marte: gravedad, presión, radiación, ciclo térmico, polvo y percloratos.
-- Protocolo de prueba por preset (texto corto que la app muestra según la dimensión que más pesa).
-- Pitch, presentación y video de respaldo. Base: [value_proposition.md](value_proposition.md).
-- Descripción del uso de IA, sacada de la bitácora.
+### T11. Content (P1, P3, P4)
+
+- **`pipeline/data/limits.json`:** per body, a list of `{factor, earth, target, consequence, source}` (format in [plan_t7_t8.md](plan_t7_t8.md) §4.2). Minimum:
+  - Moon: gravity, vacuum, radiation, thermal cycle, polar illumination and regolith.
+  - Mars: gravity, pressure, radiation, thermal cycle, dust and perchlorates.
+- **Test protocols:** one short text per preset, which the app shows depending on the dimension with the largest weight.
+- **Pitch, presentation and video:** see [submission.md](submission.md); base text in [value_proposition.md](value_proposition.md).
+- **Use of AI:** see [HISTORY.md](HISTORY.md).
 
 ---
 
-## 5. Contrato de datos `analogs_universe.json` (v2)
+## 5. Data contract: `analogs_universe.json` (v2)
+
+The detailed, current version, with every field, is in [plan_t7_t8.md](plan_t7_t8.md) §4.1. The core:
 
 ```json
 {
@@ -362,12 +425,12 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
     "version": "2.0.0",
     "generated_at": "ISO-8601",
     "slurm_job_id": "123456",
-    "patch": { "size_km": 32, "res_m": 500, "projection": "AEQD local" },
+    "patch": { "size_km": 32, "res_m": 500, "projection": "local AEQD" },
     "earth_patches_evaluated": 0,
     "datasets": [ { "name": "Copernicus DEM GLO-90", "source": "ESA", "url": "..." } ]
   },
   "mission_presets": {
-    "mobility_and_traction": { "label": "Movilidad y tracción de rovers", "weights": { "topography": 0.45, "roughness": 0.40, "environment": 0.15, "thermal": 0 } }
+    "mobility_and_traction": { "label": "Rover mobility and traction", "weights": { "topography": 0.45, "roughness": 0.40, "environment": 0.15, "thermal": 0 } }
   },
   "limits": {
     "Moon": [ { "factor": "gravity", "earth": "1 g", "target": "0.166 g", "consequence": "...", "source": "..." } ],
@@ -375,12 +438,12 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
   },
   "targets": [
     {
-      "id": "moon-artemis-haworth",
+      "id": "moon-a3-haworth",
       "type": "CURATED",
       "body": "Moon",
-      "name": "Haworth",
-      "lat": null,
-      "lon": null,
+      "name": "Haworth rim",
+      "lat": -87.45,
+      "lon": -5.17,
       "category": "Artemis III candidate region",
       "why": "...",
       "source_url": "...",
@@ -389,7 +452,7 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
       "aux": { "wac_reflectance": 0, "ice_favorability": 0, "diviner_tmax_k": null },
       "analogs": [
         {
-          "id": "earth-<lat>-<lon>",
+          "id": "earth+31.8480-113.3900",
           "lat": 0,
           "lon": 0,
           "country": null,
@@ -408,45 +471,38 @@ Los tiles de Trek están en proyección geográfica (EPSG:4326, 2 tiles en X en 
 }
 ```
 
-`country` se llena con Natural Earth `ne_10m_admin_0_countries` (columna `ADMIN`), que baja `run_download_extra.slurm` a `data/raw/earth/naturalearth/ne_10m_admin_0_countries/`.
+`country` comes from Natural Earth `ne_10m_admin_0_countries` (column `ADMIN`).
 
 ---
 
-## 6. Orden y tiempos (48 horas desde el 14 de noviembre, 9:00)
+## 6. Order and timing
 
-> **Reemplazado por [submission.md](submission.md).** La sede real (NASA Space Apps Sonora, Tec de Monterrey) da el sábado de 9:00 a 21:00 y pitches el domingo en la mañana, no 48 horas. La tabla de abajo queda como referencia del orden de las tareas.
+> **Superseded by [submission.md](submission.md).** The real venue (NASA Space Apps Sonora, Tec de Monterrey) gives Saturday from 9:00 to 21:00 and pitches on Sunday morning, not 48 hours. The task order still holds: T0 → T1/T2 → T3 → T4 → T6 → T5 → T7/T8, with the app (T10) and content (T11) in parallel.
 
-| Horas | Pipeline (Owen + Gemini) | App (Javier) | Contenido |
-| --- | --- | --- | --- |
-| 0–2 | Enviar T0.1 y T0.2 (si no se enviaron antes). T1, T2 y sus tests | Proyecto Vite, mapas con capas base, JSON de ejemplo | `limits.json`, lista de blancos con fuentes (T4) |
-| 2–8 | T3 con `--limit`, luego completo. T4 | Panel de pesos, lista, cálculo de MSI | Protocolos de prueba |
-| 8–16 | T6, T5 con `--limit`, luego completo (job array) | Ficha del sitio, radar, "dónde se rompe" | Guion del pitch |
-| 16–22 | T7, T8, revisión de sentido común | Comparar, exportar | Presentación |
-| 22–30 | Ajustar σ y umbrales; segunda corrida si hace falta | Conectar el JSON real | Ensayos con la app |
-| 30–40 | Congelar datos. Documentar | Pulir, desplegar | Video de respaldo |
-| 40–48 | Bitácora y uso de IA | Congelar código | Envío |
+**Plan B:**
 
-**Plan B:** si T5 no termina a tiempo, usar solo las franjas de latitud que sí terminaron y decirlo en la app ("cobertura parcial: X % de la superficie terrestre"). Si T3/T5 fallan por completo, la app sigue funcionando con `output/analogs.json` de la v1, convertido al esquema nuevo.
+- **If T5 does not finish in time,** use only the latitude stripes that did finish (`merge --allow-missing`), and say so in the app ("partial coverage: X % of the candidates").
+- **If T7/T8 fail completely,** the app still works with the v1 sample converted to the new schema.
 
 ---
 
-## 7. Comandos de descarga (Owen, en Yuca)
+## 7. Download commands (Owen, on Yuca)
 
-Todo se corre **ya dentro de Yuca** (en `login-01`). El código llega clonando el repo (público) en `/lustre/proyectos/p089/code`; no hace falta token.
+Everything runs **on Yuca** (`login-01`, over SSH or the Open OnDemand shell). The code arrives by cloning the public repository into `/lustre/proyectos/p089/code`; no token is needed.
 
-Primera vez:
+First time:
 
 ```bash
 git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git /lustre/proyectos/p089/code
 ```
 
-Las siguientes veces, para traer cambios:
+To bring in changes:
 
 ```bash
 cd /lustre/proyectos/p089/code && git pull
 ```
 
-Probar sin encolar y luego enviar (siempre desde `code/`):
+Test without queueing, then submit (always from `code/`):
 
 ```bash
 cd /lustre/proyectos/p089/code && sbatch --test-only run_download_missing.slurm && sbatch --test-only run_download_extra.slurm
@@ -456,19 +512,19 @@ cd /lustre/proyectos/p089/code && sbatch --test-only run_download_missing.slurm 
 cd /lustre/proyectos/p089/code && sbatch run_download_missing.slurm && sbatch run_download_extra.slurm
 ```
 
-Para MODIS hace falta una cuenta gratuita en https://urs.earthdata.nasa.gov y crear `~/.netrc` en Yuca **a mano** (la contraseña no debe pasar por ningún agente):
+MODIS needs a free account at https://urs.earthdata.nasa.gov and a `~/.netrc` file on Yuca created **by hand** (the password must never go through an agent):
 
 ```bash
 nano ~/.netrc
 ```
 
-Contenido: `machine urs.earthdata.nasa.gov login TU_USUARIO password TU_CONTRASEÑA`. Después:
+Content: `machine urs.earthdata.nasa.gov login YOUR_USER password YOUR_PASSWORD`. Then:
 
 ```bash
 chmod 600 ~/.netrc
 ```
 
-Ver el avance:
+Progress:
 
 ```bash
 squeue -u owen
