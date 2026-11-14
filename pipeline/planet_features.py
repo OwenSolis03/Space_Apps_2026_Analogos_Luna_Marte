@@ -491,6 +491,12 @@ def run_body_extraction(
     if not dem_path.exists():
         raise FileNotFoundError(f"No se encontró el DEM de {body_norm}: {dem_path}")
 
+    with rasterio.open(dem_path) as dem_meta:
+        print(
+            f"[META] {body_norm} DEM: dtype={dem_meta.dtypes[0]} nodata={dem_meta.nodata} "
+            f"scales={dem_meta.scales} offsets={dem_meta.offsets} res={dem_meta.res}"
+        )
+
     aux_paths: dict[str, str] = {}
     for k, p in resolved.items():
         if k in ("dem", "diviner_prp"):
@@ -579,12 +585,17 @@ def run_body_extraction(
         f"(grilla completa={len(full_grid):,}, antimeridiano={skipped_antimeridian}) -> {stripe_path}"
     )
     if len(df) > 0:
-        print(
-            f"     mean_slope_deg: min={df['mean_slope_deg'].min():.2f}°, "
-            f"mediana={df['mean_slope_deg'].median():.2f}°, "
-            f"p95={df['mean_slope_deg'].quantile(0.95):.2f}°, "
-            f"max={df['mean_slope_deg'].max():.2f}°"
-        )
+        for col, unit in (
+            ("mean_slope_deg", "°"),
+            ("relief_m", " m"),
+            ("mean_elev_m", " m"),
+        ):
+            print(
+                f"     {col}: min={df[col].min():.2f}{unit}, "
+                f"mediana={df[col].median():.2f}{unit}, "
+                f"p95={df[col].quantile(0.95):.2f}{unit}, "
+                f"max={df[col].max():.2f}{unit}"
+            )
         if body_norm == "Moon" and "diviner_tavg_k" in df.columns:
             div_cov = int(df["diviner_tavg_k"].notna().sum())
             if div_cov > 0:

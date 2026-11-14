@@ -268,3 +268,81 @@ def test_radius_mismatch_raises_value_error(tmp_path: Path) -> None:
     with rasterio.open(path) as src:
         with pytest.raises(ValueError):
             extract_patch(src, lat=0.5, lon=0.5, body="Mars")
+
+
+def test_int16_scale_and_offset_applied_to_meters(tmp_path: Path) -> None:
+    """GeoTIFF int16 con scale=0.5 y offset!=0 devuelve elevación y pendiente en metros reales."""
+    from pipeline.features import compute_features
+
+    radius_m = 1737400.0
+    res_m = 200.0
+    width, height = 240, 240
+    eqc_crs = f"+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R={radius_m} +units=m +no_defs"
+    transform = from_origin(-24000.0, 24000.0, res_m, res_m)
+
+    # Queremos pendiente física de 10° en metros tras aplicar scale=0.5 y offset=100.0.
+    slope_target_deg = 10.0
+    xs = -24000.0 + (np.arange(width, dtype=np.float64) + 0.5) * res_m
+    elev_m = (math.tan(math.radians(slope_target_deg)) * xs)[None, :].repeat(height, axis=0)
+    offset_m = 100.0
+    scale = 0.5
+    raw_int16 = np.rint((elev_m - offset_m) / scale).astype(np.int16)
+    # Incluir algunos píxeles nodata (< 1 %) para verificar que se enmascaran antes de escalar.
+    raw_int16[10:12, 10:12] = -32768
+
+    path = tmp_path / "moon_int16_scaled.tif"
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype="int16",
+        crs=eqc_crs,
+        transform=transform,
+        nodata=-32768,
+    ) as dst:
+        dst.write(raw_int16, 1)
+        dst.scales = (scale,)
+        dst.offsets = (offset_m,)
+
+    with rasterio.open(path) as src:
+        patch = extract_patch(src, lat=0.0, lon=0.0, body="Moon")
+
+    assert patch is not None
+    assert patch.shape == (64, 64)
+    assert patch.dtype == np.float32
+
+    feats = compute_features(patch, res_m=500.0)
+    # Centro x=0 -> elev_m promedio debe quedar centrado cerca de 0 m (no -100 m ni 2*elev),
+    # así que si la rampa en metros tenía media 0 antes de offset, con offset=100 m raw tendría media -200
+    # y tras scale=0.5 + offset=100 vuelve a ~0 m; validemos con un offset distinto en la rampa:
+    assert abs(float(feats["mean_slope_deg"]) - slope_target_deg) <= 0.2
+    assert abs(float(feats["mean_elev_m"])) < 25.0
+
+    # Caso directo: parche plano con valor crudo 400 -> 400 * 0.5 + 100 = 300 m exactos.
+    flat_path = tmp_path / "moon_int16_flat_scaled.tif"
+    flat_raw = np.full((height, width), 400, dtype=np.int16)
+    flat_raw[0:5, 0:5] = -32768
+    with rasterio.open(
+        flat_path,
+        "w",
+        driver="GTiff",
+        height=height,
+        width=width,
+        count=1,
+        dtype="int16",
+        crs=eqc_crs,
+        transform=transform,
+        nodata=-32768,
+    ) as dst:
+        dst.write(flat_raw, 1)
+        dst.scales = (0.5,)
+        dst.offsets = (100.0,)
+
+    with rasterio.open(flat_path) as src:
+        flat_patch = extract_patch(src, lat=0.0, lon=0.0, body="Moon")
+
+    assert flat_patch is not None
+    assert np.allclose(flat_patch[np.isfinite(flat_patch)], 300.0, atol=1e-3)

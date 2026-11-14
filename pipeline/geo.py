@@ -153,13 +153,24 @@ def _patch_crosses_antimeridian(
     return (abs(lon_norm) + delta_lon) > 180.0
 
 
-def _clean_nodata(data: np.ndarray, nodata: float | int | None) -> np.ndarray:
+def _clean_nodata(
+    data: np.ndarray,
+    nodata: float | int | None,
+    scale: float | None = 1.0,
+    offset: float | None = 0.0,
+) -> np.ndarray:
     arr = data.astype(np.float32, copy=True)
     if nodata is not None:
         nodata_f = float(nodata)
         if math.isfinite(nodata_f):
             arr[np.isclose(arr, nodata_f)] = np.nan
     arr[~np.isfinite(arr)] = np.nan
+
+    scale_f = 1.0 if scale is None else float(scale)
+    offset_f = 0.0 if offset is None else float(offset)
+    if scale_f != 1.0 or offset_f != 0.0:
+        arr = arr * np.float32(scale_f) + np.float32(offset_f)
+
     arr[np.abs(arr) > MAX_ABS_ELEV_M] = np.nan
     return arr
 
@@ -268,16 +279,21 @@ def extract_patch(
             window=read_win,
             out_shape=(out_h, out_w),
             resampling=Resampling.average,
+            out_dtype="float32",
             masked=False,
         )
         win_transform = src.window_transform(read_win) @ Affine.scale(
             read_win.width / out_w, read_win.height / out_h
         )
     else:
-        raw = src.read(1, window=read_win, masked=False)
+        raw = src.read(1, window=read_win, out_dtype="float32", masked=False)
         win_transform = src.window_transform(read_win)
 
-    data = _clean_nodata(raw, src.nodata)
+    scales = getattr(src, "scales", None)
+    offsets = getattr(src, "offsets", None)
+    scale = scales[0] if scales else 1.0
+    offset = offsets[0] if offsets else 0.0
+    data = _clean_nodata(raw, src.nodata, scale=scale, offset=offset)
     if not np.any(np.isfinite(data)):
         return None
 

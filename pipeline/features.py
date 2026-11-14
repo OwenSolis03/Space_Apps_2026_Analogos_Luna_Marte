@@ -35,7 +35,7 @@ def compute_features(
     z_clean = np.where(valid, arr, med)
 
     res = float(res_m)
-    gy, gx = np.gradient(z_clean, res)
+    gy, gx = np.gradient(z_clean, res, res)
     slope_deg = np.degrees(np.arctan(np.hypot(gx, gy)))
 
     mean_slope_deg = np.float32(np.mean(slope_deg))

@@ -2,6 +2,21 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13: T1/T3 — aplicación de `scales`/`offsets` en `geo.py` y métricas detalladas
+
+**Qué se hizo (código escrito por Gemini)**
+
+- Se registró la corrida de prueba `--limit 500` de T3 en Yuca (job `2242227`, 1 min 18 s): Marte `498/500` válidos (`mean_slope_deg` mediana `1.08°`, p95 `4.63°`, máx `17.15°`), Diviner PRP cacheado (`2,880,000` triángulos en `data/derived/diviner_prp_south.parquet`) y Luna `494/500` válidos (`mean_slope_deg` mediana `13.24°`, p95 `21.50°`, máx `27.68°`).
+- **Corrección de diagnóstico lunar:** el relieve real de la Luna abarca de `~-9.1 km` a `+10.8 km`, por lo que el rango de elevaciones de la v1 (`-9,712` a `+10,054 m`) ya está en rango físico y no constituye evidencia de un factor 2.
+- Se actualizó `pipeline/geo.py` (`extract_patch` y `_clean_nodata`): lectura con `out_dtype="float32"` (incluyendo la rama `out_shape`), enmascarado de `src.nodata` antes de multiplicar/sumar `src.scales[0]` y `src.offsets[0]` cuando difieren de `(1.0, 0.0)`.
+- En `pipeline/features.py` se dejó explícito `np.gradient(z_clean, res, res)` para ambos ejes.
+- En `tests/test_geo.py` se añadió `test_int16_scale_and_offset_applied_to_meters` (GeoTIFF `int16` con `scale=0.5`, `offset=100.0` y `nodata=-32768`); suite completa: `15 passed`.
+- En `pipeline/planet_features.py` se agregó impresión de metadatos del DEM (`dtype`, `nodata`, `scales`, `offsets`, `res`) y resumen (`min`, `mediana`, `p95`, `max`) de `mean_slope_deg`, `relief_m` y `mean_elev_m`.
+
+**Qué falta**
+
+- Correr en Yuca la comparación antes/después del cambio en `--limit 500` para la Luna (`mean_slope_deg`, `relief_m`, `mean_elev_m`) junto con muestra de Marte y tiles de la Tierra a `500 m/px`, antes de lanzar el array completo `0-15` de T3.
+
 ## 2026-11-13: T3 — barrido global de Marte y la Luna (pipeline/planet_features.py)
 
 **Qué se hizo (código escrito por Gemini)**
