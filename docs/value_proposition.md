@@ -1,94 +1,96 @@
-# Propuesta de valor: Planetary Analog Finder
+# Value proposition: Planetary Analog Finder
 
-Base para el equipo de presentación y video. Define qué problema resolvemos, qué ofrecemos, en qué vamos más allá de lo que pide la NASA y cómo nos distinguimos de otros equipos del mismo challenge. Revisado el 13 de noviembre de 2026 contra la [página del challenge](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/) y `output/analogs.json`.
+Base material for the pitch and video team. It covers:
 
-## 1. La problemática
+- what problem we solve and what we offer;
+- what we do beyond what NASA asks;
+- how we differ from other teams on the same challenge.
 
-La NASA lo dice en el propio reto: los análogos terrestres que se usan hoy (Atacama, Haughton, Death Valley, Antártida, Islandia, Hawái) **no están bien caracterizados**, y se eligieron por experiencia o por parecido visual, no por una búsqueda sistemática.
+Checked on 2026-11-13 against the [challenge page](https://www.spaceappschallenge.org/2026/challenges/permanent-moon-base-locations-and-mars/), and updated for the v2 pipeline. The evaluation criteria of our venue are technological innovation, social impact, documentation and scalability ([submission.md](submission.md)).
 
-Eso causa tres problemas concretos:
+## 1. The problem
 
-1. **Siempre los mismos sitios.** Las misiones se preparan en un puñado de lugares famosos, caros y remotos. Puede haber análogos mejores, o más baratos de usar, que nadie ha buscado.
-2. **"Se parece" no es un dato.** Sin una métrica no se puede decir *qué tan* análogo es un sitio, *en qué* lo es y *en qué no*.
-3. **Un análogo no sirve para todo.** Un sitio puede ser bueno para probar movilidad de rovers y malo para térmica. Hoy no hay una forma rápida de elegir el análogo según la prueba que se quiere hacer.
+The challenge itself says it: the terrestrial analogs used today (Atacama, Haughton, Death Valley, Antarctica, Iceland, Hawaii) **are not well characterised**. They were chosen from experience or visual resemblance, not by a systematic search.
 
-## 2. Propuesta de valor
+That causes three concrete problems:
 
-**En una línea:**
+1. **Always the same sites.** Missions prepare in a handful of famous, expensive and remote places. Better or cheaper analogs may exist that nobody has looked for.
+2. **"It looks similar" is not data.** Without a metric you cannot say *how* analogous a site is, *in what way*, and *in what way not*.
+3. **One analog does not fit every test.** A site can be good for rover mobility tests and poor for thermal ones. Today there is no quick way to pick the analog for the test you want to run.
 
-> Un buscador que recorre la Tierra con datos abiertos y te dice qué lugar se parece, con números, a un sitio de la Luna o Marte, en qué se parece, en qué no y para qué prueba sirve.
+## 2. Value proposition
 
-**Versión de 30 segundos (elevator pitch):**
+**In one line:**
 
-> Antes de ir a la Luna o a Marte, los equipos de misión ensayan en la Tierra, pero casi siempre en los mismos cinco lugares, elegidos porque "se ven parecidos". Planetary Analog Finder compara el relieve de la Luna y Marte contra el de la Tierra con datos de NASA, USGS y ESA, procesados en la supercomputadora Yuca de la Universidad de Sonora. El resultado es un ranking de sitios terrestres con un puntaje de similitud, la explicación de qué coincide, una sección de dónde se rompe la analogía, y pesos que el usuario ajusta según la misión. No redescubre Atacama: encuentra candidatos que nadie había mirado.
+> A search engine that sweeps the whole Earth with open data and tells you which place resembles a Moon or Mars site, in numbers: in what way it is similar, in what way it is not, and what test it is good for.
 
-**Para quién (el usuario es el héroe, la herramienta es la guía):**
+**30-second version:**
 
-| Usuario | Qué gana |
+> Before going to the Moon or Mars, mission teams rehearse on Earth, but almost always in the same five places, chosen because they "look similar". Planetary Analog Finder measures the terrain of the Moon, Mars and Earth in exactly the same way, with NASA, USGS and ESA data processed on the Yuca supercomputer at the University of Sonora. It ranks Earth sites against the Artemis III landing regions and the Mars landing sites. For each one it shows the similarity score, what matches, where the analogy breaks, and how far it is from a road. Users can re-weight the ranking for their mission. It does not rediscover Atacama: it finds candidates nobody had looked at.
+
+**For whom** (the user is the hero, the tool is the guide):
+
+| User | What they gain |
 | --- | --- |
-| Ingeniero de misión | Elegir dónde probar un rover, un traje o una maniobra según el tipo de terreno que enfrentará |
-| Geólogo planetario | Candidatos nuevos con métricas para justificar trabajo de campo |
-| Agencias y universidades fuera de EE. UU. y Europa | Encontrar análogos cerca de casa, sin depender de sitios lejanos y caros |
-| Público y estudiantes | Ver que un lugar que conocen "es" un pedazo de Marte o la Luna, y por qué no del todo |
+| Mission engineer | Choose where to test a rover, a suit or a manoeuvre for the terrain it will face |
+| Planetary geologist | New candidates with metrics to justify fieldwork |
+| Agencies and universities outside the US and Europe | Analogs close to home, without depending on distant and expensive sites |
+| Public and students | See that a place they know "is" a piece of Mars or the Moon, and why not entirely |
 
-## 3. Qué hacemos más allá de lo que pide la NASA
+## 3. Social impact
 
-El reto pide identificar y caracterizar análogos, explicar qué coincide, dónde se rompe la analogía y cómo ayuda a la exploración. Esto es lo que cubrimos y lo que agregamos:
+This is one of the four judging criteria at our venue.
 
-| Lo que pide la NASA | Lo que hace el proyecto | Por qué es diferente |
+- **Cheaper access to analog research.** Most analog campaigns go to remote polar or island sites. A ranked list of accessible sites, with distances to roads and airports, lets universities, small agencies and student teams in Mexico and Latin America test instruments and train people close to home.
+- **Local scientific capacity.** The pipeline runs on a public university supercomputer (Yuca, UniSon) with open data, and it is open source. Others can reproduce it, audit it and extend it.
+- **Education and outreach.** "This valley near you behaves like this region of Mars, and here is why it does not entirely" is a concrete, data-backed hook for science education.
+
+## 4. What we do beyond what NASA asks
+
+| What NASA asks | What the project does | Why it is different |
 | --- | --- | --- |
-| "Identificar uno o más lugares" | Búsqueda sistemática: 40 arquetipos de Marte y 40 de la Luna contra 21,906 ventanas de terreno terrestre | No partimos de una lista de sitios; los sitios salen del cálculo |
-| "Ir más allá de la similitud visual" | Puntaje con métricas medibles del DEM: rugosidad, pendiente media, pendiente p90 y dispersión del relieve | La analogía se puede auditar y repetir |
-| "Ir más allá de los sitios conocidos" | El método no sabe qué es Atacama; propone lo que mejor puntúa | Los candidatos nuevos son consecuencia del método, no de la intuición |
-| "Considerar la escala" | Comparamos ventanas de decenas de km, no desiertos enteros | El análogo es un valle o una sierra concreta. Ojo: falta igualar la escala entre cuerpos (ver sección 6) |
-| "Dónde se rompe la analogía" | Sección "Límites del análogo" en cada ficha: lo que coincide, lo que no, y lo que la Tierra no puede reproducir (gravedad, vacío, atmósfera, radiación) | La mayoría lo pondrá como nota al final; para nosotros es parte del resultado |
-| "Conectar con la exploración" | Pesos ajustables por tipo de misión (movilidad, aterrizaje, construcción, térmica) | El mismo sitio cambia de rango según la prueba; el ranking responde a una pregunta de ingeniería |
-| "Usar datos abiertos" | MOLA, THEMIS, LOLA, Copernicus GLO-90 y nomenclatura IAU | Cada arquetipo planetario tiene nombre oficial y cada análogo coordenadas verificables |
+| "Identify one or more locations" | A systematic search over every bare-land 32 km patch on Earth (~45,000 candidates after the vegetation filter), against 76 lunar and Martian targets | We do not start from a list of sites; the sites come out of the computation |
+| "Go beyond visual similarity" | A score built from measured terrain features: slope, relief, hypsometry, roughness; plus aridity and, for Mars, thermal contrast | The analogy can be audited and repeated |
+| "Go beyond known sites" | The method does not know what Atacama is. Sites inside 12 famous analog regions are labelled `KNOWN_ANALOG`, the rest `NEW_CANDIDATE` | New candidates are a consequence of the method, not of intuition |
+| "Consider scale" | The same 32 km patch at 500 m/px on all three bodies, reprojected around its own centre | The analog is a specific valley or range, and the comparison is fair across bodies |
+| "Where the analogy breaks" | Every site lists the features that do not match, in physical units, plus what Earth cannot reproduce (gravity, vacuum, atmosphere, radiation) | Most teams will add it as a footnote; for us it is part of the result |
+| "Connect with exploration" | Real targets: the Artemis III candidate regions and the Mars landing sites. Mission presets: mobility, base construction, dust and thermal | The ranking answers an engineering question |
+| "Use open data" | MOLA, THEMIS, LOLA, LROC WAC, Diviner, Copernicus GLO-90, MODIS, Natural Earth and IAU nomenclature | Every target has an official name and every analog verifiable coordinates |
 
-Lo que agregamos y el reto no pide:
+**What we add that the challenge does not ask for:**
 
-- **Supercómputo real.** Procesamos decenas de GB de rasters en Yuca (UniSon). Es la razón por la que podemos buscar a escala global y no solo en una región.
-- **Un ranking que se reordena.** No entregamos "el" análogo, sino una herramienta para elegirlo según la misión.
-- **Logística como criterio.** Un análogo cercano a carreteras y aeropuertos cuesta menos de usar. Está en el plan maestro; aún no está en el pipeline.
+- **Real supercomputing.** Tens of GB of rasters processed on Yuca. That is why the search can be global instead of regional.
+- **A ranking that re-orders.** We do not deliver "the" analog, but a tool to choose it for the mission.
+- **Logistics as a criterion.** Each site shows its distance to the nearest road and airport, and the app can favour accessible sites.
 
-## 4. Diferenciador frente a otros equipos
+## 5. Differentiators against other teams
 
-No podemos ver los proyectos de los demás equipos antes de la entrega, así que esto parte de los enfoques que el propio reto sugiere y de los más probables en un hackathon de 48 horas. Son hipótesis, no datos.
+We cannot see other teams' projects before submission, so this rests on the approaches the challenge itself suggests and on the most likely ones in a hackathon. These are hypotheses, not data.
 
-| Enfoque probable de otros equipos | Su límite | Nuestra respuesta |
+| Likely approach of other teams | Its limit | Our answer |
 | --- | --- | --- |
-| Reporte sobre un sitio famoso (Atacama, Pinacate, Río Tinto) | Es justo lo que el reto pide superar: redescubre un análogo conocido | Los sitios salen de un cálculo global, no de una elección previa |
-| Comparación de imágenes o ML visual | El reto advierte que "verse parecido" no basta | Comparamos métricas físicas del relieve, no píxeles |
-| Mapa o catálogo de análogos conocidos | Organiza lo que ya existe; no descubre | Proponemos candidatos nuevos con su puntaje |
-| Chatbot o app que explica con IA | Explica, pero no mide | Cada afirmación viene de un número calculado |
-| Ranking de similitud sin límites | Da un porcentaje que parece absoluto | Mostramos en qué coincide, en qué no y qué la Tierra no puede reproducir |
+| A report on a famous site (Atacama, Pinacate, Río Tinto) | It is exactly what the challenge asks to go beyond | Sites come from a global computation, not a prior choice |
+| Image comparison or visual ML | The challenge warns that "looking similar" is not enough | We compare physical terrain metrics, not pixels |
+| A map or catalogue of known analogs | It organises what exists; it does not discover | We propose new candidates with their score |
+| A chatbot or AI app that explains | It explains, but does not measure | Every statement comes from a computed number |
+| A similarity ranking without limits | It gives a percentage that looks absolute | We show what matches, what does not, and what Earth cannot reproduce |
 
-**Nuestro diferenciador en una frase:** somos el equipo que *mide* la analogía a escala de planeta, con supercómputo, y que muestra con la misma claridad dónde se rompe.
+**Our differentiator in one sentence:** we are the team that *measures* the analogy at planetary scale, with supercomputing, and shows just as clearly where it breaks.
 
-**Ventaja local que nadie más tiene:** el equipo está en Sonora, con acceso a Yuca, y el desierto de Sonora y Baja California aparecen entre los candidatos del prototipo. Podemos decir "esto está a horas de aquí", algo que un equipo de otra región no puede decir de nuestros sitios.
+**A local advantage nobody else has:** the team is in Sonora, with access to Yuca. If the final results include candidates in northwest Mexico, we can say "this is a few hours from here".
 
-## 5. Prueba: candidatos en México del prototipo actual
+## 6. Example candidates
 
-De `output/analogs.json` (corrida 2241783). Sirven como ejemplo, no como resultado final, por las limitaciones de la sección 6.
+The v1 prototype produced candidates in Sonora and Baja California. Those numbers are **not valid anymore**: v1 compared windows of different sizes per body, had no vegetation mask, and doubled every lunar vertical metric. The v2 results come from the T7 run. Pick the examples for the pitch from `analogs_universe.json` once T7 has run, and check each point on a map before naming it.
 
-| Sitio objetivo | Análogo terrestre (lat, lon) | Zona aproximada | Rango | Puntaje |
-| --- | --- | --- | --- | --- |
-| Luna: cráter Schrödinger | 32.36, -115.79 | Norte de Baja California, cerca de Mexicali | 2 | 82.1 |
-| Marte: cráter Louth | 30.79, -112.79 | Noroeste de Sonora | 4 | 96.4 |
-| Luna: Bose A | 31.79, -110.36 | Frontera Sonora y Arizona | 3 | 97.8 |
-| Luna: Repsold B | 31.79, -110.36 | Frontera Sonora y Arizona | 4 | 97.7 |
-| Luna: Lacchini | 19.79, -101.79 | Centro de México | 5 | 94.8 |
+## 7. What we must not claim
 
-Schrödinger es una cuenca de impacto cerca del polo sur lunar, la región de interés de Artemis, y Louth es un cráter marciano con hielo de agua en superficie. Son los ganchos más fuertes si sobreviven a las correcciones. Las zonas son aproximadas; hay que confirmar cada punto en un mapa antes de nombrarlo.
+To survive questions from the judges:
 
-## 6. Lo que no debemos afirmar todavía
+- **Do not say "we found the best analog".** The score measures terrain at 32 km / 500 m scale, aridity and (for Mars) relative thermal contrast. It does not measure mineralogy, rock size or dust.
+- **Do not present the score as an absolute percentage.** It is a similarity relative to Earth's variability, and it depends on the weights. Lunar scores are low because Earth has very little arid terrain as rugged as the lunar south pole at this scale. That is a finding, not a bug.
+- **Do not claim that a site is ice-free.** Our data cannot tell an ice sheet from bare ground in Antarctica and Greenland. The ranking caps those sites at 3 per list.
+- **Do not claim the Artemis III region coordinates are official.** NASA publishes only the names; we anchor each region on the IAU feature of the same name and say so.
+- **Do not claim results that were not run.** If the full Earth run or T7 does not finish, say which parts of the app use sample data.
 
-Para que el pitch aguante preguntas de los jueces:
-
-- **No decir "encontramos el mejor análogo".** Los puntajes vienen de 4 métricas de relieve y la escala de las ventanas aún no es igual entre cuerpos (~118 km en Marte, ~30 km en la Luna, ~46 km en la Tierra).
-- **No decir "cobertura global".** Solo hay 6,983 de 26,475 tiles terrestres, entre 0.4° y 45.8° N, y aún no hay máscara árida, por eso muchos análogos lunares caen en el Himalaya.
-- **No presentar el puntaje como porcentaje absoluto.** Es una similitud relativa que depende de las métricas y los pesos.
-- **No vender mineralogía, térmica o polvo como comparados** hasta que estén en el pipeline. Hoy solo el relieve entra al puntaje.
-- **Los blancos del reto** (polo sur lunar / Artemis, sitios de aterrizaje en Marte) aún no son objetivos explícitos; los arquetipos salen de un k-means global.
-
-Detalle y prioridades de corrección en la [bitácora](logbook.md).
+Details and history: [HISTORY.md](HISTORY.md) and [logbook.md](logbook.md).
