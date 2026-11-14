@@ -32,7 +32,7 @@ BEFORE WRITING CODE, read these in full, in this order:
 Then tell me in 5 lines what you understood about today's task, which files you will create or touch, and
 which MODE you are in. Wait for my "ok" before writing code.
 
-TODAY'S TASK: T7/T8 per docs/plan_t7_t8.md.
+TODAY'S TASK: T14, T13 and T12 per docs/plan_t12_t15.md (stop at §5.6 before T15).
 MODE: A (you have SSH to Yuca)   <- or B (no SSH; Owen runs the commands through Open OnDemand)
 
 HOW TO WORK
@@ -116,10 +116,11 @@ WHEN YOU FINISH A TASK, answer with:
 | 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | To build the MODIS cache | Done (2242430) |
 | 5 | T5 (`earth_features.py` and job array) | [plan_t5.md](plan_t5.md) | Yes: the heaviest run (after T6) | Code done, smoke test passed; full run pending |
 | 6 | T7 and T8 (`match.py`, `export.py`) | [plan_t7_t8.md](plan_t7_t8.md) | For the run; develop against the T5 smoke run (`runs/2242432`) | Plan ready |
-| 7 | Code in English | — | No | Pending (see below) |
+| 7 | T14 geology, T13 dust and seasons, T12 ice, then T15 integration | [plan_t12_t15.md](plan_t12_t15.md) | Yes (downloads and runs) | Plan ready |
+| 8 | Code in English | — | No | Pending (see below) |
 | In parallel (Javier) | T10 (app) with `app/public/data/sample.json` | `implementation_plan.md` | No | Skeleton on `main` |
 
-## Translating the code to English (session 7)
+## Translating the code to English (session 8)
 
 The documentation is in English since 2026-11-13. The code still has Spanish comments, docstrings and log messages, and some files reference old document names. When there is time, and **not** in the middle of a run:
 

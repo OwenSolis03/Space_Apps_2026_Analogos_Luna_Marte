@@ -29,6 +29,7 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 | **T7/T8** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Done and run; report pending review** (`997a0c0`) | Jobs `2242473` (smoke) and `2242474` (full): 3,908 pairs, `5/5` hard checks, `/lustre/proyectos/p089/runs/2242474/analogs_universe.json` (3.18 MB) + `t7_report.md` (not yet copied to `app/`) |
 | **T9** tests | `tests/` | Ongoing | 61 synthetic tests pass (job `2242472`) |
 | **T10** app | `app/`, `tools/v1_to_sample.py` | **Skeleton on `main`** (`9325dea`, PR #2) | Runs on `app/public/data/sample.json` (v1 converted) |
+| **T12–T15** geology, dust and seasons, water and ice | `pipeline/geology.py`, `dust.py`, `ice.py`; `match.py`/`export.py` extended | **Plan ready** ([plan_t12_t15.md](plan_t12_t15.md)) | Data sources verified 2026-11-14 |
 | **T11** limits and content | `pipeline/data/limits.json` | Pending (team) | Format in `plan_t7_t8.md` §4.2; provisional fallback from `sample.json` |
 
 **T0 data verified on Yuca:**

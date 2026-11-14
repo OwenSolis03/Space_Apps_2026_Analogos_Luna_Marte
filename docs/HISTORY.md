@@ -203,6 +203,13 @@ The review (commit `5cbf360`, documented in the bitácora) found problems that s
 
 ## Next
 
+- **Beyond terrain (T12–T15, [plan_t12_t15.md](plan_t12_t15.md)).** The T7 run (job 2242474) showed that terrain alone cannot separate flat Mars plains (top-1 vs top-30 MSI differ by 0.012) and does not recognise volcanoes as volcanoes. Three evidence dimensions are added, each with open data checked on 2026-11-14:
+  - regional geology, a shared class taxonomy over GLiM (Earth), USGS SIM 3292 (Mars) and the USGS unified lunar map;
+  - dust processes and seasons, Montabone's Mars dust climatology against MODIS Deep Blue AOD, compared by rank and local seasonal phase;
+  - cold traps and ice, Diviner against MODIS LST and GLiM ice.
+
+  GLiM also lets the pipeline tell ice sheets from bare cold ground, so the polar cap of T7 becomes an ice cap.
+
 - **Review `runs/2242474/t7_report.md`** (score distribution and Olympus Mons check) and publish `analogs_universe.json` to `app/public/data/`.
 - **T11:** physical limits per body (`pipeline/data/limits.json`) and verified dataset URLs.
 - **App (T10):** connect `app/` (`DATA_URL`) to `analogs_universe.json` and deploy.
