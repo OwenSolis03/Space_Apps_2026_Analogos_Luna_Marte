@@ -1,92 +1,99 @@
-# Plan detallado T5: barrido de la Tierra
+# Detailed plan T5: Earth sweep
 
-Especificación completa de T5. Amplía la sección T5 de [implementation_plan.md](implementation_plan.md); si algo choca, **este documento manda para T5**. Escrito por Claude el 2026-11-13 sobre `main` en `5b33704`, con los tiles de Copernicus revisados en Yuca ese día.
+Full specification of T5. It expands section T5 of [implementation_plan.md](implementation_plan.md); where they disagree, **this document wins for T5**. Written by Claude on 2026-11-13 on `main` at `5b33704`, after checking the Copernicus tiles on Yuca that day.
 
-**Depende de T6:** usa `EarthLayers` y la caché `data/derived/{ndvi_max_2023,lst_2023}.tif` de [plan_t6.md](plan_t6.md). El código de T5 se puede escribir en paralelo, pero la corrida de T5 va **después** de la corrida de T6.
+**Status:** implemented by Gemini (commit `52bf3d7`).
 
----
+| Run | Jobs | Run directory | Result |
+| --- | --- | --- | --- |
+| Smoke test | 2242432–2242434 | `runs/2242432` | 445/500 valid |
+| Full run | 2242438–2242440 | `runs/2242438` | 44,375 candidates, **40,244 valid patches**, 6/6 hard checks |
 
-## 0. Resumen
-
-| Qué | Dónde |
-| --- | --- |
-| Mosaico virtual, prefiltro, extracción y combinación | `pipeline/earth_features.py` |
-| Jobs (3 etapas encadenadas) | `jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm`, `jobs/t5_merge.slurm` |
-| Envío de las 3 etapas con un comando | `jobs/t5_submit.sh` |
-| Pruebas | `tests/test_earth_features.py` |
-| Caché compartida (no va al repo) | `data/derived/copernicus_90m.vrt` |
-| Salidas (en `runs/<PREP_JOBID>/`) | `candidates.parquet`, `prefilter_stats.json`, `features_earth_<i>.parquet`, `features_earth.parquet`, `t5_checks.json`, `map_earth_mean_slope_deg.png`, `map_earth_classification.png` |
-
-Commit: `T5: barrido de la Tierra`. **Commitear y hacer push antes de enviar los jobs.**
+**Depends on T6:** T5 uses `EarthLayers` and the cache in `data/derived/{ndvi_max_2023,lst_2023}.tif` ([plan_t6.md](plan_t6.md)). The T5 code can be written in parallel, but the T5 run goes **after** the T6 run.
 
 ---
 
-## 1. Hechos verificados en Yuca (2026-11-13)
+## 0. Summary
 
-**Tiles de Copernicus GLO-90:**
-
-| Qué | Dato |
+| What | Where |
 | --- | --- |
-| Ubicación | `data/raw/earth/copernicus_90m/` |
-| Número de tiles | 26,475, 67 GB, todos `.tif` |
-| Nombre | `Copernicus_DSM_COG_30_{N|S}{lat:02d}_00_{E|W}{lon:03d}_00_DEM.tif`, donde `lat`/`lon` es la esquina **inferior izquierda** de la celda de 1° |
-| Formato | EPSG:4326, float32, `scales=(1.0,)` |
+| Virtual mosaic, prefilter, extraction and merge | `pipeline/earth_features.py` |
+| Jobs (3 chained stages) | `jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm`, `jobs/t5_merge.slurm` |
+| Submitting the 3 stages with one command | `jobs/t5_submit.sh` |
+| Tests | `tests/test_earth_features.py` |
+| Shared cache (not committed) | `data/derived/copernicus_90m.vrt` |
+| Outputs (in `runs/<PREP_JOBID>/`) | `candidates.parquet`, `prefilter_stats.json`, `features_earth_<i>.parquet`, `features_earth.parquet`, `t5_checks.json`, `map_earth_mean_slope_deg.png`, `map_earth_classification.png` |
 
-- **No tienen `nodata`.**
-- **El mar dentro de un tile costero vale exactamente `0.0`.** Por ejemplo, `N29_00_W113` (golfo de California) tiene el 52.3 % de sus píxeles en 0.0, mientras que `N29_00_W112` (tierra adentro) tiene 0 %.
-- **El ancho del tile cambia con la latitud** (Copernicus reduce la resolución en longitud lejos del ecuador). La altura siempre es 1200 px (0.000833°):
-
-| Latitud | Ancho | Resolución en longitud |
-| --- | --- | --- |
-| < 50° | 1200 px | 0.000833° |
-| 50–60° | 800 px | — |
-| 60–70° | 600 px | — |
-| 70–80° | 400 px | 0.0025°, ej. `S78_00_E162`, `N75_00_W090` |
-| 80–85° | 240 px | — |
-| 85–90° | 120 px | — |
-
-- Donde no hay tierra **no hay tile**.
-
-**Grilla terrestre** (`generate_grid("Earth")`, la misma función de T3):
-
-| Conjunto | Centros |
-| --- | --- |
-| Grilla completa | 497,818 |
-| Con tile en su celda de 1° | 179,663 |
-| … al sur de −60° (Antártida) | 14,959 |
-| … entre −60° y 60° | 143,426 |
-| … al norte de 60° | 21,278 |
-
-**Herramientas:** `gdalbuildvrt` está en el entorno (`~/.conda/envs/spaceapps_2026/bin/`); fuera de conda no está en el `PATH`.
+Commit: `T5: Earth sweep`. **Commit and push before submitting the jobs.**
 
 ---
 
-## 2. Decisiones (no cambiarlas sin avisar)
+## 1. Facts checked on Yuca (2026-11-13)
 
-1. **El mar se enmascara en el mosaico, no en Python.** El VRT se construye con `-srcnodata 0 -vrtnodata -9999`:
-   - los ceros de los tiles y las zonas sin tile quedan como nodata `-9999`;
-   - `extract_patch` ya enmascara `src.nodata` y devuelve `None` si menos del 90 % del parche es válido;
-   - resultado: **un parche con más del 10 % de mar se descarta solo**.
-   - Efecto secundario aceptado: la tierra con elevación exactamente 0.0 m también se enmascara. Es despreciable, porque los valores son float32 continuos.
-2. **Resolución del VRT:** `-resolution highest` (0.000833°). Los tiles de latitudes altas se muestrean con vecino más cercano dentro del VRT. No importa, porque `extract_patch` promedia después a 500 m.
-3. **Tres etapas en vez de un solo array:**
-   - **`prepare`**: un job. Construye el VRT si falta, aplica el prefiltro y calcula **una sola vez** todas las columnas terrestres de T6 de cada candidato.
-   - **array**: 32 tareas que solo extraen parches del DEM. Cada tarea toma la misma cantidad de candidatos, así que la carga queda balanceada.
-   - **`merge`**: une las franjas con las columnas de `prepare` y corre las verificaciones.
+**Copernicus GLO-90 tiles:**
 
-   Así `EarthLayers` (~420 MB) no se carga 32 veces y las franjas pesan lo mismo.
-4. **Identificador de la corrida:** el JOBID de `prepare`. Las tres etapas escriben en `runs/<PREP_JOBID>/`. Es la única excepción a "cada job en su `runs/$SLURM_JOB_ID/`", y se documenta en `pipeline.md`. Los logs sí van con su propio JOBID.
-5. **Prefiltro**, en este orden, contando cada descarte en `prefilter_stats.json`:
-   1. Sin tile de Copernicus en la celda de 1° del **centro** se descarta (`no_tile`).
-   2. `ndvi_max` del parche (mediana de la ventana, `EarthLayers.ndvi_prefilter`) **> 0.25** se descarta (`vegetated`).
-   3. `ndvi_max` **NaN** pasa **solo si** `lst_day_c` de la ventana (`patch_window_stat(..., 'mean')` sobre la banda 1 de LST) es finito: es tierra sin NDVI, como la Antártida, donde MOD13C2 no tiene datos al sur de −59.45°. Se marca `ndvi_missing = True`. Si NDVI y LST son NaN a la vez, el centro está sobre el mar (tiles costeros, atolones) y se descarta (`no_land_data`). Medido con la caché de T6 (job `2242426`): 35,483 centros con tile tienen NDVI NaN; 14,959 están al sur de −60° y 20,524 al norte, casi todos sobre el mar.
-6. **Mismas funciones que T3:** `extract_patch(src, lat, lon, body="Earth")` y `compute_features`. Sin cambios en `geo.py` ni en `features.py`. Los parches que cruzan ±180° se saltan y se cuentan (hay 140 centros con tile y `|lon| > 179.5°`).
+- 26,475 tiles in `data/raw/earth/copernicus_90m/`, all `.tif`, 67 GB.
+- Name pattern: `Copernicus_DSM_COG_30_{N|S}{lat:02d}_00_{E|W}{lon:03d}_00_DEM.tif`. The lat/lon in the name is the **lower-left** corner of the 1° cell.
+- EPSG:4326, float32, `scales=(1.0,)`.
+- **No `nodata`.**
+- **The sea inside a coastal tile is exactly `0.0`.** For example, `N29_00_W113` (Gulf of California) has 52.3 % of its pixels at 0.0, and `N29_00_W112` (inland) has 0 %.
+- **Tile width shrinks with latitude.** Copernicus lowers the longitude resolution away from the equator. The height is always 1200 px (0.000833°):
+
+| Latitude band | Width (px) |
+| --- | --- |
+| below 50° | 1200 |
+| 50–60° | 800 |
+| 60–70° | 600 |
+| 70–80° | 400 (0.0025°; for example `S78_00_E162`, `N75_00_W090`) |
+| 80–85° | 240 |
+| 85–90° | 120 |
+
+- Where there is no land, **there is no tile**.
+
+**Earth grid** (`generate_grid("Earth")`, the same function as T3):
+
+| Count | Centres |
+| --- | --- |
+| Total | 497,818 |
+| With a tile in their 1° cell | 179,663 |
+| … south of −60° (Antarctica) | 14,959 |
+| … between −60° and 60° | 143,426 |
+| … north of 60° | 21,278 |
+
+**Tools:** `gdalbuildvrt` is in the environment (`~/.conda/envs/spaceapps_2026/bin/`). Outside conda it is not on the `PATH`.
+
+---
+
+## 2. Decisions (do not change them without asking)
+
+1. **The sea is masked in the mosaic, not in Python.** The VRT is built with `-srcnodata 0 -vrtnodata -9999`:
+   - tile zeros and areas without a tile become nodata `-9999`;
+   - `extract_patch` already masks `src.nodata` and returns `None` below 90 % valid pixels;
+   - so **a patch with more than 10 % sea is dropped on its own**.
+
+   Accepted side effect: land at exactly 0.0 m is also masked. That is negligible, because the values are continuous float32.
+2. **VRT resolution: `-resolution highest`** (0.000833°). High-latitude tiles are nearest-neighbour upsampled inside the VRT. That does not matter, because `extract_patch` averages down to 500 m afterwards.
+3. **Three stages instead of one array:**
+   - **`prepare`** (one job): builds the VRT if missing, applies the prefilter, and computes **once** every T6 Earth column for each candidate;
+   - **the array** (32 tasks): only extracts DEM patches, with the same number of candidates per task;
+   - **`merge`**: joins the stripes with the `prepare` columns and runs the checks.
+
+   This way `EarthLayers` (~420 MB) is not loaded 32 times, and the stripes are balanced.
+4. **Run id = the JOBID of `prepare`.** All three stages write to `runs/<PREP_JOBID>/`. It is the one exception to "each job in its own `runs/$SLURM_JOB_ID/`", and it is documented in `pipeline.md`. The logs still carry each job's own id.
+5. **Prefilter,** in this order, with every drop counted in `prefilter_stats.json`:
+   1. No Copernicus tile in the 1° cell of the **centre**: drop (`no_tile`).
+   2. The patch's `ndvi_max` (window median, `EarthLayers.ndvi_prefilter`) **> 0.25**: drop (`vegetated`).
+   3. A **NaN** `ndvi_max` passes **only if** the window's `lst_day_c` is finite (`patch_window_stat(..., 'mean')` on LST band 1).
+      - That is land without NDVI, such as Antarctica, where MOD13C2 has no data south of −59.45°. It is flagged `ndvi_missing = True`.
+      - If NDVI and LST are both NaN, the centre is over the sea (coastal tiles, atolls), and the patch is dropped (`no_land_data`).
+      - Measured with the T6 cache (job 2242426): 35,483 centres with a tile have NaN NDVI; 14,959 of them are south of −60° and 20,524 north of it, almost all over the sea.
+6. **Same functions as T3:** `extract_patch(src, lat, lon, body="Earth")` and `compute_features`. `geo.py` and `features.py` do not change. Patches crossing ±180° are skipped and counted; 140 centres with a tile have `|lon| > 179.5°`.
 
 ---
 
 ## 3. `pipeline/earth_features.py`
 
-### 3.1 Tiles y VRT
+### 3.1 Tiles and VRT
 
 ```python
 TILE_RE = re.compile(r"_(?P<ns>[NS])(?P<lat>\d{2})_00_(?P<ew>[EW])(?P<lon>\d{3})_00_DEM\.tif$")
@@ -94,80 +101,80 @@ VRT_NODATA = -9999.0
 
 def parse_tile_cell(name: str) -> tuple[int, int]:
     """'..._S78_00_E162_00_DEM.tif' -> (-78, 162); '..._N00_00_W001_00_DEM.tif' -> (0, -1).
-    ValueError si el nombre no coincide."""
+    ValueError if the name does not match."""
 
 def load_tile_cells(copernicus_dir: Path) -> set[tuple[int, int]]:
-    """Celdas (lat_floor, lon_floor) con tile, a partir de los nombres (sin abrir archivos)."""
+    """Cells (lat_floor, lon_floor) that have a tile, from the file names (no file is opened)."""
 
 def has_tile(lat: np.ndarray, lon: np.ndarray, cells: set[tuple[int, int]]) -> np.ndarray:
-    """bool por punto: (floor(lat), floor(lon)) en cells. Ojo con negativos: floor(-0.5) = -1."""
+    """Per point: (floor(lat), floor(lon)) in cells. Careful with negatives: floor(-0.5) = -1."""
 
 def build_vrt(copernicus_dir: Path, vrt_path: Path) -> Path:
-    """Si vrt_path existe, no hace nada y lo devuelve.
-    Si no: escribe la lista de tiles (orden alfabético) en vrt_path.with_suffix('.list.txt') y corre
+    """If vrt_path exists, do nothing and return it.
+    Otherwise write the tile list (sorted) to vrt_path.with_suffix('.list.txt') and run
       gdalbuildvrt -overwrite -resolution highest -srcnodata 0 -vrtnodata -9999 \
-                   -input_file_list <lista> <vrt_path>.tmp.vrt
-    con subprocess.run(check=True), y luego os.replace(<tmp>, vrt_path).
-    Busca gdalbuildvrt con shutil.which; si no está, RuntimeError('activa spaceapps_2026').
-    Después abre el VRT con rasterio y verifica: crs EPSG:4326, nodata == -9999,
-    |res| == (1/1200, 1/1200) con tolerancia 1e-9; imprime ancho, alto y bounds."""
+                   -input_file_list <list> <vrt_path>.tmp.vrt
+    with subprocess.run(check=True), then os.replace(<tmp>, vrt_path).
+    Find gdalbuildvrt with shutil.which; if missing, RuntimeError('activate spaceapps_2026').
+    Then open the VRT with rasterio and check: crs EPSG:4326, nodata == -9999,
+    |res| == (1/1200, 1/1200) within 1e-9; print width, height and bounds."""
 ```
 
-### 3.2 Etapa `prepare`
+### 3.2 `prepare` stage
 
 ```python
-CANDIDATE_COLUMNS = ["lat", "lon", *EARTH_ENV_COLUMNS, "ndvi_missing"]   # EARTH_ENV_COLUMNS de T6
+CANDIDATE_COLUMNS = ["lat", "lon", *EARTH_ENV_COLUMNS, "ndvi_missing"]   # EARTH_ENV_COLUMNS from T6
 NDVI_PREFILTER_MAX = 0.25
 
 def prefilter(lat, lon, cells, layers: EarthLayers) -> tuple[np.ndarray, dict]:
-    """Máscara de candidatos y conteos {grid, no_tile, vegetated, no_land_data, ndvi_missing, kept}."""
+    """Candidate mask and counts {grid, no_tile, vegetated, no_land_data, ndvi_missing, kept}."""
 
 def prepare_candidates(project_dir: Path, out_dir: Path, limit: int | None = None) -> Path:
-    """1) build_vrt(...) en data/derived/copernicus_90m.vrt.
+    """1) build_vrt(...) into data/derived/copernicus_90m.vrt.
        2) generate_grid('Earth').
-       3) prefilter. Llamar a ndvi_prefilter solo sobre los puntos con tile.
-       4) Si limit: apply_limit sobre los candidatos YA filtrados (la prueba usa candidatos reales).
-       5) layers.sample(...) sobre los candidatos -> columnas de T6; ndvi_missing.
-       6) Ordenar por (lat, lon) y escribir out_dir/candidates.parquet y prefilter_stats.json.
-       Imprimir los conteos y la distribución de classification."""
+       3) prefilter. Call ndvi_prefilter only on the points that have a tile.
+       4) If limit: apply_limit on the candidates AFTER filtering (the test uses real candidates).
+       5) layers.sample(...) on the candidates -> T6 columns; ndvi_missing.
+       6) Sort by (lat, lon) and write out_dir/candidates.parquet and prefilter_stats.json.
+       Print the counts and the classification distribution."""
 ```
 
-### 3.3 Etapa de extracción (array)
+### 3.3 Extraction stage (array)
 
 ```python
 EARTH_FEATURE_COLUMNS = ["lat", "lon", *FEATURE_NAMES, "valid_frac"]
 
-def _init_earth_worker(vrt_path: str, size_km: float, res_m: float) -> None   # abre el VRT una vez por proceso
+def _init_earth_worker(vrt_path: str, size_km: float, res_m: float) -> None   # opens the VRT once per process
 def _process_earth_point(point: tuple[float, float]) -> dict | None           # extract_patch + compute_features
 
 def extract_stripe(run_dir: Path, stripe_idx: int, num_stripes: int, workers: int,
                    vrt_path: Path) -> Path:
-    """Lee run_dir/candidates.parquet (solo lat y lon), select_stripe (la de T3),
-    Pool(workers, initializer=_init_earth_worker), imap con chunksize como en T3.
-    Escribe run_dir/features_earth_<stripe_idx>.parquet con EARTH_FEATURE_COLUMNS
-    (lat/lon float64, el resto float32). Imprime: válidos / candidatos de la franja, tiempo,
-    y min/mediana/p95/max de mean_slope_deg, relief_m y mean_elev_m (como T3)."""
+    """Reads run_dir/candidates.parquet (lat and lon only), select_stripe (T3's),
+    Pool(workers, initializer=_init_earth_worker), imap with a chunksize as in T3.
+    Writes run_dir/features_earth_<stripe_idx>.parquet with EARTH_FEATURE_COLUMNS
+    (lat/lon float64, the rest float32). Prints valid / candidates for the stripe, the time, and
+    min/median/p95/max of mean_slope_deg, relief_m and mean_elev_m (as in T3)."""
 ```
 
-### 3.4 Etapa `merge`
+### 3.4 `merge` stage
 
 ```python
 EARTH_COLUMNS = ["body", "lat", "lon", *FEATURE_NAMES, "valid_frac",
-                 *[c for c in EARTH_ENV_COLUMNS], "ndvi_missing"]
+                 *EARTH_ENV_COLUMNS, "ndvi_missing"]
 
 def merge_earth(run_dir: Path, num_stripes: int, allow_missing: bool = False) -> Path:
-    """Concatena features_earth_<i>.parquet. Si falta alguno: error, salvo con allow_missing
-    (plan B: cobertura parcial; imprimir qué franjas faltan y el % de candidatos cubiertos).
-    Hace inner join con candidates.parquet en (lat, lon) exactos (vienen de la misma grilla,
-    redondeada a 6 decimales). Comprueba que ninguna fila de las franjas queda sin pareja.
-    body = 'Earth'. Escribe run_dir/features_earth.parquet con EARTH_COLUMNS."""
+    """Concatenates features_earth_<i>.parquet. If one is missing: error, unless allow_missing
+    (plan B: partial coverage; print which stripes are missing and the % of candidates covered).
+    Inner join with candidates.parquet on exact (lat, lon) (same grid, rounded to 6 decimals).
+    Checks that no stripe row is left without a match. body = 'Earth'.
+    Writes run_dir/features_earth.parquet with EARTH_COLUMNS."""
 
 def plot_earth_maps(df: pd.DataFrame, run_dir: Path) -> None:
-    """map_earth_mean_slope_deg.png (mismo estilo que plot_slope_map de T3) y
-    map_earth_classification.png (NEW_CANDIDATE gris, KNOWN_ANALOG naranja, ndvi_missing azul)."""
+    """map_earth_mean_slope_deg.png (same style as T3's plot_slope_map) and
+    map_earth_classification.png (NEW_CANDIDATE grey, KNOWN_ANALOG orange, ndvi_missing blue)."""
 
 def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
-    """Sección 6. Escribe t5_checks.json; devuelve False si falla un criterio duro."""
+    """Section 6. Writes t5_checks.json; returns False if a hard criterion fails."""
 ```
 
 ### 3.5 CLI
@@ -178,28 +185,28 @@ python -m pipeline.earth_features extract --project-dir P --run-dir R --stripe-i
 python -m pipeline.earth_features merge   --run-dir R --num-stripes K [--allow-missing]
 ```
 
-`merge` sale con código 1 si `run_checks` devuelve False.
+`merge` exits with code 1 if `run_checks` returns False.
 
 ---
 
 ## 4. Jobs
 
-Los tres `.slurm` siguen la forma de `jobs/t4_targets.slurm`: `#!/usr/bin/env bash`, `set -euo pipefail`, conda, eco con el commit y **sin `pip install`** (todo ya está en el entorno). `RUN_DIR` llega por `--export`.
+All three `.slurm` files follow the shape of `jobs/t4_targets.slurm`: `#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit, and **no `pip install`** (everything is already in the environment). `RUN_DIR` comes in through `--export`.
 
-| Script | Recursos | Comando |
+| Script | Resources | Command |
 | --- | --- | --- |
 | `t5_prepare.slurm` | `-J p089-t5-prepare`, 4 CPUs, 24G, `--time=01:30:00`, log `t5_prepare_%j.log` | `RUN_DIR=${RUN_DIR:-$PROJECT_DIR/runs/$SLURM_JOB_ID}`; `python -m pipeline.earth_features prepare ... "$@"` |
-| `t5_earth_features.slurm` | `-J p089-t5-earth`, `--array=0-31%30`, 16 CPUs, 32G, `--time=03:00:00`, log `t5_earth_%A_%a.log` | `extract --stripe-idx $SLURM_ARRAY_TASK_ID --num-stripes ${NUM_STRIPES:-32} --workers $SLURM_CPUS_PER_TASK`; exportar `GDAL_CACHEMAX=256`, `OMP_NUM_THREADS=1` |
+| `t5_earth_features.slurm` | `-J p089-t5-earth`, `--array=0-31%30`, 16 CPUs, 32G, `--time=03:00:00`, log `t5_earth_%A_%a.log` | `extract --stripe-idx $SLURM_ARRAY_TASK_ID --num-stripes ${NUM_STRIPES:-32} --workers $SLURM_CPUS_PER_TASK`; export `GDAL_CACHEMAX=256`, `OMP_NUM_THREADS=1` |
 | `t5_merge.slurm` | `-J p089-t5-merge`, 2 CPUs, 16G, `--time=00:30:00`, log `t5_merge_%j.log` | `merge --num-stripes ${NUM_STRIPES:-32} ${ALLOW_MISSING:+--allow-missing}` |
 
-Límite del grupo: 30 tareas simultáneas × 16 CPUs = 480 CPUs, por debajo de 500. Si hay otros jobs del grupo corriendo, el `%30` evita pasarse.
+**Group limit:** 30 simultaneous tasks × 16 CPUs = 480 CPUs, under 500. If other group jobs are running, `%30` keeps the total from going over.
 
-**`jobs/t5_submit.sh`**: corre en el login, solo hace `sbatch`. Es un comando corto, permitido también en la terminal de OOD.
+**`jobs/t5_submit.sh`** runs on the login node and only calls `sbatch`. That is a short command, also allowed in the OOD shell.
 
 ```bash
 #!/usr/bin/env bash
-# Uso: bash jobs/t5_submit.sh            (corrida completa, 32 franjas)
-#      bash jobs/t5_submit.sh --limit 500 (prueba: 1 franja)
+# Usage: bash jobs/t5_submit.sh            (full run, 32 stripes)
+#        bash jobs/t5_submit.sh --limit 500 (test: 1 stripe)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 LIMIT_ARGS=(); NUM_STRIPES=32; ARRAY="0-31%30"
@@ -213,88 +220,108 @@ MRG=$(sbatch --parsable --dependency=afterok:$ARR \
 echo "prepare=$PREP array=$ARR merge=$MRG run_dir=$RUN_DIR"
 ```
 
-Con `--array` en la línea de comandos se anula el `#SBATCH --array` del archivo.
+`--array` on the command line overrides the `#SBATCH --array` in the file.
 
-**Plan B**, si alguna franja falla y no hay tiempo de repetirla:
+**Plan B,** if a stripe fails and there is no time to repeat it:
 
 ```bash
 sbatch --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32,ALLOW_MISSING=1 jobs/t5_merge.slurm
 ```
 
-En ese caso la app debe decir "cobertura parcial: X % de los candidatos".
+The app must then say "partial coverage: X % of the candidates".
 
 ---
 
-## 5. `tests/test_earth_features.py` (sintéticas)
+## 5. `tests/test_earth_features.py` (synthetic)
 
-1. **`test_parse_tile_cell`**:
-   - `S78_00_E162` da `(-78, 162)`;
-   - `N00_00_W001` da `(0, -1)`;
-   - `N89_00_E179` da `(89, 179)`;
-   - un nombre inválido lanza `ValueError`.
-2. **`test_has_tile_negative_floor`**: con `cells = {(-1, -1)}`, `(-0.5, -0.5)` da True y `(0.5, -0.5)` da False.
-3. **`test_build_vrt_masks_sea`** (`skipif` si `shutil.which('gdalbuildvrt')` es None):
-   - Dos tiles sintéticos de 1° × 1° en EPSG:4326 a 1/1200° y sin nodata: uno de tierra (z = 100 + rampa) y otro con la mitad oeste en 0.0 (mar).
-   - En el VRT, `src.nodata == -9999` y un píxel de mar se lee como −9999.
-   - `extract_patch` sobre el mar da `None`; sobre tierra, un arreglo 64×64.
-4. **`test_build_vrt_mixed_widths`** (`skipif` igual):
-   - Un tile de 1200 × 1200 en lat 69–70 y uno de 1200 × 400 (alto × ancho) en lat 70–71.
-   - El VRT se construye y un parche centrado en la costura (lat 70.0) no tiene huecos: todo finito.
-5. **`test_build_vrt_does_not_overwrite`**: si `vrt_path` ya existe, `build_vrt` no lo modifica (misma fecha de modificación).
-6. **`test_prefilter_counts`**: un `EarthLayers.from_arrays` sintético (de T6) y 5 puntos: sin tile, NDVI 0.4, NDVI 0.2, NDVI NaN con LST finito (hielo) y NDVI NaN con LST NaN (mar). Resultado:
-   - máscara `[F, F, T, T]`;
-   - máscara `[F, F, T, T, F]`; `ndvi_missing` solo en el cuarto;
-   - conteos `{grid: 5, no_tile: 1, vegetated: 1, no_land_data: 1, ndvi_missing: 1, kept: 2}`.
-7. **`test_merge_join`**: `candidates.parquet` con 5 filas y dos franjas con 2 y 1 filas válidas. El resultado tiene 3 filas, las `EARTH_COLUMNS` exactas, `body == 'Earth'`, y las columnas de T6 copiadas bien.
-   - Si falta una franja, `merge_earth` falla; con `allow_missing=True`, funciona.
+1. **`test_parse_tile_cell`:**
+   - `S78_00_E162` gives `(-78, 162)`;
+   - `N00_00_W001` gives `(0, -1)`;
+   - `N89_00_E179` gives `(89, 179)`;
+   - an invalid name raises `ValueError`.
+2. **`test_has_tile_negative_floor`:** with `cells = {(-1, -1)}`, `(-0.5, -0.5)` is True and `(0.5, -0.5)` is False.
+3. **`test_build_vrt_masks_sea`** (skipped if `shutil.which('gdalbuildvrt')` is None):
+   - two synthetic 1° × 1° tiles in EPSG:4326 at 1/1200° without nodata: one land tile (z = 100 + ramp) and one with its western half at 0.0 (sea);
+   - in the VRT, `src.nodata == -9999` and a sea pixel reads −9999;
+   - `extract_patch` over the sea gives `None`, and over land a 64 × 64 array.
+4. **`test_build_vrt_mixed_widths`** (same skip):
+   - a 1200 × 1200 tile at lat 69–70 and a 1200 × 400 (height × width) tile at lat 70–71;
+   - the VRT builds, and a patch centred on the seam (lat 70.0) has no holes: every value is finite.
+5. **`test_build_vrt_does_not_overwrite`:** if `vrt_path` already exists, `build_vrt` leaves it untouched (same modification time).
+6. **`test_prefilter_counts`:** a synthetic `EarthLayers.from_arrays` (from T6) and 5 points:
+
+   | Point | Expected |
+   | --- | --- |
+   | No tile | Dropped (`no_tile`) |
+   | NDVI 0.4 | Dropped (`vegetated`) |
+   | NDVI 0.2 | Kept |
+   | NDVI NaN, LST finite (ice) | Kept, `ndvi_missing` |
+   | NDVI NaN, LST NaN (sea) | Dropped (`no_land_data`) |
+
+   - The mask is `[F, F, T, T, F]`, and `ndvi_missing` is set only on the fourth point.
+   - The counts are `{grid: 5, no_tile: 1, vegetated: 1, no_land_data: 1, ndvi_missing: 1, kept: 2}`.
+7. **`test_merge_join`:** `candidates.parquet` with 5 rows, and two stripes with 2 and 1 valid rows.
+   - The result has 3 rows, the exact `EARTH_COLUMNS`, `body == 'Earth'`, and the T6 columns copied correctly.
+   - A missing stripe makes `merge_earth` fail, unless `allow_missing=True`.
 
 ---
 
-## 6. Criterios de aceptación
+## 6. Acceptance criteria
 
-### 6.1 `prepare`, en su log y en `prefilter_stats.json`
+### 6.1 `prepare` (log and `prefilter_stats.json`)
 
-- `grid = 497,818` y `grid − no_tile = 179,663`, exactos.
-- `kept` entre 35,000 y 80,000. La estimación con la caché de T6 es ~45,000: 30,245 con NDVI ≤ 0.25 más ~15,000 en la Antártida. Si sale fuera de ese rango, **parar y avisar** antes de lanzar el array.
-- Imprimir `ndvi_missing` y `no_land_data` con su distribución por latitud. Se espera que `ndvi_missing` esté casi todo al sur de −60°.
+- `grid = 497,818` and `grid − no_tile = 179,663`, exactly.
+- `kept` between 35,000 and 80,000. The estimate from the T6 cache is ~45,000: 30,245 with NDVI ≤ 0.25 plus ~15,000 in Antarctica. If it falls outside, **stop and report** before launching the array.
+- Print `ndvi_missing` and `no_land_data` with their distribution by latitude. `ndvi_missing` is expected almost entirely south of −60°.
 
-### 6.2 Prueba (`bash jobs/t5_submit.sh --limit 500`)
+### 6.2 Test run (`bash jobs/t5_submit.sh --limit 500`)
 
-- Las tres etapas terminan sin error.
-- Al menos el 70 % de los 500 son válidos. Los que no pasan son sobre todo parches costeros con más del 10 % de mar.
-- La franja tarda menos de 5 minutos.
-- En `features_earth.parquet`, `mean_elev_m` está entre −500 y 7000 m, y `mean_slope_deg` tiene una mediana entre 0.5° y 6°.
+- All three stages finish without errors.
+- At least 70 % of the 500 are valid; the rest are mostly coastal patches with more than 10 % sea.
+- The stripe takes under 5 minutes.
+- In `features_earth.parquet`, `mean_elev_m` is between −500 and 7000 m, and the median `mean_slope_deg` is between 0.5° and 6°.
 
-### 6.3 Corrida completa (`merge` → `t5_checks.json`)
+### 6.3 Full run (`merge` → `t5_checks.json`)
 
-**Duros:**
+**Hard:**
 
-| # | Verificación | Criterio |
+| # | Check | Criterion |
 | --- | --- | --- |
-| 1 | Parches válidos | Entre 30,000 y 80,000. El plan general decía 40–120 mil antes de tener datos; con la caché de T6 se esperan ~45 mil candidatos, menos los costeros que el VRT descarta. Si sale menos de 30 mil, revisar la máscara de mar del VRT |
-| 2 | Amazonía `lat ∈ [-10, 2], lon ∈ [-75, -50]` | ≤ 5 parches, y listarlos |
-| 3 | Congo `lat ∈ [-5, 5], lon ∈ [12, 30]` | ≤ 5, listarlos |
-| 4 | Indonesia ecuatorial `lat ∈ [-5, 5], lon ∈ [95, 120]` | ≤ 5, listarlos |
-| 5 | Presentes (≥ 1 parche cada uno): Atacama `known_region == 'atacama'`; Sahara `lat ∈ [15, 30], lon ∈ [-10, 30]`; Sonora `lat ∈ [28, 33], lon ∈ [-115, -110]`; Australia central `lat ∈ [-28, -20], lon ∈ [125, 138]`; Valles Secos `known_region == 'mcmurdo-dry-valleys'` | Todos presentes |
-| 6 | Unión con `candidates` | Sin filas huérfanas; ninguna columna de T6 totalmente NaN |
+| 1 | Valid patches | Between 30,000 and 80,000. The general plan said 40–120 thousand before there was data; with the T6 cache ~45 thousand candidates are expected, minus the coastal ones the VRT drops. Under 30 thousand means checking the VRT sea mask |
+| 2 | Amazon `lat ∈ [-10, 2], lon ∈ [-75, -50]` | ≤ 5 patches, listed |
+| 3 | Congo `lat ∈ [-5, 5], lon ∈ [12, 30]` | ≤ 5, listed |
+| 4 | Equatorial Indonesia `lat ∈ [-5, 5], lon ∈ [95, 120]` | ≤ 5, listed |
+| 5 | Present (≥ 1 patch each): Atacama `known_region == 'atacama'`; Sahara `lat ∈ [15, 30], lon ∈ [-10, 30]`; Sonora `lat ∈ [28, 33], lon ∈ [-115, -110]`; central Australia `lat ∈ [-28, -20], lon ∈ [125, 138]`; Dry Valleys `known_region == 'mcmurdo-dry-valleys'` | All present |
+| 6 | Join with `candidates` | No orphan rows; no T6 column entirely NaN |
 
-El plan general pedía "ningún parche" en la Amazonía, el Congo e Indonesia. Aquí se toleran hasta 5, porque la mediana del NDVI de un parche sobre un claro, una mina o un pueblo podría bajar de 0.25. Si son más de 5, el filtro está mal.
+The general plan asked for "no patch" in the Amazon, the Congo and Indonesia. Up to 5 are tolerated here, because the median NDVI of a patch over a clearing, a mine or a town could drop below 0.25. More than 5 means the filter is wrong.
 
-**Blandos** (imprimir y avisar si salen raros):
+**Soft** (print, and report anything odd):
 
-| # | Verificación | Esperado |
+| # | Check | Expected |
 | --- | --- | --- |
-| 7 | Conteo por `known_region` | Imprimir las 12. Algunas pueden tener 0 por vegetación (Islandia, Hawái, Svalbard, Río Tinto); eso no es error, pero hay que anotarlo en la bitácora porque afecta qué análogos conocidos aparecen en la app |
-| 8 | `NEW_CANDIDATE` frente a `KNOWN_ANALOG` | Imprimir proporción; se espera más del 95 % `NEW_CANDIDATE` |
-| 9 | Por país | Imprimir el top 15 de países por número de parches. México debe aparecer |
-| 10 | `ndvi_missing` | Imprimir cuántos válidos tienen `ndvi_missing` |
-| 11 | Mapa | En `map_earth_mean_slope_deg.png` se reconocen los Andes, el Himalaya y el Tíbet, el Sahara plano y la meseta antártica |
+| 7 | Count per `known_region` | Print all 12. Some may be 0 because of vegetation (Iceland, Hawaii, Svalbard, Rio Tinto). That is not an error, but note it in the logbook, because it affects which known analogs appear in the app |
+| 8 | `NEW_CANDIDATE` vs `KNOWN_ANALOG` | Print the ratio; more than 95 % `NEW_CANDIDATE` is expected |
+| 9 | By country | Print the top 15 countries by number of patches; Mexico should appear |
+| 10 | `ndvi_missing` | Print how many valid patches have it |
+| 11 | Map | `map_earth_mean_slope_deg.png` shows the Andes, the Himalaya and Tibet, the flat Sahara and the Antarctic plateau |
+
+### 6.4 Outcome of the full run (2242438–2242440)
+
+- **Prefilter:** 44,375 candidates. Of the centres with a tile, 113,935 were dropped as vegetated and 21,353 as sea; 14,130 have `ndvi_missing`.
+- **Patches:** 40,244 valid (90.7 %).
+- **Hard checks:** 6/6.
+  - Amazon, Congo and Indonesia have 0 patches each.
+  - Atacama 324, Sahara 6,542, Sonora 78, central Australia 508, Dry Valleys 14.
+- **Soft checks:** 4/5. The one that failed is "Mexico in the top 15": Antarctica (12,125) and the big deserts dominate by area, and Mexico's arid land is much smaller.
+- **Known regions with 0 patches:** Hawaii, Rio Tinto and Lanzarote (vegetation or sea).
+- **Offline kit:** `kit/t5_2242438.tar.gz`.
 
 ---
 
-## 7. Comandos para Owen en Yuca
+## 7. Commands for Owen on Yuca
 
-Por SSH o en la terminal de Open OnDemand, desde `/lustre/proyectos/p089/code`. **Requisito:** T6 ya corrió y su caché existe.
+Over SSH or in the Open OnDemand shell, from `/lustre/proyectos/p089/code`. **Requirement:** T6 has run and its cache exists.
 
 ```bash
 cd /lustre/proyectos/p089/code && git pull && ls -la /lustre/proyectos/p089/data/derived/
@@ -312,13 +339,13 @@ bash jobs/t5_submit.sh --limit 500
 squeue -u owen
 ```
 
-Revisar `t5_prepare_<PREP>.log`, `t5_earth_<ARR>_0.log` y `t5_merge_<MRG>.log` en `/lustre/proyectos/p089/output/`. Si todo cumple el §6.2:
+Check `t5_prepare_<PREP>.log`, `t5_earth_<ARR>_0.log` and `t5_merge_<MRG>.log` in `/lustre/proyectos/p089/output/`. If everything meets §6.2:
 
 ```bash
 bash jobs/t5_submit.sh
 ```
 
-Al terminar, empaquetar la salida para el kit offline (unos MB), porque T7 la necesita para desarrollar en la laptop:
+When it finishes, pack the output for the offline kit (a few MB), since T7 needs it to develop on the laptop:
 
 ```bash
 cd /lustre/proyectos/p089 && tar -czf kit/t5_<PREP>.tar.gz runs/<PREP>/features_earth.parquet runs/<PREP>/prefilter_stats.json runs/<PREP>/t5_checks.json runs/<PREP>/map_earth_*.png
@@ -326,23 +353,26 @@ cd /lustre/proyectos/p089 && tar -czf kit/t5_<PREP>.tar.gz runs/<PREP>/features_
 
 ---
 
-## 8. Bitácora y documentación
+## 8. Documentation
 
-- **`docs/logbook.md`:** entrada nueva con los JOBID de prepare, array y merge, `prefilter_stats` y la tabla de verificaciones. Aclarar que el código lo escribió Gemini a partir de este plan.
-- **`docs/pipeline.md`:**
-  - el VRT en datos derivados;
-  - la nota "Copernicus: sin nodata, mar = 0.0, ancho variable por latitud";
-  - la excepción del directorio de corrida compartido;
-  - la corrida.
-- **`docs/handoff.md`:** T5 hecho, con `runs/<PREP>/features_earth.parquet` como entrada de T7.
-- **`docs/working_without_ssh.md`:** agregar el kit `t5_<PREP>.tar.gz` a la sección del kit.
+- **[logbook.md](logbook.md):** a new entry with the prepare, array and merge job ids, `prefilter_stats` and the check table. Say the code was written by Gemini from this plan.
+- **[pipeline.md](pipeline.md):**
+  - the VRT among the derived data;
+  - the note "Copernicus: no nodata, sea = 0.0, width varies with latitude";
+  - the shared run directory exception;
+  - the run.
+- **[handoff.md](handoff.md):** T5 done, with `runs/<PREP>/features_earth.parquet` as the T7 input.
+- **[working_without_ssh.md](working_without_ssh.md):** add the `t5_<PREP>.tar.gz` kit.
 
 ---
 
-## 9. Qué NO hacer
+## 9. What NOT to do
 
-- No modificar `geo.py` ni `features.py`: la Tierra usa las mismas funciones que Marte y la Luna.
-- No tratar 0.0 como elevación válida ni filtrar el mar en Python con umbrales: lo hace el VRT.
-- No cargar `EarthLayers` en las tareas del array.
-- No sobrescribir `copernicus_90m.vrt`; si hay que rehacerlo, mover el viejo a `/lustre/proyectos/p089/_to_delete/`.
-- No lanzar la corrida completa sin revisar la de `--limit 500`, y no reenviar el array completo si falla: diagnosticar con el log de la franja que falló y reenviar solo esa: `sbatch --array=<i> --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32 jobs/t5_earth_features.slurm`, y después el `merge` con el mismo `--export`.
+- Do not modify `geo.py` or `features.py`: Earth uses the same functions as Mars and the Moon.
+- Do not treat 0.0 as a valid elevation, and do not filter the sea in Python with thresholds; the VRT does it.
+- Do not load `EarthLayers` in the array tasks.
+- Do not overwrite `copernicus_90m.vrt`. To rebuild it, move the old one to `/lustre/proyectos/p089/_to_delete/`.
+- Do not launch the full run without reviewing the `--limit 500` run.
+- Do not resubmit the whole array if it fails. Diagnose the failed stripe from its log, then:
+  1. resubmit only that stripe: `sbatch --array=<i> --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32 jobs/t5_earth_features.slurm`;
+  2. run `merge` again with the same `--export`.
