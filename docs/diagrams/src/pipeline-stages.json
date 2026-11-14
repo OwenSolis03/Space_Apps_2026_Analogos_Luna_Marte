@@ -5,7 +5,7 @@
     "title": "Pipeline Stages and Quality Gate",
     "locale": "en",
     "quality_profile": "showcase",
-    "output": ".archify/workflow-pipeline-stages-20261114-130500/pipeline-stages.html",
+    "output": "docs/diagrams/pipeline-stages.html",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
       "provider": "github",

@@ -4,7 +4,7 @@
   "meta": {
     "title": "Planetary Analog Finder: System Architecture",
     "locale": "en",
-    "output": ".archify/architecture-system-overview-20261114-122109/system-overview.html",
+    "output": "docs/diagrams/system-architecture.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",

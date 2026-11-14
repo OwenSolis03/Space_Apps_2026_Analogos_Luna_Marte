@@ -4,7 +4,7 @@
   "meta": {
     "title": "Web App: Load, Re-weight and Inspect",
     "locale": "en",
-    "output": ".archify/sequence-app-ranking-20261114-122109/app-ranking-sequence.html",
+    "output": "docs/diagrams/app-sequence.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",

@@ -4,7 +4,7 @@
   "meta": {
     "title": "v2 Pipeline Data Lineage (T3 to T16)",
     "locale": "en",
-    "output": ".archify/dataflow-v2-pipeline-20261114-122109/v2-pipeline-lineage.html",
+    "output": "docs/diagrams/pipeline-lineage.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",

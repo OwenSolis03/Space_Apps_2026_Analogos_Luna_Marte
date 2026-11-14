@@ -4,7 +4,7 @@
   "meta": {
     "title": "Repository Layout (v2 code paths)",
     "locale": "en",
-    "output": ".archify/tree-repository-layout-20261114-122109/repository-layout.html",
+    "output": "docs/diagrams/repository-layout.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",

@@ -4,7 +4,7 @@
   "meta": {
     "title": "analogs_universe.json Data Contract",
     "locale": "en",
-    "output": ".archify/class-data-contract-20261114-122109/universe-data-contract.html",
+    "output": "docs/diagrams/data-contract.html",
     "quality_profile": "showcase",
     "repository": {
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
