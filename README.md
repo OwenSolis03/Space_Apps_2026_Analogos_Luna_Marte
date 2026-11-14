@@ -15,6 +15,7 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 | `output/` | `planetary_baselines.json` y `analogs.json` de la última corrida |
 | `logs/` | Logs de descargas y de los jobs de Slurm |
 | `docs/pipeline.md` | Cómo funciona el pipeline, datos y corridas |
+| `docs/propuesta_de_valor.md` | Problemática, propuesta de valor y diferenciadores, para presentación y video |
 | `docs/bitacora.md` | Registro de lo que se ha hecho y pendientes |
 | `plan_maestro_y_especificaciones_del_proyecto.md` | Plan completo (meta, no estado actual) |
 | `ideas.md` | Ideas del equipo y su evaluación |
