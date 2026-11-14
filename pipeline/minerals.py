@@ -292,7 +292,7 @@ def emit_origin(left: float, top: float, dx: float, dy: float, corner: bool | No
 
 
 def grids_from_coords(
-    arrays: dict[str, np.ndarray], lat: np.ndarray, lon: np.ndarray, corner: bool | None = None
+    arrays: dict[str, np.ndarray], lat: np.ndarray, lon: np.ndarray, corner: bool | None = None, scale: float = 1.0
 ) -> dict[str, Grid]:
     """Grids from 2-D ``(lat, lon)`` arrays and their 1-D coordinate vectors (ascending or descending latitude).
 
@@ -301,7 +301,7 @@ def grids_from_coords(
     """
     lat_v, lon_v = np.asarray(lat, dtype=np.float64), np.asarray(lon, dtype=np.float64)
     dx, dy = float(np.median(np.diff(lon_v))), float(np.median(np.abs(np.diff(lat_v))))
-    data = {k: np.asarray(v, dtype=np.float64) for k, v in arrays.items()}
+    data = {k: np.asarray(v, dtype=np.float64) * scale for k, v in arrays.items()}
     if lat_v[0] < lat_v[-1]:  # south first: flip so that row 0 is the northmost
         lat_v = lat_v[::-1]
         data = {k: v[::-1] for k, v in data.items()}
@@ -315,7 +315,7 @@ def grids_from_coords(
     }
 
 
-def _emit_via_gdal(path: Path, corner: bool | None) -> dict[str, Grid]:
+def _emit_via_gdal(path: Path, corner: bool | None, scale: float = 1.0) -> dict[str, Grid]:
     import rasterio
 
     wanted = {v.file_token: v.key for v in EMIT.vars}
@@ -334,6 +334,7 @@ def _emit_via_gdal(path: Path, corner: bool | None) -> dict[str, Grid]:
             data[data == EMIT_FILL] = np.nan
             if ds.nodata is not None:
                 data[data == ds.nodata] = np.nan
+            data = data * scale
             b = ds.bounds
             dx, dy = (b.right - b.left) / ds.width, (b.top - b.bottom) / ds.height
             left, top, is_corner = emit_origin(b.left, b.top, dx, dy, corner)
@@ -344,7 +345,7 @@ def _emit_via_gdal(path: Path, corner: bool | None) -> dict[str, Grid]:
     return grids
 
 
-def _emit_via_xarray(path: Path, corner: bool | None) -> dict[str, Grid]:
+def _emit_via_xarray(path: Path, corner: bool | None, scale: float = 1.0) -> dict[str, Grid]:
     import xarray as xr
 
     wanted = {v.file_token: v.key for v in EMIT.vars}
@@ -363,19 +364,22 @@ def _emit_via_xarray(path: Path, corner: bool | None) -> dict[str, Grid]:
             arrays[wanted[key]] = arr
         if not arrays:
             raise RuntimeError(f"no EMIT-10 mineral variable among {list(ds.data_vars)}")
-        return grids_from_coords(arrays, np.asarray(ds[lat_name].values), np.asarray(ds[lon_name].values), corner)
+        return grids_from_coords(arrays, np.asarray(ds[lat_name].values), np.asarray(ds[lon_name].values), corner, scale)
 
 
-def load_emit_grids(path: Path, corner: bool | None = None) -> dict[str, Grid]:
+def load_emit_grids(path: Path, corner: bool | None = None, scale: float = 1.0) -> dict[str, Grid]:
     """Read the EMIT-10 mineral variables (mass fraction, %), skipping the ``_UQ_`` uncertainty variables.
 
     GDAL (through rasterio) is tried first because it is what the tests exercise; xarray is the fallback
     for environments whose GDAL has no netCDF driver (the Yuca environment has xarray).
+
+    ``scale`` multiplies every value: use 100 if the file stores fractions (0 to 1) although the guide says percent
+    (the Kaguya maps do the same); see :func:`check_emit_units`.
     """
     errors: list[str] = []
     for name, reader in (("GDAL", _emit_via_gdal), ("xarray", _emit_via_xarray)):
         try:
-            grids = reader(Path(path), corner)
+            grids = reader(Path(path), corner, scale)
             logger.info("EMIT read with %s: %s", name, sorted(grids))
             return grids
         except Exception as exc:  # noqa: BLE001 - report every backend before giving up
@@ -596,11 +600,29 @@ def run_checks(kaguya: dict[str, Grid] | None, tes: dict[str, Grid] | None) -> l
     return results
 
 
+def check_emit_units(universe: dict) -> float | None:
+    """Largest sum of the ten EMIT minerals over all analogs with a value, or None if there is none.
+
+    The values are meant to be percent. If no location ever sums to 1 or more, the file very likely stores
+    fractions (0 to 1) and the numbers are 100 times too small; rerun with ``--emit-scale 100``.
+    """
+    sums = [
+        sum(v for v in a["mineralogy"]["values"].values() if v is not None)
+        for t in universe["targets"]
+        for a in t["analogs"]
+        if a.get("mineralogy", {}).get("source") == EMIT.id and a["mineralogy"].get("status") == "ok"
+    ]
+    return max(sums) if sums else None
+
+
 def write_report(path: Path, universe: dict, counts: dict[str, dict[str, int]], checks: list) -> None:
     lines = ["# Mineralogy context report (T18)", ""]
     lines += ["## Sites by status", "", "| Source | ok | outside coverage | no data |", "| --- | --- | --- | --- |"]
     for sid, c in counts.items():
         lines.append(f"| {sid} | {c.get('ok', 0)} | {c.get('outside_coverage', 0)} | {c.get('no_data', 0)} |")
+    top = check_emit_units(universe)
+    if top is not None:
+        lines += ["", f"EMIT units check: largest sum of the ten minerals at one location is {top:.2f}" + (" (below 1: the values may be fractions, see --emit-scale)" if top < 1.0 else "")]
     lines += ["", "## Sanity checks (soft)", ""]
     for label, passed, val in checks:
         mark = "n/a (source not loaded)" if passed is None and val is None else ("pass" if passed else "FAIL")
@@ -621,6 +643,10 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--tes-dir", type=Path, help="folder with the tes_*.vic files")
     p.add_argument("--emit-file", type=Path, help="EMIT_L3_ASA_002.nc")
     p.add_argument("--emit-corner", choices=["auto", "yes", "no"], default="auto")
+    p.add_argument(
+        "--emit-scale", type=float, default=1.0,
+        help="multiply the EMIT values by this (100 if the file stores fractions instead of percent)",
+    )
     p.add_argument("--report", type=Path, help="write a Markdown report here")
     args = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -630,11 +656,20 @@ def main(argv: list[str] | None = None) -> None:
     tes = load_tes_grids(args.tes_dir) if args.tes_dir else None
     emit = None
     if args.emit_file:
-        emit = load_emit_grids(args.emit_file, {"auto": None, "yes": True, "no": False}[args.emit_corner])
+        emit = load_emit_grids(args.emit_file, {"auto": None, "yes": True, "no": False}[args.emit_corner], args.emit_scale)
 
     out, counts = enrich_universe(universe, kaguya, tes, emit)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    if emit:
+        top = check_emit_units(out)
+        if top is not None:
+            logger.info("EMIT units check: the largest sum of the ten minerals at one location is %.2f (scale %g)", top, args.emit_scale)
+            if top < 1.0:
+                logger.warning(
+                    "EMIT values never add up to 1 or more at any location, so they look like fractions, not percent. "
+                    "Check the variable units in the file and rerun with --emit-scale 100 if they are fractions."
+                )
     checks = run_checks(kaguya, tes)
     for sid, c in counts.items():
         logger.info("%s: %s", sid, c)

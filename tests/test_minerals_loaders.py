@@ -18,6 +18,7 @@ from pipeline.minerals import (
     KAGUYA,
     TES,
     emit_origin,
+    check_emit_units,
     enrich_universe,
     grids_from_coords,
     load_emit_grids,
@@ -288,3 +289,28 @@ def test_enrich_changes_only_mineralogy_and_the_listed_metadata():
     # the polar Moon target is outside Kaguya, and the 60N analog is outside EMIT
     assert out["targets"][1]["mineralogy"]["status"] == "outside_coverage"
     assert out["targets"][1]["analogs"][0]["mineralogy"]["status"] == "outside_coverage"
+
+
+def test_emit_scale_turns_fractions_into_percent():
+    fractions = np.array([[0.12, 0.0], [0.5, 0.25]])
+    lon, lat = np.array([10.0, 10.5]), np.array([20.0, 19.5])
+    plain = grids_from_coords({"calcite": fractions}, lat, lon, corner=True)["calcite"]
+    scaled = grids_from_coords({"calcite": fractions}, lat, lon, corner=True, scale=100.0)["calcite"]
+    assert plain.window_median(19.9, 10.1, 0, 0, 100) == pytest.approx(0.12)
+    assert scaled.window_median(19.9, 10.1, 0, 0, 100) == pytest.approx(12.0)
+    # without the scale the summary would say nothing is above 0.5%; with it the mineral is named
+    assert sample_source(EMIT, {"calcite": plain}, 19.9, 10.1)["summary"].startswith("No EMIT-10 mineral")
+    assert sample_source(EMIT, {"calcite": scaled}, 19.9, 10.1)["summary"].startswith("Mostly calcite (12.0%)")
+
+
+def test_check_emit_units_flags_values_that_never_reach_one():
+    def universe(values_per_analog):
+        analogs = [
+            {"mineralogy": {"source": "emit_l3asa", "status": "ok", "values": v}} for v in values_per_analog
+        ]
+        analogs.append({"mineralogy": {"source": "emit_l3asa", "status": "no_data"}})
+        return {"targets": [{"analogs": analogs}]}
+
+    assert check_emit_units(universe([{"calcite": 0.2, "hematite": 0.1}, {"calcite": 0.5, "kaolinite": None}])) == pytest.approx(0.5)
+    assert check_emit_units(universe([{"calcite": 12.0, "hematite": 3.0}])) == pytest.approx(15.0)
+    assert check_emit_units({"targets": [{"analogs": [{}]}]}) is None

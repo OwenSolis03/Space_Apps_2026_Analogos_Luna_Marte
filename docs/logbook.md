@@ -2,6 +2,15 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T18 EMIT run checked, unit question open
+
+**What was checked** (Claude, on the `mineral_report.md` of the Yuca run and the `analogs_universe.json` Owen put in `app/public/data/`, not yet committed):
+
+- The EMIT file was read; the JSON has a `mineralogy` block on all 76 targets and all 4,944 analog entries. Everything outside `mineralogy` and the three metadata lists is identical to the committed JSON, and the Moon and Mars target blocks are unchanged.
+- **Real EMIT coverage of the Earth analogs** (3,651 distinct locations): 60.6% have a value (2,213), 24.5% are outside 52N to 52S (896: all of Antarctica, Greenland, most of Canada, Svalbard, Iceland, Devon Island, McMurdo) and 14.8% have no value in their 0.5 degree cell (542). The coverage is therefore about 61%, not the "94.7% missing" of the Option B logs, which came from an EMIT sampler that was an empty block.
+- **Open question: the unit.** The ten minerals add up to at most 0.79 at any location (median 0.31) and only 11% of locations have a mineral at or above 0.5. The EMIT guide says percent, but sums that never reach 1 across 2,213 desert locations are what fractions (0 to 1) look like; the Kaguya maps are labelled percent and are fractions too. If so, every EMIT number on the site sheet is 100 times too small and the summaries say "No EMIT-10 mineral above 0.5%" where they should name calcite and clays. Not changed in the data until the file's own `units` attribute is read.
+- `pipeline/minerals.py` now has `--emit-scale` (multiplies every EMIT value) and logs a warning, and writes a line in the report, when no location sums to 1 or more. Two new tests.
+
 ## 2026-11-14: T18 mineralogy context completed for the Moon and Mars, EMIT job ready
 
 **What was done** (Claude, branch `feat/mineral-context`, on top of Gemini's first version; plan in [plan_mineralogy_context.md](plan_mineralogy_context.md)):
