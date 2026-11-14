@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Planetary Analog Finder: System Architecture",
+    "locale": "en",
+    "output": "docs/diagrams/system-architecture.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+    }
+  },
+  "components": [
+    { "id": "opendata", "type": "external", "label": "Open datasets", "sublabel": "NASA · USGS · ESA", "pos": [40, 40], "size": [160, 60],
+      "sources": [{ "path": "docs/pipeline.md", "line": 49, "end_line": 72, "label": "data inventory" }] },
+    { "id": "downloads", "type": "backend", "label": "Data download", "sublabel": "fetch + checksum", "pos": [290, 40], "size": [160, 60],
+      "sources": [
+        { "path": "jobs/download_t12_t14.slurm", "line": 44, "end_line": 44, "label": "fetch" },
+        { "path": "jobs/download_t12_t14.slurm", "line": 96, "end_line": 96, "label": "MODIS AOD" }
+      ] },
+    { "id": "lustre", "type": "database", "label": "Raw data store", "sublabel": "rasters · vectors · caches", "pos": [540, 40], "size": [160, 60],
+      "sources": [{ "path": "pipeline/config.py", "line": 30, "end_line": 58, "label": "paths" }] },
+    { "id": "planets", "type": "backend", "label": "Moon/Mars sweep", "sublabel": "patches + targets", "pos": [290, 200], "size": [160, 64],
+      "sources": [
+        { "path": "pipeline/planet_features.py", "line": 786, "end_line": 807, "label": "patch sweep" },
+        { "path": "pipeline/targets.py", "line": 798, "end_line": 914, "label": "targets" }
+      ] },
+    { "id": "earth", "type": "backend", "label": "Earth sweep", "sublabel": "bare-land patches", "pos": [540, 200], "size": [160, 64],
+      "sources": [
+        { "path": "pipeline/earth_layers.py", "line": 369, "end_line": 400, "label": "MODIS cache" },
+        { "path": "pipeline/earth_features.py", "line": 938, "end_line": 963, "label": "Earth patches" }
+      ] },
+    { "id": "layers", "type": "backend", "label": "Context layers", "sublabel": "ice · dust · geology", "pos": [790, 200], "size": [160, 64],
+      "sources": [
+        { "path": "pipeline/geology.py", "line": 625, "end_line": 746, "label": "geology" },
+        { "path": "pipeline/dust.py", "line": 724, "end_line": 855, "label": "dust" },
+        { "path": "pipeline/ice.py", "line": 156, "end_line": 274, "label": "ice" }
+      ] },
+    { "id": "curated", "type": "database", "label": "Curated inputs", "sublabel": "targets · limits · hints", "pos": [1040, 200], "size": [160, 64],
+      "sources": [
+        { "path": "pipeline/targets.py", "line": 118, "end_line": 121, "label": "targets.json" },
+        { "path": "pipeline/export.py", "line": 66, "end_line": 66, "label": "limits.json" },
+        { "path": "pipeline/ice.py", "line": 119, "end_line": 124, "label": "ice_hints.json" }
+      ] },
+    { "id": "runs", "type": "database", "label": "Run outputs", "sublabel": "one folder per run · tables · checks · maps", "pos": [290, 360], "size": [660, 60],
+      "sources": [{ "path": "jobs/t3_planet_features.slurm", "line": 18, "end_line": 21, "label": "one dir per run" }] },
+    { "id": "match", "type": "backend", "label": "Matching + export", "sublabel": "score · rank · check", "pos": [1040, 358], "size": [160, 64],
+      "sources": [
+        { "path": "pipeline/match.py", "line": 1161, "end_line": 1223, "label": "matching" },
+        { "path": "pipeline/export.py", "line": 1859, "end_line": 1943, "label": "export" }
+      ] },
+    { "id": "published", "type": "database", "label": "Published dataset", "sublabel": "analogs_universe.json", "pos": [290, 520], "size": [160, 60],
+      "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374, "label": "publish step" }] },
+    { "id": "user", "type": "external", "label": "Reader", "sublabel": "browser", "pos": [40, 680], "size": [160, 60] },
+    { "id": "webapp", "type": "frontend", "label": "Web app", "sublabel": "static site", "pos": [290, 680], "size": [160, 60],
+      "sources": [
+        { "path": "app/src/App.tsx", "line": 11, "end_line": 42, "label": "load dataset" },
+        { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126, "label": "ranking" }
+      ] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Batch processing (compute cluster)", "wraps": ["downloads", "lustre", "planets", "earth", "layers", "curated", "runs", "match"] }
+  ],
+  "connections": [
+    { "id": "fetch-raw", "from": "opendata", "to": "downloads", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "store-raw", "from": "downloads", "to": "lustre", "label": "writes", "variant": "emphasis" },
+    { "id": "raw-to-planets", "from": "lustre", "to": "planets", "label": "DEMs" },
+    { "id": "raw-to-earth", "from": "lustre", "to": "earth", "label": "DEM · satellite" },
+    { "id": "raw-to-layers", "from": "lustre", "to": "layers", "label": "maps · climate" },
+    { "id": "curated-to-layers", "from": "curated", "to": "layers", "label": "hints" },
+    { "id": "planets-to-runs", "from": "planets", "to": "runs", "label": "features · targets" },
+    { "id": "earth-to-runs", "from": "earth", "to": "runs", "label": "Earth features" },
+    { "id": "layers-to-runs", "from": "layers", "to": "runs", "label": "layer tables" },
+    { "id": "curated-to-match", "from": "curated", "to": "match", "label": "limits" },
+    { "id": "runs-to-match", "from": "runs", "to": "match", "label": "inputs" },
+    { "id": "publish", "from": "runs", "to": "published", "label": "reviewed copy", "variant": "dashed" },
+    { "id": "serve-json", "from": "published", "to": "webapp", "label": "fetch JSON", "variant": "emphasis" },
+    { "id": "reader-opens", "from": "user", "to": "webapp", "label": "opens" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Batch side", "items": [
+      "Heavy processing runs offline as batch jobs on a compute cluster",
+      "Each run writes its own output folder; later stages read the accepted earlier runs",
+      "Matching and export run together and produce one dataset file"
+    ] },
+    { "dot": "emerald", "title": "Static side", "items": [
+      "The web app has no backend: it loads one JSON file",
+      "Scores are recomputed in the browser when the reader changes weights",
+      "Publishing is a deliberate, reviewed copy, so a run never edits the app by itself"
+    ] },
+    { "dot": "slate", "title": "Out of scope", "items": [
+      "v1 prototype scripts (kept as reference)",
+      "Unit tests and dataset tools"
+    ] }
+  ]
+}
