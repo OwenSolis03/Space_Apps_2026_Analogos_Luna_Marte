@@ -25,10 +25,10 @@ OMEGA_FILES = [
     ("DATA/FERRIC/FERRIC_NNPHS_EQU_MAP.LBL", "FERRIC_NNPHS_EQU_MAP.LBL"),
 ]
 
-TES_BASE_URL = "http://tes.mars.asu.edu/data"
+TES_BASE_URL = "http://tes.asu.edu/mineral_map"
 TES_FILES = [
-    ("tes_minmap.img", 53913600),
-    ("tes_minmap.hdr", 1024),
+    ("TES_mineral_maps_4_ppd.envi", 53913600),
+    ("TES_mineral_maps_4_ppd.envi.hdr", 1024),
 ]
 
 
@@ -138,10 +138,15 @@ def generate_probe(
             probe["omega"]["bd530_error"] = str(e)
 
     # Probe TES
-    tes_hdr = tes_dir / "tes_minmap.hdr"
+    tes_hdr = tes_dir / "TES_mineral_maps_4_ppd.envi.hdr"
+    if not tes_hdr.exists():
+        tes_hdr = tes_dir / "tes_minmap.hdr"
     if tes_hdr.exists():
         probe["tes"]["hdr_text"] = tes_hdr.read_text(encoding="latin1")
-    tes_img = tes_dir / "tes_minmap.img"
+
+    tes_img = tes_dir / "TES_mineral_maps_4_ppd.envi"
+    if not tes_img.exists():
+        tes_img = tes_dir / "tes_minmap.img"
     if tes_img.exists():
         probe["tes"]["img_size_bytes"] = tes_img.stat().st_size
 
