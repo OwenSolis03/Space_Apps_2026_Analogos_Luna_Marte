@@ -7,10 +7,17 @@ export interface StripRow {
   points: { name: string; value: number }[];
 }
 
-const props = defineProps<{
-  rows: StripRow[];
-  label: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    rows: StripRow[];
+    label: string;
+    /** Right end of the axis. Values above it are drawn at the end. */
+    axisMax?: number;
+    /** Formats axis ticks and values. Default: a fraction written as a percentage. */
+    format?: (v: number) => string;
+  }>(),
+  { axisMax: 1, format: (v: number) => (v * 100).toFixed(1) },
+);
 
 const W = 520;
 const LEFT = 90;
@@ -19,7 +26,7 @@ const ROW = 64;
 const AXIS_Y_PAD = 28;
 
 const plotW = W - LEFT - RIGHT;
-const x = (v: number) => LEFT + Math.max(0, Math.min(1, v)) * plotW;
+const x = (v: number) => LEFT + Math.max(0, Math.min(props.axisMax, v)) / props.axisMax * plotW;
 const height = computed(() => props.rows.length * ROW + AXIS_Y_PAD + 16);
 
 function median(values: number[]): number {
@@ -32,10 +39,10 @@ function median(values: number[]): number {
 const medians = computed(() => props.rows.map((r) => median(r.points.map((p) => p.value))));
 const summary = computed(() =>
   props.rows
-    .map((r, i) => `${r.label}: ${r.points.length} targets, median ${(medians.value[i]! * 100).toFixed(1)}`)
+    .map((r, i) => `${r.label}: ${r.points.length} targets, median ${props.format(medians.value[i]!)}`)
     .join("; "),
 );
-const ticks = [0, 0.25, 0.5, 0.75, 1];
+const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * props.axisMax);
 </script>
 
 <template>
@@ -58,7 +65,7 @@ const ticks = [0, 0.25, 0.5, 0.75, 1];
           :cy="ROW / 2"
           r="4"
         >
-          <title>{{ p.name }}: {{ (p.value * 100).toFixed(1) }}</title>
+          <title>{{ p.name }}: {{ format(p.value) }}</title>
         </circle>
         <line
           v-if="!Number.isNaN(medians[i])"
@@ -75,14 +82,14 @@ const ticks = [0, 0.25, 0.5, 0.75, 1];
           :y="ROW / 2 - 20"
           :text-anchor="x(medians[i]!) > LEFT + plotW * 0.8 ? 'end' : 'middle'"
         >
-          MEDIAN {{ (medians[i]! * 100).toFixed(1) }}
+          MEDIAN {{ format(medians[i]!) }}
         </text>
       </g>
       <g :transform="`translate(0 ${rows.length * ROW})`">
         <line class="strip__axis" :x1="LEFT" :x2="LEFT + plotW" y1="0" y2="0" />
         <g v-for="t in ticks" :key="t">
           <line class="strip__axis" :x1="x(t)" :x2="x(t)" y1="0" y2="6" />
-          <text class="label strip__tick" :x="x(t)" y="20" text-anchor="middle">{{ (t * 100).toFixed(0) }}</text>
+          <text class="label strip__tick" :x="x(t)" y="20" text-anchor="middle">{{ format(t) }}</text>
         </g>
       </g>
     </svg>
