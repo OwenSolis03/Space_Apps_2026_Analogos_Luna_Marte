@@ -2,6 +2,19 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14 (early morning): T14 geology, T13 dust & seasons, T12 water & ice — code and synthetic tests
+
+**What was done and why** (code written by Gemini from Claude's [`docs/plan_t12_t15.md`](plan_t12_t15.md) §1–§4 and §7, stopping before T15)
+
+- **Downloads (`download_aod.py`, `jobs/download_t12_t14.slurm`):** idempotent download job for GLiM 0.5° (`earth_glim`), Mars SIM 3292 (`mars_sim3292`), Moon Unified Geologic Map v2 (`moon_unified`), Montabone kriged CDOD v2 (`mars/dust_montabone`), and 60 MODIS Terra `MOD08_M3` v061 granules (`2019-01-01` to `2023-12-31` via `earthaccess`), printing byte sizes and SHA-256 digests without `-k`.
+- **T14 Geology (`pipeline/geology_rules.py`, `pipeline/geology.py`, `jobs/t14_geology.slurm`, `tests/test_geology.py`):** implemented the 8-class shared taxonomy, symmetric `GEO_SIMILARITY` matrix, word-boundary-safe Moon/Mars keyword rules (preventing `"edifice"` from matching `"ice"`), vectorised GLiM `glim_at` with 3×3 coast fallback, spherical/projected Moon & Mars polygon sampling, `geology_mapping_review.md` / CSV unit summaries, optional `geology_overrides.json` support, and 9 verification checks (`t14_checks.json`).
+- **T13 Dust & Seasons (`pipeline/dust.py`, `jobs/t13_dust.slurm`, `tests/test_dust.py`):** implemented `Ls_E`, hemisphere-shifted `local_phase`, `circular_diff`, 12-bin curve metrics (`dust_level`, `dust_seasonality`, `dust_peak_phase_deg`), `storm_year_boost`, strict NetCDF3 (`engine="scipy"`) and `MOD08_M3` (`pyhdf`) attribute inspection that prints all names and stops if ambiguous, within-body percentile ranks, `S_dust` RBF scoring, 4 PNG maps, and 8 verification checks (`t13_checks.json`).
+- **T12 Water & Ice (`pipeline/data/ice_hints.json`, `pipeline/ice.py`, `jobs/t12_ice.slurm`, `tests/test_ice.py`):** added curated SWIM Arcadia hint (`mars-arcadia-swim`), `cold_rank_E`, three-tier `ice_E` (`1.0` / `0.5` / `0.0`), Diviner `cold_rank_T` and `ice_T`, `S_ice` scoring (`null` when Diviner missing or Mars `ice_T == 0`), and 4 checks (`t12_checks.json`).
+
+**What is left**
+
+- Submit Slurm jobs in order (each awaiting user `"ok"` in MODE A): unit tests (`pytest -q tests`) -> `jobs/download_t12_t14.slurm` -> `jobs/t14_geology.slurm` + `jobs/t13_dust.slurm` -> `jobs/t12_ice.slurm`, then stop at `plan_t12_t15.md` §5.6 for Claude's review before modifying `pipeline/match.py` / `pipeline/export.py` (T15).
+
 ## 2026-11-13 (night): T7/T8 — RBF matching, MSI presets and universe JSON export
 
 **What was done and why** (code written by Gemini from Claude's [`docs/plan_t7_t8.md`](plan_t7_t8.md))
