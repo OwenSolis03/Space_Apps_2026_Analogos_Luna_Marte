@@ -238,6 +238,8 @@ Antes de calcular, rellenar los NaN restantes con la mediana del parche.
 
 Funciones que cargan una vez (en memoria, por proceso) y responden por (lat, lon):
 
+> **Especificación detallada:** [plan_t6.md](plan_t6.md) (MODIS con pyhdf porque GDAL no tiene HDF4, convenciones de escala, logística densificada, `EarthLayers` para T5, regiones conocidas y verificaciones). Para T6 manda ese documento.
+
 - **NDVI máximo anual:** de los 12 HDF de MOD13C2 (subdataset `CMG 0.05 Deg Monthly NDVI`, factor de escala 0.0001, valores < −0.3 o el fill → NaN), tomar el máximo por píxel. Guardar como GeoTIFF en `data/derived/ndvi_max_2023.tif` la primera vez.
 - **Temperatura superficial (LST):** de MOD11C3, `LST_Day_CMG` y `LST_Night_CMG` (escala 0.02, en kelvin → °C). Media anual de día, de noche y la amplitud `día − noche`. Guardar en `data/derived/lst_2023.tif` (3 bandas).
 - **Logística:** con `geopandas` cargar `ne_10m_roads` y `ne_10m_airports`; construir `shapely.STRtree` y calcular la distancia geodésica aproximada en km al elemento más cercano. Para que sea rápido, calcular en la proyección `EPSG:4087` o con `sklearn.neighbors.BallTree` (métrica haversine) sobre vértices de las carreteras.

@@ -108,8 +108,8 @@ AL TERMINAR CADA TAREA, responde con:
 | --- | --- | --- | --- | --- |
 | 1 | T1 y T2 | `plan_implementacion.md` | No | Hecho |
 | 2 | T9 y T3 | `plan_implementacion.md` | Sí | Hecho (`2242278`) |
-| 3 | T4 (blancos curados y clusters) | [plan_t4.md](plan_t4.md) | Para la corrida sí; código y tests no | Plan listo |
-| 4 | T6 (`earth_layers.py`) | Pendiente (Claude) | Para cachear MODIS sí; el código no | Pendiente |
+| 3 | T4 (blancos curados y clusters) | [plan_t4.md](plan_t4.md) | Para la corrida sí; código y tests no | Hecho (`2242423`) |
+| 4 | T6 (`earth_layers.py`) | [plan_t6.md](plan_t6.md) | Para cachear MODIS sí; el código no | Plan listo |
 | 5 | T5 (`earth_features.py` + job array) | Pendiente (Claude) | Sí: es la corrida más pesada | Pendiente |
 | 6 | T7 y T8 (`match.py`, `export.py`) | Pendiente (Claude) | Para la corrida sí; se puede desarrollar con el kit offline | Pendiente |
 | En paralelo (Javier) | T10 (app) con `app/public/data/sample.json` | `plan_implementacion.md` | No | Esqueleto en `main` |
