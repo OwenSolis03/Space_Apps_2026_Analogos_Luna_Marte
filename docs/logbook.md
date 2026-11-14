@@ -2,6 +2,17 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T17 specification, plain-language explanations in the Scenario panel
+
+**What was found and decided** (requested by Owen, spec by Claude in [plan_t17_plain_language.md](plan_t17_plain_language.md)):
+
+- The Explorer's left panel used jargon (`elevation σ and TRI`, `NDVI`, `hypsometry`, `MSI`, `λ`) with no explanation, so a judge or visitor outside the field could not tell what each slider does.
+- T17 adds an intro line, a "Show explanations" switch and an info button per control that opens an inline explanation with four fixed parts: what it is, how we measure it, what the slider does, why it matters. Inline disclosures instead of hover tooltips, so it works on touch screens, with the keyboard and with screen readers.
+- The spec includes the final English copy for the seven dimensions, the weight percentages, Minimum MSI, the road factor (with checked examples: 50 km keeps about 88% of the score, 100 km about 81%, 300 km about 72% at the maximum), the "only new candidates" switch and the five mission cases, plus plain hints to replace the jargon next to each slider.
+- App only: no pipeline change, no re-run. Nothing is implemented yet.
+
+**Verification of the T16 run, done before writing T17** (Claude, on the committed export of run 2242506): the spec's §9.3 script reports Mars dust-preset top-1 analogs in Antarctica 0 (was 17) and with dust missing 0 (was 19); ice preset ranks 1 Mars target (Arcadia) and 8 Moon targets; dust preset not applicable on the Moon; hard check 12 violations 0. In the running app the MSI of four spot checks equals `msi_by_preset`, the unranked-targets note and the hollow radar marker for missing Earth data render, `tsc`, the production build and the 32 match/export tests pass.
+
 ## 2026-11-14: T16.6 — production run 2242506 on Yuca and analogs_universe.json
 
 **What was done and why** (run on Yuca by Owen, verified by Gemini per `docs/plan_t16_missing_data.md` §8–§10):
