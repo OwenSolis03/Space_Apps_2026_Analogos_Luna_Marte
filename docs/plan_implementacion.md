@@ -220,6 +220,8 @@ Antes de calcular, rellenar los NaN restantes con la mediana del parche.
 
 **Objetivo:** lo mismo que T3, pero para la Tierra, filtrando antes lo que no sirve.
 
+> **Especificación detallada:** [plan_t5.md](plan_t5.md) (VRT con mar enmascarado, prefiltro en una etapa `prepare`, array balanceado, `merge` con verificaciones). Para T5 manda ese documento.
+
 **Pasos:**
 
 1. Crear (una vez, dentro del job) el VRT de Copernicus: `gdalbuildvrt /lustre/proyectos/p089/data/derived/copernicus_90m.vrt .../copernicus_90m/*.tif`.
