@@ -2,6 +2,31 @@
 
 Registro de lo que se hace en el proyecto, de lo más reciente a lo más antiguo. Sirve también para la descripción de uso de IA de la entrega.
 
+## 2026-11-13 (noche): plan de T4, prompt para Gemini 4 y operación sin SSH
+
+**Qué se hizo (documentos escritos por Claude, en sesión directa en Yuca)**
+
+- Se revisó el estado real en Yuca:
+  - Copernicus GLO-90 está completo: 26,475 tiles y la lista de fallidos del job 2242198 está vacía.
+  - Los mapas de T3 (`runs/2242278/`) cumplen el criterio visual: Valles Marineris, Olympus Mons, Hellas y Argyre en Marte; mares frente a tierras altas, Crisium y Orientale en la Luna.
+- [plan_t4.md](plan_t4.md): especificación completa de T4.
+  - NASA solo publica los nombres de las 9 regiones de Artemis III, sin coordenadas, así que se anclan en el rasgo IAU del mismo nombre. Las regiones de borde se miden con 8 parches sobre el borde del cráter.
+  - Nobile Rim 1 y 2 se fusionan en un blanco, y también Mons Mouton y su meseta.
+  - Coordenadas de aterrizaje verificadas para 8 sitios en Marte; quedan `TODO(verificar)` en Spirit, Oxia y Arcadia.
+  - Se agrega soporte de parches que contienen el polo (Shackleton) sin cambiar T3.
+  - Clusters k-means (30 por cuerpo) sobre los rasgos de T3.
+- [prompt_gemini.md](prompt_gemini.md) se reescribió para Gemini 4 en modo Orchestrator (Argon) de Antigravity, que ya tiene acceso a Yuca. Tiene MODO A (con SSH) y MODO B (sin SSH), y reglas reforzadas: nada de `pytest` en el login y no importar los scripts v1.
+- [operacion_sin_ssh.md](operacion_sin_ssh.md): la red de la sede bloquea SSH el 14 y 15 de noviembre. El documento cubre la lista para esta noche, el kit offline, qué avanzar sin Yuca, cómo recuperar el acceso y el plan B.
+  - El kit offline (`/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz`, 88 MB) tiene los parquet de T3, el gacetero IAU, Natural Earth y la caché de Diviner.
+- [progreso_handoff.md](progreso_handoff.md) se actualizó y ahora incluye la "Cola para cuando haya SSH".
+- Incidente sin daño: al revisar el gacetero, Claude importó `enrich_nomenclature.py`, que se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El contenido quedó idéntico a la copia del repo.
+
+**Qué falta**
+
+- Que Gemini implemente T4 con `plan_t4.md` y correrlo en Yuca, de ser posible esta misma noche.
+- Bajar el kit offline a la laptop y preparar el entorno local para las pruebas.
+- Planes detallados de T6, T5 y T7/T8 (Claude).
+
 ## 2026-11-13: T10, primer esqueleto de la app (branch `feat/app-t10-esqueleto`)
 
 **Qué se hizo (código escrito por Claude, a partir del mockup publicado como artefacto)**

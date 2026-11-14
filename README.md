@@ -13,6 +13,10 @@ Estado: prototipo. El pipeline corre de punta a punta; los pendientes están en 
 | `run_download_extra.slurm`, `download_earthdata.py` | Job de capas terrestres extra: MODIS (NDVI, LST) y Natural Earth |
 | `tools/explore_datasets.py`, `jobs/explore_datasets.slurm` | Reporte HTML para explorar los datasets descargados |
 | `docs/plan_implementacion.md` | Plan de la v2 tarea por tarea (para implementar con Gemini) |
+| `docs/plan_t4.md` | Plan detallado de T4 (blancos curados y clusters) |
+| `docs/prompt_gemini.md` | Prompt de trabajo para Gemini 4 Orchestrator (con y sin SSH a Yuca) |
+| `docs/progreso_handoff.md` | Estado por tarea, JOBIDs y cola de comandos pendientes en Yuca |
+| `docs/operacion_sin_ssh.md` | Qué hacer sin acceso a Yuca (sede del hackathon) y kit offline |
 | `process_analogs.py`, `run_clustering.slurm` | Arquetipos de Marte y la Luna (k-means sobre ventanas del DEM) |
 | `enrich_nomenclature.py` | Nombres IAU para cada arquetipo |
 | `match_earth_analogs.py`, `run_earth_matching.slurm` | Búsqueda de análogos en Copernicus GLO-90 |

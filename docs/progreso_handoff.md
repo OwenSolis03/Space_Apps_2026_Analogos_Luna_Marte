@@ -5,7 +5,9 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 - **Último commit previo en `main`:** `57f4f36` (`2026-11-13`)
 - **Especificación fuente de verdad:** `docs/plan_implementacion.md`
 - **Estado de datos y corridas en Yuca:** `docs/pipeline.md` y `docs/bitacora.md`
-- **Instrucciones operativas de trabajo y SLURM:** `docs/prompt_gemini.md`
+- **Instrucciones operativas de trabajo y SLURM:** `docs/prompt_gemini.md` (MODO A con SSH / MODO B sin SSH)
+- **Plan detallado de la siguiente tarea:** `docs/plan_t4.md`
+- **Sin SSH (sede del hackathon, 14 y 15 de noviembre):** `docs/operacion_sin_ssh.md`
 
 ---
 
@@ -13,13 +15,13 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 
 | Tarea | Archivo(s) principal(es) | Estado | Verificación / Evidencia |
 | --- | --- | --- | --- |
-| **T0** | `run_download_missing.slurm`, `run_download_extra.slurm`, `jobs/download_diviner.slurm` | Hecho (planetas, MODIS, Natural Earth, Diviner PRP) | MOLA, THEMIS Day/Night, LOLA, LROC WAC, IceFavorability, Diviner PRP (`dlre_prp_south.tab`) verificados en Yuca; Copernicus GLO-90 verificar si terminó `run_download_missing.slurm` (había 6,983/26,475 tiles antes) |
+| **T0** | `run_download_missing.slurm`, `run_download_extra.slurm`, `jobs/download_diviner.slurm` | **Hecho** | MOLA, THEMIS Day/Night, LOLA, LROC WAC, IceFavorability, Diviner PRP verificados en Yuca. Copernicus GLO-90 completo: **26,475 tiles** (todos `.tif`, sin `.aria2`) y `copernicus_90m_fallidos_2242198.txt` vacío (revisado por Claude el 2026-11-13). Natural Earth incluye `ne_10m_admin_0_countries` |
 | **T1** | `pipeline/config.py`, `pipeline/geo.py`, `tests/test_geo.py` | **Hecho** (`ac743ce`, ajustes en `920f812`, `bcf10de`) | `extract_patch()` AEQD 64×64 a 500 m/px con `scales`/`offsets` aplicados en `_clean_nodata` antes de reproyectar; 7 tests en `tests/test_geo.py` |
 | **T2** | `pipeline/features.py`, `tests/test_features.py` | **Hecho** (`a661bb7`, ajuste `np.gradient` en `920f812`) | `compute_features()` (alias `extract_features`) calcula los 7 rasgos en `float32`; 4 tests en `tests/test_features.py` |
-| **T3** | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm`, `tests/test_planet_features.py` | **Hecho y ejecutado en Yuca** (`19e3899` .. `57f4f36`) | Barrido global `0-15` + `--merge` (jobs `2242278` / `2242279`): Marte `140,916` parches y Luna `36,741` parches; 6 tests en `tests/test_planet_features.py` |
+| **T3** | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm`, `tests/test_planet_features.py` | **Hecho y ejecutado en Yuca** (`19e3899` .. `57f4f36`) | Barrido global `0-15` + `--merge` (jobs `2242278` / `2242279`): Marte `140,916` parches y Luna `36,741` parches; 6 tests en `tests/test_planet_features.py`. Criterio visual cumplido (revisado por Claude): Valles Marineris, Olympus Mons y Tharsis, Hellas y Argyre en Marte; mares lisos frente a tierras altas, Crisium y Orientale en la Luna |
 | **T9** | `tests/` (17 pruebas unitarias sintéticas) | **Parcial (T1–T3 cubiertos)** | Yuca (`tests_v2`, env `spaceapps_2026`): **`17 passed` in 3.30s** |
 | **T10** | `app/`, `tools/v1_to_sample.py` | En curso en paralelo (`9325dea`, PR #2) | Primer esqueleto React + Vite + Tailwind en `main` con `app/public/data/sample.json` |
-| **T4** | `pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py` | **Pendiente (siguiente tarea)** | Por implementar usando las salidas de T3 (`runs/2242278/`) y gacetero IAU (`MARS*.dbf`, `MOON*.dbf`) |
+| **T4** | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm`, tests | **Plan listo, código pendiente (siguiente tarea)** | Seguir [plan_t4.md](plan_t4.md): T4.0 (parches polares, Shackleton) y luego curados + 30 clusters por cuerpo sobre `runs/2242278/` |
 | **T6** | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json` | Pendiente | Por implementar tras T4 |
 | **T5** | `pipeline/earth_features.py`, `jobs/t5_earth_features.slurm` | Pendiente | Por implementar tras T6 |
 | **T7 / T8 / T11** | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json` | Pendiente | Integración final hacia `app/public/data/analogs_universe.json` |
@@ -60,7 +62,7 @@ Documento de continuidad para retomar el desarrollo directamente por SSH en Yuca
 Jobs `2242278_0..15` (`--array=0-15`, 8 CPUs c/u) + `2242279` (`--merge`):
 - **`/lustre/proyectos/p089/runs/2242278/features_mars.parquet`**: **`140,916`** parches válidos (de `141,472` candidatos, `99.61 %`; cumple criterio `~141k ± 10 %`). Columnas: `body, lat, lon, <7 rasgos T2>, themis_day, themis_night, themis_delta, valid_frac`.
 - **`/lustre/proyectos/p089/runs/2242278/features_moon.parquet`**: **`36,741`** parches válidos (de `37,014` candidatos, `99.26 %`; cumple criterio `~37k ± 10 %`). Columnas: `body, lat, lon, <7 rasgos T2>, wac_reflectance, ice_favorability, diviner_tmax_k, diviner_tavg_k, ice_depth_m, valid_frac`.
-- **Mapas scatter generados (pendiente inspección visual):**
+- **Mapas scatter generados (inspección visual hecha, criterio cumplido):**
   - `/lustre/proyectos/p089/runs/2242278/map_mars_mean_slope_deg.png`
   - `/lustre/proyectos/p089/runs/2242278/map_moon_mean_slope_deg.png`
 - **Caché Diviner PRP sur:** `/lustre/proyectos/p089/data/derived/diviner_prp_south.parquet` (`2,880,000` triángulos).
@@ -88,11 +90,38 @@ Confirmado en `docs/pipeline.md` con `rasterio` sobre los archivos reales de Yuc
 
 ## 5. Siguientes pasos inmediatos al conectar la nueva sesión
 
-1. **Inspeccionar estado de descargas T0 pendientes (especialmente `copernicus_90m` y `ne_10m_admin_0_countries`) y visualizar rápidamente los dos PNG de `runs/2242278/`** para cerrar el criterio visual de T3.
-2. **T4 (`pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py`):**
+1. ~~Inspeccionar descargas T0 y los PNG de T3~~: hecho el 2026-11-13 (ver tabla).
+2. **T4 — seguir [plan_t4.md](plan_t4.md), que reemplaza el resumen de abajo:**
+   **T4 (`pipeline/targets.py`, `pipeline/data/targets.json`, `tests/test_targets.py`):**
    - Reunir coordenadas y URLs oficiales verificadas (`CURATED`: regiones candidatas Artemis III + borde de Shackleton en la Luna; Jezero, Gale, Gusev, Meridiani, Utopia, Elysium, Oxia Planum y Arcadia Planitia SWIM en Marte; `null` + `TODO(verificar)` si alguna no se verifica).
    - Extraer rasgos de curados con T1 + T2 (promedio de parche central + 4 vecinos a 16 km) y capas auxiliares (incluyendo percentil lunar de WAC).
    - Calcular 30 blancos `CLUSTER` por cuerpo (k-means sobre rasgos de topografía y rugosidad estandarizados de `/lustre/proyectos/p089/runs/2242278/features_{mars,moon}.parquet`) y asignarles nombre IAU reutilizando la lógica de `enrich_nomenclature.py` con `/lustre/proyectos/p089/data/raw/nomenclature/{MARS,MOON}*.dbf`.
 3. **T6 (`pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `tests/test_earth_layers.py`):** caché de `ndvi_max_2023.tif` (MOD13C2) y `lst_2023.tif` (MOD11C3), distancias a `ne_10m_roads`/`ne_10m_airports` y bboxes verificados de las 12 regiones conocidas.
 4. **T5 (`pipeline/earth_features.py`, `jobs/t5_earth_features.slurm`):** VRT `copernicus_90m.vrt`, prefiltro `ndvi_max <= 0.25`, prueba `--limit 500` y array `--array=0-31%30`.
 5. **T7 + T8 + T11 (`pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm`, `pipeline/data/limits.json`, `tests/test_match.py`):** matching RBF + MSI + diversidad (> 150 km) + `mismatches` + `country` (`ne_10m_admin_0_countries`) y generación de `app/public/data/analogs_universe.json`.
+
+---
+
+## 6. Sesión del 2026-11-13 (noche, Claude por SSH en Yuca)
+
+- Claude revisó toda la documentación, confirmó T0 (Copernicus completo) y el criterio visual de T3.
+- Escribió [plan_t4.md](plan_t4.md):
+  - NASA no publica coordenadas de las regiones Artemis III, así que se anclan en rasgos IAU;
+  - soporte polar para Shackleton;
+  - 8 blancos curados lunares y 8 marcianos con fuentes;
+  - clusters, salidas, pruebas y comandos.
+- Actualizó [prompt_gemini.md](prompt_gemini.md) para Gemini 4 Orchestrator (Argon) con MODO A (SSH) y MODO B (sin SSH).
+- Escribió [operacion_sin_ssh.md](operacion_sin_ssh.md) y armó el kit offline `/lustre/proyectos/p089/kit/offline_kit_2026-11-13.tar.gz` (88 MB).
+- Incidente sin daño: Claude importó `enrich_nomenclature.py` para revisar el gacetero. Como no tiene `if __name__ == "__main__"`, el script se ejecutó y reescribió `/lustre/proyectos/p089/output/planetary_baselines.json`. El resultado quedó byte a byte idéntico a `code/output/planetary_baselines.json`; solo cambió la fecha de modificación. Regla nueva: no importar los scripts v1.
+
+---
+
+## Cola para cuando haya SSH
+
+Comandos de Yuca pendientes, en orden. Quien trabaje sin SSH (MODO B) agrega aquí lo que deja listo. Quien vuelva a tener SSH los corre de arriba hacia abajo, revisa cada log contra el criterio indicado y tacha la línea.
+
+| # | Comando (desde `/lustre/proyectos/p089/code`, tras `git pull`) | Revisar en el log |
+| --- | --- | --- |
+| 1 | Pruebas: `sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/tests_%j.log --wrap 'bash -c "source /apps/miniconda3/etc/profile.d/conda.sh && conda activate spaceapps_2026 && cd /lustre/proyectos/p089/code && pytest -q tests"'` | Todas pasan |
+| 2 | Humo T4 (cuando exista el código): `sbatch jobs/t4_targets.slurm --k 5 --body Moon` | Termina sin errores; los curados lunares tienen `iau_nearest` igual a su `iau_feature` |
+| 3 | T4 completo: `sbatch jobs/t4_targets.slurm` | Criterios de `plan_t4.md` §10 |
