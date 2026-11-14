@@ -2,6 +2,8 @@
 data/
 # Excepcion: el JSON que consume la app si va al repo (plan, regla 3)
 !app/public/data/
+# Excepcion: definiciones del pipeline escritas a mano (targets.json, known_analogs.json, limits.json)
+!pipeline/data/
 *.tif
 *.tiff
 *.aria2
