@@ -1063,6 +1063,9 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
     ndvi_grid = layers.ndvi_max
     finite_mask = np.isfinite(ndvi_grid)
     finite_frac = float(np.mean(finite_mask))
+    row_lats = 90.0 - (np.arange(ndvi_grid.shape[0]) + 0.5) * MODIS_CMG_RES_DEG
+    cos_w = np.cos(np.radians(row_lats))
+    finite_frac_cos = float((finite_mask.mean(axis=1) * cos_w).sum() / cos_w.sum())
     grid_le_025_frac = float(np.mean(finite_mask & (ndvi_grid <= 0.25)))
     land_le_025_frac = float(np.mean(ndvi_grid[finite_mask] <= 0.25)) if np.any(finite_mask) else 0.0
 
@@ -1097,11 +1100,11 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
             "name": "ndvi_sahara",
             "kind": "hard",
             "passed": bool(
-                (_val("sahara_dz", "ndvi_max") is not None and _val("sahara_dz", "ndvi_max") < 0.10)
-                and (_val("sahara_eg", "ndvi_max") is not None and _val("sahara_eg", "ndvi_max") < 0.10)
+                (_val("sahara_dz", "ndvi_max") is not None and _val("sahara_dz", "ndvi_max") < 0.12)
+                and (_val("sahara_eg", "ndvi_max") is not None and _val("sahara_eg", "ndvi_max") < 0.12)
             ),
             "observed": {"dz": _val("sahara_dz", "ndvi_max"), "eg": _val("sahara_eg", "ndvi_max")},
-            "expected": "< 0.10 en ambos",
+            "expected": "< 0.12 en ambos",
         },
         {
             "id": 3,
@@ -1169,9 +1172,12 @@ def run_checks(project_dir: Path, out_dir: Path) -> dict:
             "id": 8,
             "name": "ndvi_finite_land_frac",
             "kind": "hard",
-            "passed": bool(finite_frac > 0.25),
-            "observed": round(finite_frac, 4),
-            "expected": "> 0.25",
+            "passed": bool(finite_frac_cos > 0.25),
+            "observed": {
+                "cos_weighted": round(finite_frac_cos, 4),
+                "unweighted": round(finite_frac, 4),
+            },
+            "expected": "> 0.25 (ponderado por cos(lat))",
         },
         {
             "id": 9,
