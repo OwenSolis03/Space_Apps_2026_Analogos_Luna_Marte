@@ -49,7 +49,7 @@ export interface PlanetScene {
 const TEX_W = 512;
 const TEX_H = 256;
 
-type Palette = Record<"surface" | "raised" | "sunken" | "ink" | "muted" | "graphite" | "signal" | "tint" | "signalInk" | "line" | "faint", string>;
+type Palette = Record<"surface" | "raised" | "sunken" | "ink" | "muted" | "graphite" | "signal" | "tint" | "signalInk" | "line" | "faint" | "sea" | "land" | "soil", string>;
 
 function readPalette(): Palette {
   const css = getComputedStyle(document.documentElement);
@@ -66,6 +66,9 @@ function readPalette(): Palette {
     signalInk: v("--signal-ink"),
     line: v("--line"),
     faint: v("--line-faint"),
+    sea: v("--earth-sea"),
+    land: v("--earth-land"),
+    soil: v("--earth-soil"),
   };
 }
 
@@ -153,32 +156,7 @@ function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
   const rand = seeded(body.length * 977 + body.charCodeAt(0));
 
   if (body === "earth") {
-    ctx.fillStyle = p.raised;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    for (const poly of CONTINENTS) {
-      const path = new Path2D();
-      poly.forEach(([lon, lat], i) => (i === 0 ? path.moveTo(lx(lon), ly(lat)) : path.lineTo(lx(lon), ly(lat))));
-      path.closePath();
-      ctx.fillStyle = p.sunken;
-      ctx.fill(path);
-      hatch(ctx, path, p.graphite);
-      ctx.strokeStyle = p.ink;
-      ctx.lineWidth = 2;
-      ctx.stroke(path);
-    }
-    // Polar ice as flat bands
-    ctx.fillStyle = p.raised;
-    ctx.fillRect(0, 0, TEX_W, ly(75));
-    ctx.fillRect(0, ly(-68), TEX_W, TEX_H - ly(-68));
-    ctx.strokeStyle = p.ink;
-    ctx.lineWidth = 2;
-    [75, -68].forEach((lat) => {
-      ctx.beginPath();
-      ctx.moveTo(0, ly(lat));
-      ctx.lineTo(TEX_W, ly(lat));
-      ctx.stroke();
-    });
-    graticule(ctx, p.line, 1);
+    drawEarth(ctx, p);
   } else if (body === "mars") {
     ctx.fillStyle = p.tint;
     ctx.fillRect(0, 0, TEX_W, TEX_H);
@@ -227,6 +205,24 @@ function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
   return canvas;
 }
 
+/** Earth in three natural colours: blue sea, green land, brown soil (hatching, coastlines, graticule). */
+function drawEarth(ctx: CanvasRenderingContext2D, p: Palette) {
+  ctx.fillStyle = p.sea;
+  ctx.fillRect(0, 0, TEX_W, TEX_H);
+  for (const poly of CONTINENTS) {
+    const path = new Path2D();
+    poly.forEach(([lon, lat], i) => (i === 0 ? path.moveTo(lx(lon), ly(lat)) : path.lineTo(lx(lon), ly(lat))));
+    path.closePath();
+    ctx.fillStyle = p.land;
+    ctx.fill(path);
+    hatch(ctx, path, p.soil, 9);
+    ctx.strokeStyle = p.soil;
+    ctx.lineWidth = 2;
+    ctx.stroke(path);
+  }
+  graticule(ctx, p.sea, 0.8);
+}
+
 /**
  * Three-colour versions of Earth, Mars and the Moon (How It Works). Each body uses at most three
  * token colours; the flat shading adds tone but no new hues.
@@ -239,24 +235,7 @@ function drawTextureThree(body: PlanetBody, p: Palette): HTMLCanvasElement {
   const rand = seeded(body.length * 977 + body.charCodeAt(0));
 
   if (body === "earth") {
-    // raised (sea and ice), sunken (land), graphite (hatching, coastlines, graticule)
-    ctx.fillStyle = p.raised;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    for (const poly of CONTINENTS) {
-      const path = new Path2D();
-      poly.forEach(([lon, lat], i) => (i === 0 ? path.moveTo(lx(lon), ly(lat)) : path.lineTo(lx(lon), ly(lat))));
-      path.closePath();
-      ctx.fillStyle = p.sunken;
-      ctx.fill(path);
-      hatch(ctx, path, p.graphite);
-      ctx.strokeStyle = p.graphite;
-      ctx.lineWidth = 2;
-      ctx.stroke(path);
-    }
-    ctx.fillStyle = p.raised;
-    ctx.fillRect(0, 0, TEX_W, ly(75));
-    ctx.fillRect(0, ly(-68), TEX_W, TEX_H - ly(-68));
-    graticule(ctx, p.graphite, 0.8);
+    drawEarth(ctx, p);
   } else if (body === "mars") {
     // signal-tint (ground), signal (dark regions), signal-ink (craters, graticule)
     ctx.fillStyle = p.tint;
