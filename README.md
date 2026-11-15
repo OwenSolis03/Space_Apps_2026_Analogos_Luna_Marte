@@ -153,6 +153,56 @@ Global planetary terrain analysis across three celestial bodies is computational
 
 ## Pipeline Architecture & System Design
 
+```mermaid
+flowchart TD
+    subgraph DATA["1. Planetary & Terrestrial Open Data (+80 GB)"]
+        direction LR
+        LOLA["Moon: LRO LOLA LDEM (118m)<br>& Diviner PRP / LROC WAC"]
+        MOLA["Mars: MGS MOLA DEM (463m)<br>& THEMIS IR Day/Night (100m)"]
+        EARTH["Earth: ESA Copernicus DEM GLO-90<br>& MODIS NDVI / LST (5.6 km)"]
+    end
+
+    subgraph HPC["2. High-Performance Supercomputing (ACARUS / Yuca Cluster)"]
+        direction TB
+        T3["<b>T3: Planet Grid Sweep</b><br>140,916 Mars + 36,741 Moon Patches<br><i>32 km Local AEQD @ 500 m/px</i>"]
+        T4["<b>T4: Target Extraction & Clustering</b><br>Artemis III + Mars Landing Sites<br><i>30 K-Means Archetypes per body</i>"]
+        T6["<b>T6: Earth Context Layers</b><br>MODIS NDVI Mask + LST Cycling<br><i>Roads & Airports Proximity</i>"]
+        T5["<b>T5: Bare-Land Earth Sweep</b><br>~45,000 Unvegetated Patches<br><i>Identical 32 km Local AEQD</i>"]
+        T7["<b>T7: Multi-Dimensional Matching Engine</b><br>Gaussian RBF Distance Kernels<br><i>Topography, Roughness, Aridity, Thermal</i>"]
+        T8["<b>T8: Universe Serializer</b><br>Physical Limits & Mismatch Vectors<br><i>analogs_universe.json (1.8 MB)</i>"]
+
+        LOLA --> T3
+        MOLA --> T3
+        T3 --> T4
+        EARTH --> T6
+        T6 --> T5
+        T4 & T5 --> T7
+        T7 --> T8
+    end
+
+    subgraph CLIENT["3. Client-Side Web Application (Vue 3 + Vite)"]
+        direction TB
+        APP["<b>PROTOTERRA Reactive SPA</b><br>Deployed on Firebase Hosting"]
+        ORBIT["<b>3D Planetary Orbit Browser</b><br>Interactive Celestial Navigation"]
+        MSI["<b>Real-Time MSI Engine</b><br>Dynamic Slider Weights (&lt;50ms)"]
+        BREAK["<b>'Where the Analogy Breaks'</b><br>&gt;1.5σ Outliers & Physical Limits"]
+        MAP["<b>Leaflet Tactical Cartography</b><br>Satellite Overlays & Road Logistics"]
+
+        T8 -.->|Static Delivery| APP
+        APP --> ORBIT
+        APP --> MSI
+        APP --> BREAK
+        APP --> MAP
+    end
+
+    classDef hpc fill:#2d1b4e,stroke:#9333ea,stroke-width:2px,color:#fff;
+    classDef data fill:#1e293b,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef client fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#fff;
+    class DATA,LOLA,MOLA,EARTH data;
+    class HPC,T3,T4,T5,T6,T7,T8 hpc;
+    class CLIENT,APP,ORBIT,MSI,BREAK,MAP client;
+```
+
 ```text
 Raw Datasets (Cluster)
   │
@@ -356,14 +406,14 @@ Space_Apps_2026_Analogos_Luna_Marte/
 ### Team Endurance CXXV
 We are Computer Science students from Hermosillo, Sonora, Mexico, united by a passion for aerospace technologies, high-performance computing, and scientific problem-solving.
 
-| Member | Focus Area | Profile |
+| Member | Focus Area & Role Contributions | Profile |
 | :--- | :--- | :--- |
-| **Ángel Fernando Bórquez Guerrero** | Planetary Science & Frontend Architecture | [LinkedIn](https://www.linkedin.com/in/fernandoborquez/) |
-| **Elías Peregrina Cázares** | Data Pipeline Engineering & Geoprocessing | [LinkedIn](https://www.linkedin.com/in/el%C3%ADas-peregrina-c%C3%A1zares-4886503a7/) |
-| **Emily Margarita Beltrán Zazueta** | Content Strategy, UI/UX & Documentation | [LinkedIn](https://www.linkedin.com/in/emily-beltran-b712a2421/) |
-| **Flor María Machado Félix** | Research, Quality Verification & Data Validation | [LinkedIn](https://www.linkedin.com/in/flor-maria-machado-felix-a318633a8/) |
-| **Javier Leonardo Miranda Sánchez** | Frontend Engineering & Reactive State Engine | [LinkedIn](https://www.linkedin.com/in/javier-miranda-sanchez-201aa1383/) |
-| **Owen Adiel Solis Zatarain** | HPC Orchestration, Pipeline & Systems Lead | [LinkedIn](https://www.linkedin.com/in/owen-solis/) |
+| **Ángel Fernando Bórquez Guerrero** | **Frontend Aesthetic & Development Lead:** Designed the visual aesthetic and user interface styling; programmed and integrated the web application (AI-assisted). | [LinkedIn](https://www.linkedin.com/in/fernandoborquez/) |
+| **Elías Peregrina Cázares** | **Pitch Script & Presentation Strategy:** Co-developed the presentation script and pitch narrative in collaboration with Emily and Flor; presentation preparation. | [LinkedIn](https://www.linkedin.com/in/el%C3%ADas-peregrina-c%C3%A1zares-4886503a7/) |
+| **Flor María Machado Félix** | **Branding Co-Design, Speech Scripting & Lead Speaker:** Co-created the PROTOTERRA project name; illustrated original logo concepts and drafts; authored the presentation speech and serves as the lead pitch speaker. | [LinkedIn](https://www.linkedin.com/in/flor-maria-machado-felix-a318633a8/) |
+| **Emily Margarita Beltrán Zazueta** | **Branding Co-Design, Slide Deck & Content Strategy:** Co-created the PROTOTERRA project name; designed the presentation slide deck layout and visual assets; led research content curation. | [LinkedIn](https://www.linkedin.com/in/emily-beltran-b712a2421/) |
+| **Javier Leonardo Miranda Sánchez** | **Frontend Design Architecture:** Conceived and created the initial frontend design proposal, user journey mockups, and early interactive interface concepts. | [LinkedIn](https://www.linkedin.com/in/javier-miranda-sanchez-201aa1383/) |
+| **Owen Adiel Solis Zatarain** | **HPC Orchestration & Systems Architecture Lead:** Designed and orchestrated the planetary data processing pipeline on the Yuca supercomputer (ACARUS); core pipeline programming, data engineering, and technical coordination. | [LinkedIn](https://www.linkedin.com/in/owen-solis/) |
 
 ### Institutional Acknowledgments
 This project was made possible through the generous collaboration and computational resources provided by **ACARUS** (*Área de Cómputo de Alto Rendimiento de la Universidad de Sonora*), granting access to the **Yuca supercomputer**. We also extend our gratitude to the organizing committee and mentors of **[NASA Space Apps Sonora 2026](https://spaceappssonora.org/)** hosted at **Tecnológico de Monterrey, Campus Sonora Norte**.
