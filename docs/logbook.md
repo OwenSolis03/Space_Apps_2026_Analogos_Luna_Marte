@@ -2,6 +2,10 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: GitHub Pages deployment prepared
+
+**What was found:** the app was not deployed anywhere (no workflow in the repo, Pages not enabled), and the submission needs a public link judges can open. **What was done:** `.github/workflows/pages.yml` (install, type-check and build `app/`, publish `app/dist` with `actions/deploy-pages`; runs on pushes to `main` and by hand) and [deployment.md](deployment.md) with the one-time setting, the checks to make from a phone on mobile data, and the DNS records for the free `prototerra.earth` domain (four A records and a `www` CNAME at GoDaddy; blocked on the venue network, so to be done from a hotspot). Verified the production build uses relative paths (`./assets/...`, `data/analogs_universe.json`), so it works under the `github.io` subpath and under a custom domain. Not done: the workflow file is not in the repository, because the `gh` token has no `workflow` scope and GitHub rejected the push (it is added from the web or after `gh auth refresh -s workflow`, see deployment.md section 0); it only runs from `main`, and the pull request is not merged; the custom domain is not configured.
+
 ## 2026-11-14: Where the mission-case weights come from, and a sensitivity test
 
 **Question** (Owen): what justifies the weights of the five mission cases? **Answer** ([weights_justification.md](weights_justification.md)): they are team judgment, informed by published criteria, not taken from a standard, and no source gives these numbers.
