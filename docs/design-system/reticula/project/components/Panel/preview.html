@@ -1,0 +1,30 @@
+<!-- @dsCard group="Contenedores" height=560 subtitle="Mosaico con chaflán en seis tonos" -->
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500;700&family=Roboto:wght@300;400;500&family=Roboto+Condensed:wght@400&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0}
+body{padding:24px;background:var(--surface);color:var(--ink);font-family:var(--font-text);box-sizing:border-box}
+.row{display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start}
+.col{display:grid;gap:24px}
+.cap{margin:0 0 8px;color:var(--ink-muted)}
+.p{width:232px}</style></head>
+<body><div id="root"></div>
+<script>
+(function(){
+  var R = window.Reticula, h = React.createElement;
+  function Cap(t){ return h("p", { className: "label cap" }, t); }
+
+  function App(){
+    var s = { width: 232 };
+    return h("div", { className: "row" },
+      h(R.Panel, { tone: "signal", label: "Protocolos de cifrado", note: "Carga.4139.A64", code: "A0.", marks: true, style: s }),
+      h(R.Panel, { tone: "tint", label: "Conjunto", note: "Módulo 7", code: "07", style: s }),
+      h(R.Panel, { tone: "graphite", label: "Nivel", code: "2.C", style: s }),
+      h(R.Panel, { tone: "raised", label: "Comprobado", code: "3.C", style: s }),
+      h(R.Panel, { tone: "sunken", label: "Sin asignar", note: "Reservado", style: s }),
+      h(R.Panel, { tone: "outline", chamfer: false, label: "Contorno", note: "Sin chaflán", code: "D1", style: s }));
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(h(App));
+})();
+</script></body></html>

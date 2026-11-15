@@ -1,0 +1,92 @@
+// RETÍCULA type classes. Sizes follow docs/design-system/reticula/project/tokens.json (type section).
+// Rule: one .display-a per view; never below 11px; interface text is uppercase, body text is not.
+
+.display-a {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 8vw, 96px);
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.display-c {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4.5vw, 48px);
+  line-height: 0.96;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.code {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.headline {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.4vw, 28px);
+  line-height: 1.1;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.byline {
+  font-family: var(--font-display);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.lead {
+  font-family: var(--font-text);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.5;
+  font-weight: 300;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.body {
+  font-family: var(--font-text);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--ink-muted);
+}
+
+.footnote {
+  font-family: var(--font-text);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 300;
+  letter-spacing: 0;
+  color: var(--ink-muted);
+}
+
+.quote {
+  font-family: var(--font-condensed);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}

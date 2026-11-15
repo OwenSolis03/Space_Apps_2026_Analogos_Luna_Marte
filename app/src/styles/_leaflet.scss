@@ -1,0 +1,63 @@
+// Leaflet theming in RETÍCULA. Map tiles keep their colours (exception 2 in _tokens.scss).
+// Markers: targets are signal-filled, Earth analogs are white; the selected marker turns ink and grows.
+
+.leaflet-container {
+  font-family: var(--font-text);
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+}
+
+.leaflet-bar {
+  border: var(--stroke-hairline) solid var(--line);
+  box-shadow: none;
+  border-radius: 0;
+
+  a {
+    background: var(--surface-raised);
+    color: var(--ink);
+    border-bottom: var(--stroke-hairline) solid var(--line);
+    border-radius: 0;
+  }
+
+  a:hover {
+    background: var(--ink);
+    color: var(--surface);
+  }
+}
+
+.leaflet-control-attribution {
+  background: var(--surface-raised) !important;
+  color: var(--ink-muted) !important;
+}
+
+.leaflet-tooltip {
+  background: var(--surface-raised);
+  color: var(--ink);
+  border: var(--stroke-hairline) solid var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &::before {
+    display: none;
+  }
+}
+
+.mk-target {
+  fill: var(--signal);
+  stroke: var(--ink);
+}
+
+.mk-earth {
+  fill: var(--surface-raised);
+  stroke: var(--ink);
+}
+
+.mk-target.is-on,
+.mk-earth.is-on {
+  fill: var(--ink);
+  stroke: var(--ink);
+}

@@ -1,0 +1,34 @@
+{
+  "v": 3,
+  "assetGroups": {},
+  "blobs": {},
+  "createdOnFiles": {
+    "at": "2026-11-14T18:55:00Z",
+    "v": 1
+  },
+  "docs": {
+    "readme": "project/README.md",
+    "sections": []
+  },
+  "groups": [],
+  "lastChange": {
+    "at": "2026-11-14T18:55:00Z",
+    "by": "Fer",
+    "note": "Sistema creado a partir de 24 imágenes de inspiración",
+    "via": "Claude Code (chat)"
+  },
+  "layout": "files",
+  "libraries": [
+    {
+      "name": "react",
+      "version": "18"
+    },
+    {
+      "name": "react-dom",
+      "version": "18"
+    }
+  ],
+  "namespace": "Reticula",
+  "sections": {},
+  "title": "RETÍCULA"
+}
