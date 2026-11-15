@@ -222,10 +222,11 @@ async function openFromTable(id: string, targetBody: Body) {
 
       <SectionBlock id="site" code="SEC.01.2" title="SITE SHEET" subtitle="HOW CLOSE EACH ANALOG IS, FEATURE BY FEATURE, AND WHAT EARTH CANNOT REPRODUCE">
         <SiteDossier
-          v-if="selected"
+          v-if="selected && universe"
           :ranked="selected"
           :analog-index="safeAnalog"
           :limits="universe.limits[body]"
+          :mineralogy-meta="universe.metadata?.mineralogy"
           @analog="setAnalogIndex"
         />
         <p v-else class="body">SELECT A TARGET IN THE RANKING OR ON THE MAP TO SEE ITS SHEET.</p>

@@ -2,18 +2,20 @@
 // Site sheet: the selected target against one of its Earth analogs. Port of components/Dossier.tsx.
 // Every comparison is marked by a word and a glyph, never by colour alone.
 import { computed } from "vue";
-import type { Analog, Dimension, Limit, Mismatch, Target } from "@/lib/types";
+import type { Analog, Dimension, Limit, MineralogyMeta, Mismatch, Target } from "@/lib/types";
 import type { RankedTarget } from "@/lib/msi";
 import { fmtLat, fmtLon, fmtNum, pct } from "@/lib/msi";
 import { BODY_LABEL, DIM_LABEL, FEATURE_LABEL, GEO_CLASS_LABEL, fmtValue, limitLabel, suggestedUses } from "@/lib/content";
 import RGlyph from "@/components/reticula/RGlyph.vue";
 import RTag from "@/components/reticula/RTag.vue";
 import RadarChart from "./RadarChart.vue";
+import MineralogyPanel from "./MineralogyPanel.vue";
 
 const props = defineProps<{
   ranked: RankedTarget;
   analogIndex: number;
   limits: Limit[];
+  mineralogyMeta?: MineralogyMeta;
 }>();
 
 const emit = defineEmits<{ analog: [i: number] }>();
@@ -226,6 +228,14 @@ const signed = (z: number) => `${z > 0 ? "+" : ""}${z}`;
         </ul>
         <p class="footnote">Rule of thumb from slope and roughness, plus the site notes from the pipeline.</p>
       </div>
+
+      <MineralogyPanel
+        v-if="props.mineralogyMeta"
+        :target="t"
+        :analog="a"
+        :meta="props.mineralogyMeta"
+        :body-name="body"
+      />
     </div>
 
     <div class="dossier__side">
