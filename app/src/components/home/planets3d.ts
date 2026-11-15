@@ -404,3 +404,23 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
     },
   };
 }
+
+/**
+ * One planet mesh with the Home texture, radius 1 (scale it in the caller). Used by the click
+ * transition so the planet that grows looks exactly like the one in the solar system.
+ */
+export function createPlanetMesh(body: PlanetBody): { mesh: Mesh; dispose: () => void } {
+  const texture = new CanvasTexture(drawTexture(body, readPalette()));
+  texture.colorSpace = SRGBColorSpace;
+  const geometry = new SphereGeometry(1, 28, 20);
+  const material = new MeshLambertMaterial({ map: texture, flatShading: true });
+  const mesh = new Mesh(geometry, material);
+  return {
+    mesh,
+    dispose() {
+      texture.dispose();
+      geometry.dispose();
+      material.dispose();
+    },
+  };
+}
