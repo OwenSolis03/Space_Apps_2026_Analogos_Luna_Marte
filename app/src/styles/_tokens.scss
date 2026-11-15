@@ -1,0 +1,76 @@
+// RETÍCULA design tokens, Hangar theme (light only). Source: docs/design-system/reticula/project/tokens.json
+// Every color, size, space and stroke in the site is a variable declared here.
+//
+// Intentional exceptions to the design system (approved; see docs/plan_t18_website.md §2.4):
+// 1. Motion. The solar system (Home) and How It Works use anime.js for ambient loops and one-off
+//    intros. They are disabled under prefers-reduced-motion. Interface state changes stay instant.
+// 2. Photography and maps. The About page shows team portraits in colour, square crop, 1px --line frame
+//    and chamfer. Leaflet map tiles keep their original colours.
+// 3. Long text. The .prose class (Challenge, Algorithm, Data) uses Roboto 16/26px, --ink, max 64ch.
+// 4. Language. The site is written in English; the design system examples are in Spanish.
+
+:root {
+  // Surfaces
+  --surface: #dfdfdf;
+  --surface-raised: #ffffff;
+  --surface-sunken: #bfbfbf;
+  --surface-ghost: #d1d1d1;
+
+  // Ink and structure
+  --ink: #121212;
+  --ink-muted: #4a4849;
+  --graphite: #716f70;
+  --on-graphite: #ffffff;
+
+  // Signal (single accent). Never text on light surfaces; use --signal-ink for orange text.
+  --signal: #ff8500;
+  --signal-tint: #f0b26c;
+  --signal-ink: #9e4200;
+  --on-signal: #121212;
+
+  // Lines and focus
+  --line: #716f70;
+  --line-faint: #bfbfbf;
+  --focus: #121212;
+
+  // Spacing scale (4px base)
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  // Dot grid
+  --dot-size: 4px;
+  --dot-pitch: 16px;
+
+  // Chamfers (45 degree corner cut, top right)
+  --chamfer-sm: 8px;
+  --chamfer-md: 16px;
+  --chamfer-lg: 24px;
+
+  // Strokes
+  --stroke-hairline: 1px;
+  --stroke-line: 2px;
+  --stroke-bar: 4px;
+  --stroke-heavy: 8px;
+
+  // Code blocks (not in the RETÍCULA sheet; sized like the label style so they stay legible)
+  --size-code: 12px;
+  --leading-code: 18px;
+
+  // Radius: square by default; circles only where the system allows them
+  --radius-0: 0;
+  --radius-round: 50%;
+
+  // Typefaces
+  --font-display: "Martian Mono", "Share Tech Mono", ui-monospace, monospace;
+  --font-text: "Roboto", system-ui, sans-serif;
+  --font-condensed: "Roboto Condensed", "Roboto", system-ui, sans-serif;
+
+  color-scheme: light;
+}

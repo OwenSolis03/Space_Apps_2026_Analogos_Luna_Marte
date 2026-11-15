@@ -173,6 +173,37 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 - **Blocker:** the ESA PSA archive now returns 401 without a COSMOS login (checked 2026-11-14), so Owen has to register before the OMEGA download job can run. Without it, the pre-registered verdict is "drop for the submission".
 - Built-in stop rule: drop if the Mars ferric rank duplicates the dust dimension (|Spearman ρ| > 0.7 against `dust_level_rank`).
 
+## 2026-11-14: T18 review round (branch `feat/website-vue`)
+
+**What was done** (list from Fer):
+
+- Header: the team isotipo image is gone.
+- About: Isotipo instead of Imagotipo, larger. Summer of Research removed from the track record. "IN PROGRESS" changed to "CURRENTLY PARTICIPATING". Crew reduced to the six members with a photo, and the portraits are now in colour.
+- Algorithm: the pipeline boxes are no longer links, and each box is sized to its text (measured at 8.8 units per character).
+- How It Works: the Measure labels are rotated so they no longer overlap.
+- Results: the explorer comes first. Map tiles are in colour. Scenario is now a full-width band: mission cases in one row, the seven weights in a 3 to 4 column grid, filters in a side column. Maps and ranking sit below.
+- Home: the facts readout is removed. The planets are 3D (three.js, loaded on demand) in the RETÍCULA style: flat-shaded low-poly spheres, line and hatch textures drawn in token colours. All five are the same size. Each spins on its own axis at its own speed. Earth (How It Works) and Mars (Challenge) take the two inner orbits and have a signal ring. Orbits are stronger (2 px; graphite and longer dashes for Earth and Mars). Without WebGL the flat SVG planets are drawn.
+
+**What was verified:** build passes. Planet rotation changes and position stays fixed. The sun and every planet link to the right route. The WebGL fallback works. No page-level horizontal scroll at 375 px. Results: the slider re-orders, MOON disables Thermal and Dust, the switch opens 10 panels. Pipeline text fits every box.
+
+## 2026-11-14: T18 website in Vue (branch `feat/website-vue`)
+
+**What was done** (plan: `docs/plan_t18_website.md`, executed phase by phase on `feat/website-vue`, one local commit per phase, no push and no PR):
+
+- Phase 0: RETÍCULA design system copied from the published artifact into `docs/design-system/reticula/`; GitNexus impact run on the symbols the explorer reuses (`rankTargets`, `msi`, `msiLog`, `availableDimensions`, `fullWeights`, `suggestedUses`: all LOW; `App`: UNKNOWN, confirmed by a text search, only `main.tsx` imported it).
+- Phase 1 to 2: Vue 3 + TypeScript + Sass + vue-router (hash history) + anime.js v4 + Leaflet + KaTeX + highlight.js. Vite upgraded to 8 (required by `@vitejs/plugin-vue` 6). React, Tailwind and the React components removed. RETÍCULA kit ported to `components/reticula/` and checked against the reference previews.
+- Phase 3: Home solar system. The sun opens Results; five equal planets open their sections; planets stay in place and spin on their own axis. Mobile shows the first three orbits and a section list.
+- Phase 4: Results. The explorer ported to Vue (`useExplorer`, `useUniverse`), the best analog per curated site, the site sheet, overview charts and the claims to avoid. Checked in the browser: the ranking re-orders when a slider moves; MOON disables Thermal and Dust; the explanations switch opens all ten panels and is remembered; clicking a target marker changes the sheet. Numeric parity: `msi(analog, fullWeights(preset), available_dims)` equals `msi_by_preset` for 130 pairs, largest difference 0.00075.
+- Phase 5: Algorithm. Eleven steps with KaTeX formulas, parameters read from the pipeline sources, and the real function or class of each step imported with `?raw` and extracted by `lib/extract.ts`. Every listing was checked to start and end at the right place.
+- Phase 6: Data. Datasets by body and the dimension each feeds, the official challenge resources, references from the export, raster conventions, eight EDA findings, coverage, live charts, and figure slots.
+- Phase 7: How It Works. Six stages with anime.js figures that play once in view; the compare and output stages use the Jezero example from the export.
+- Phase 8: Challenge and About. Portraits optimised with ImageMagick (640 px, grayscale in the page, originals kept).
+- Phase 9: `/kit` removed; design-rule search clean (no hex outside tokens, no box-shadow, no blur, gradient only in `RHazard`, no emoji, signal never as text); phone width has no page-level horizontal scroll on any view.
+
+**What was verified:** build passes at every phase; console clean on the seven routes apart from a stale dev-server module in the preview browser, which the production build does not have; screenshots checked at 1366 by 768 and 375 by 812.
+
+**What is pending** (see the T18 report in the final message): two crew members (name, photo, LinkedIn); the project logo (placeholder in the header); the team logos use the Slicker font for "CXXV" and need outlines; EDA figures FIG.001 to FIG.005 are on Yuca; the reduced-motion path was checked by reading the code, not in the browser; push and deployment are not done.
+
 ## 2026-11-14: Architecture and pipeline diagram suite (Archify)
 
 **What was done** (requested by Owen, drawn by Claude with the Archify skill from the code at commit `b9cfa1f`):

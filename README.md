@@ -32,7 +32,7 @@ Raw data on Yuca (/lustre/proyectos/p089/data)
   ├─ T6  Earth layers: MODIS NDVI and land surface temperature, roads, airports, countries
   ├─ T5  Earth: same patches, only on bare (unvegetated) land ─► ~45,000 candidates
   ├─ T7  Matching: per-dimension RBF similarity, mission presets, 150 km diversity, mismatches
-  └─ T8  Export ─► analogs_universe.json ─► web app (React + Vite)
+  └─ T8  Export ─► analogs_universe.json ─► web app (Vue + Vite)
 ```
 
 - **Same measurement everywhere.**
@@ -99,7 +99,7 @@ The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](
 | `pipeline/data/` | Hand-written definitions: curated targets, known analog regions, physical limits |
 | `jobs/` | Slurm jobs: the data downloads and one per task |
 | `tests/` | Synthetic unit tests |
-| `app/` | Web app (React, Vite, TypeScript, Tailwind, Leaflet) |
+| `app/` | Website and explorer: Vue 3, Vite, TypeScript, Sass, anime.js, vue-router, Leaflet, KaTeX, highlight.js. Seven hash-routed views: Home (solar system navigation), Results, Challenge, How It Works, Algorithm, Data, About |
 | `tools/` | Data downloaders (`download_*.py`), dataset explorer, T16 verifier, weight sensitivity test and the v1-to-v2 sample converter |
 | `docs/` | Documentation (see below) |
 | `legacy_v1/` | v1 prototype (scripts, Slurm jobs, outputs and logs), kept as reference and never imported |
