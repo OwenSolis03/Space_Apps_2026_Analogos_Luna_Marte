@@ -80,6 +80,23 @@ async function onPlanetClick(e: MouseEvent, p: Planet) {
   transitioning = false;
 }
 
+/** Clicking the sun grows it over the screen, opens Results and fades away (sunTransition.ts). */
+async function onSunClick(e: MouseEvent) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (reduced.value) return;
+  e.preventDefault();
+  if (transitioning) return;
+  transitioning = true;
+  const disc = (e.currentTarget as Element).querySelector(".sun__disc")!.getBoundingClientRect();
+  try {
+    const { playSunTransition } = await import("./sunTransition");
+    await playSunTransition(disc, () => router.push(sun.path));
+  } catch {
+    router.push(sun.path);
+  }
+  transitioning = false;
+}
+
 let scope: ReturnType<typeof createScope> | undefined;
 let planetScene: PlanetScene | undefined;
 let resizeObserver: ResizeObserver | undefined;
@@ -207,7 +224,7 @@ onBeforeUnmount(() => {
       </g>
 
       <!-- Sun: RESULTS -->
-      <a class="sun" :href="`#${sun.path}`" :aria-label="`Go to ${sun.label}`">
+      <a class="sun" :href="`#${sun.path}`" :aria-label="`Go to ${sun.label}`" @click="onSunClick">
         <circle class="sun__ticks" r="108" fill="none" stroke-width="6" stroke-dasharray="1 11" />
         <circle class="sun__pulse" r="92" fill="none" stroke-width="2" />
         <circle class="sun__disc" r="92" />

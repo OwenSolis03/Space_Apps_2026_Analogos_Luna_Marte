@@ -66,7 +66,7 @@ export const SECTIONS: SiteSection[] = [
     name: "algorithm",
     path: "/algorithm",
     label: "ALGORITHM",
-    orbit: { rx: 400, ry: 200, theta: 150, x: -346, y: 100, tilt: 7, parallels: 3, body: "moon", spin: 1.2 },
+    orbit: { rx: 400, ry: 200, theta: 135, x: -283, y: 141, tilt: 7, parallels: 3, body: "moon", spin: 1.2 },
   },
   {
     code: "SEC.05",
@@ -80,7 +80,7 @@ export const SECTIONS: SiteSection[] = [
     name: "about",
     path: "/about",
     label: "ABOUT US",
-    orbit: { rx: 540, ry: 270, theta: 197, x: -516, y: -79, tilt: 28, parallels: 1, body: "neptune", spin: 9 },
+    orbit: { rx: 540, ry: 270, theta: 160, x: -507, y: 92, tilt: 28, parallels: 1, body: "neptune", spin: 9 },
   },
 ];
 

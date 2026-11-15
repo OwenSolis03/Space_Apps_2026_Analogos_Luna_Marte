@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Sticky header: project placeholder logo and the six section links.
+// Sticky header: the PROTOTERRA mark and name, and the six section links.
 import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import RGlyph from "@/components/reticula/RGlyph.vue";
@@ -72,12 +72,10 @@ const current = computed(() => route.name);
   text-decoration: none;
 }
 
-.app-header__mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
+.app-header__logo {
+  display: block;
   height: 32px;
-  border: var(--stroke-hairline) solid var(--line);
+  width: auto;
 }
 
 .app-header__nav {
