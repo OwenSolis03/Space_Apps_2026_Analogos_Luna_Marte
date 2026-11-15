@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "architecture",
   "meta": {
-    "title": "Planetary Analog Finder: System Architecture",
+    "title": "PROTOTERRA: System Architecture",
     "locale": "en",
     "output": "docs/diagrams/system-architecture.html",
     "quality_profile": "showcase",
@@ -10,7 +10,7 @@
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+      "revision": "368165574986e959ea823b35802ae77d7c94f24f"
     }
   },
   "components": [
@@ -55,9 +55,10 @@
     { "id": "published", "type": "database", "label": "Published dataset", "sublabel": "analogs_universe.json", "pos": [290, 520], "size": [160, 60],
       "sources": [{ "path": "docs/plan_t7_t8.md", "line": 374, "end_line": 374, "label": "publish step" }] },
     { "id": "user", "type": "external", "label": "Reader", "sublabel": "browser", "pos": [40, 680], "size": [160, 60] },
-    { "id": "webapp", "type": "frontend", "label": "Web app", "sublabel": "static site", "pos": [290, 680], "size": [160, 60],
+    { "id": "webapp", "type": "frontend", "label": "PROTOTERRA App", "sublabel": "Vue 3 · Vite · Reactive", "pos": [290, 680], "size": [160, 60],
       "sources": [
-        { "path": "app/src/App.tsx", "line": 11, "end_line": 42, "label": "load dataset" },
+        { "path": "app/src/App.vue", "line": 1, "end_line": 50, "label": "root component" },
+        { "path": "app/src/composables/useUniverse.ts", "line": 1, "end_line": 35, "label": "reactive state" },
         { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126, "label": "ranking" }
       ] }
   ],

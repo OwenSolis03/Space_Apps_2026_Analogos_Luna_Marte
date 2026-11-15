@@ -2,7 +2,7 @@
   "schema_version": 1,
   "diagram_type": "sequence",
   "meta": {
-    "title": "Web App: Load, Re-weight and Inspect",
+    "title": "PROTOTERRA: Load, Re-weight and Inspect Sequence",
     "locale": "en",
     "output": "docs/diagrams/app-sequence.html",
     "quality_profile": "showcase",
@@ -10,30 +10,29 @@
       "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "b9cfa1fccb82036da9303c667c54fff5b4adc29f"
+      "revision": "368165574986e959ea823b35802ae77d7c94f24f"
     }
   },
   "participants": [
     { "id": "reader", "type": "external", "label": "Reader", "sublabel": "browser" },
-    { "id": "panel", "type": "frontend", "label": "ScenarioPanel", "sublabel": "presets · sliders",
-      "sources": [{ "path": "app/src/components/ScenarioPanel.tsx", "line": 5, "end_line": 25 }] },
-    { "id": "views", "type": "frontend", "label": "Views", "sublabel": "SiteMap · RankList · Dossier",
+    { "id": "panel", "type": "frontend", "label": "WeightControls", "sublabel": "presets · sliders",
+      "sources": [{ "path": "app/src/views/ResultsView.vue", "line": 1, "end_line": 50 }] },
+    { "id": "views", "type": "frontend", "label": "Views", "sublabel": "Orbit · Map · Results",
       "sources": [
-        { "path": "app/src/App.tsx", "line": 233, "end_line": 254, "label": "maps + ranking" },
-        { "path": "app/src/components/Dossier.tsx", "line": 48, "end_line": 66, "label": "site sheet" }
+        { "path": "app/src/views/HomeView.vue", "line": 1, "end_line": 80, "label": "orbits" },
+        { "path": "app/src/views/ResultsView.vue", "line": 50, "end_line": 120, "label": "ranking" }
       ] },
-    { "id": "app", "type": "frontend", "label": "App.tsx", "sublabel": "React state",
+    { "id": "app", "type": "frontend", "label": "useUniverse.ts", "sublabel": "Vue 3 reactive state",
       "sources": [
-        { "path": "app/src/App.tsx", "line": 16, "end_line": 42, "label": "state + fetch" },
-        { "path": "app/src/App.tsx", "line": 97, "end_line": 126, "label": "handlers" }
+        { "path": "app/src/composables/useUniverse.ts", "line": 1, "end_line": 35, "label": "state + fetch" }
       ] },
     { "id": "msi", "type": "backend", "label": "lib/msi.ts", "sublabel": "rankTargets · msiLog",
       "sources": [
         { "path": "app/src/lib/msi.ts", "line": 19, "end_line": 57, "label": "msi / msiLog" },
         { "path": "app/src/lib/msi.ts", "line": 75, "end_line": 126, "label": "rankTargets" }
       ] },
-    { "id": "json", "type": "database", "label": "Universe JSON", "sublabel": "public/data",
-      "sources": [{ "path": "app/src/App.tsx", "line": 11, "end_line": 11, "label": "DATA_URL" }] }
+    { "id": "json", "type": "database", "label": "Universe JSON", "sublabel": "analogs_universe.json",
+      "sources": [{ "path": "app/src/composables/useUniverse.ts", "line": 15, "end_line": 25, "label": "DATA_URL" }] }
   ],
   "segments": [
     { "from": 160, "to": 420, "label": "Load" },
@@ -50,7 +49,7 @@
     { "id": "m-see", "from": "views", "to": "reader", "y": 400, "label": "maps + ranking", "variant": "return" },
     { "id": "m-slide", "from": "reader", "to": "panel", "y": 460, "label": "move slider / pick preset" },
     { "id": "m-weight", "from": "panel", "to": "app", "y": 490, "label": "onWeight / onPreset", "note": "custom weights clear presetId" },
-    { "id": "m-rerank", "from": "app", "to": "msi", "y": 550, "label": "rankTargets (useMemo)", "variant": "emphasis", "note": "MSI · (1 − λ + λ·e^(−road/100))" },
+    { "id": "m-rerank", "from": "app", "to": "msi", "y": 550, "label": "rankTargets (Vue computed)", "variant": "emphasis", "note": "MSI · (1 − λ + λ·e^(−road/100))" },
     { "id": "m-reranked", "from": "msi", "to": "app", "y": 610, "label": "re-ranked", "variant": "return" },
     { "id": "m-rerender", "from": "app", "to": "views", "y": 635, "label": "re-render" },
     { "id": "m-see2", "from": "views", "to": "reader", "y": 660, "label": "new ranking", "variant": "return" },
