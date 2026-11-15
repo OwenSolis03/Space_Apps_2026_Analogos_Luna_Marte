@@ -14,7 +14,8 @@
 
 # Packages & deliverables
 output.zip
-/PROTOTERRA*
+/PROTOTERRA · Horizontal-html/
+/PROTOTERRA · Horizontal-html.zip
 *.zip
 *.tar
 *.tar.gz
@@ -97,6 +98,8 @@ firebase.json
 .firebaserc
 .firebase/
 
-# Old legacy frontend
+# Old legacy frontend & scripts
 frontend/
+guion.txt
+montar-sitio.bat
 

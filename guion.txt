@@ -1,1 +1,0 @@
-Hola y bienvenidos a mi tutorial de como hacer un guion, lo primero que vamos a hacer es ir al repositorio que tenemos en la descripción y clonarlo o hacerle un pull request
