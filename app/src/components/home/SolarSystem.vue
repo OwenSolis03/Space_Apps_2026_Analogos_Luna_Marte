@@ -27,7 +27,7 @@ const sun = sectionByName("results");
 const planets: Planet[] = SECTIONS.filter((s): s is Planet => s.orbit !== undefined);
 
 // On phones only the first three orbits fit the drawing (Earth, Mars, Moon); the rest stay in the section list.
-const shownPlanets = computed(() => (narrow.value ? planets.filter((p) => p.orbit.rx <= 350) : planets));
+const shownPlanets = computed(() => (narrow.value ? planets.filter((p) => p.orbit.rx <= 400) : planets));
 
 /** Every planet has the same radius (design units), in the SVG and in the 3D scene. */
 const R = 34;
@@ -49,7 +49,7 @@ const lift = (p: Planet) => (p.orbit.body === "earth" ? 26 : 0);
 // Label boxes are sized from the text length (monospace label face).
 const labelWidth = (text: string) => Math.round(text.length * 8.2 + 16);
 
-const view = computed(() => (narrow.value ? { x: -330, y: -200, w: 660, h: 400 } : { x: -640, y: -360, w: 1280, h: 720 }));
+const view = computed(() => (narrow.value ? { x: -420, y: -240, w: 840, h: 480 } : { x: -640, y: -360, w: 1280, h: 720 }));
 const viewBox = computed(() => `${view.value.x} ${view.value.y} ${view.value.w} ${view.value.h}`);
 const sunLabel = `${sun.code} / ${sun.label}`;
 
@@ -188,22 +188,25 @@ onBeforeUnmount(() => {
       <!-- Sun: RESULTS -->
       <a class="sun" :href="`#${sun.path}`" :aria-label="`Go to ${sun.label}`">
         <g transform="rotate(45)">
-          <rect class="sun__frame" x="-95" y="-95" width="190" height="190" fill="none" stroke-width="1" />
           <rect class="sun__frame" x="-115" y="-115" width="230" height="230" fill="none" stroke-width="1" />
           <rect class="sun__frame" x="-135" y="-135" width="270" height="270" fill="none" stroke-width="1" />
+          <rect class="sun__frame" x="-155" y="-155" width="310" height="310" fill="none" stroke-width="1" />
         </g>
-        <circle class="sun__ticks" r="92" fill="none" stroke-width="6" stroke-dasharray="1 11" />
-        <circle class="sun__pulse" r="76" fill="none" stroke-width="2" />
-        <circle class="sun__disc" r="76" />
-        <text class="label sun__code" x="0" y="-10" text-anchor="middle">{{ sun.code }}</text>
-        <text class="headline sun__name" x="0" y="18" text-anchor="middle">{{ sun.label }}</text>
+        <circle class="sun__ticks" r="108" fill="none" stroke-width="6" stroke-dasharray="1 11" />
+        <circle class="sun__pulse" r="92" fill="none" stroke-width="2" />
+        <circle class="sun__disc" r="92" />
+        <!-- Scaled down so the name keeps a clear margin inside the disc -->
+        <g transform="scale(0.82)">
+          <text class="label sun__code" x="0" y="-14" text-anchor="middle">{{ sun.code }}</text>
+          <text class="headline sun__name" x="0" y="20" text-anchor="middle">{{ sun.label }}</text>
+        </g>
       </a>
 
       <!-- Sun leader and its orange tag (desktop only) -->
       <g v-if="!narrow" class="sun__tag-group">
-        <line class="leader" x1="0" y1="-100" x2="0" y2="-148" stroke-width="1" />
-        <rect class="sun__tag" :x="-labelWidth(sunLabel) / 2" y="-159" :width="labelWidth(sunLabel)" height="22" />
-        <text class="label sun__tag-text" x="0" y="-148" text-anchor="middle" dominant-baseline="central">{{ sunLabel }}</text>
+        <line class="leader" x1="0" y1="-116" x2="0" y2="-164" stroke-width="1" />
+        <rect class="sun__tag" :x="-labelWidth(sunLabel) / 2" y="-175" :width="labelWidth(sunLabel)" height="22" />
+        <text class="label sun__tag-text" x="0" y="-164" text-anchor="middle" dominant-baseline="central">{{ sunLabel }}</text>
       </g>
     </svg>
 
@@ -314,7 +317,7 @@ onBeforeUnmount(() => {
   .solar {
     height: auto;
     min-height: 0;
-    aspect-ratio: 660 / 400;
+    aspect-ratio: 840 / 480;
     overflow: hidden;
   }
 }
@@ -474,5 +477,10 @@ onBeforeUnmount(() => {
 .sun:hover ~ .sun__tag-group .sun__tag,
 .sun:focus-visible ~ .sun__tag-group .sun__tag {
   fill: var(--ink);
+}
+
+.sun:hover ~ .sun__tag-group .sun__tag-text,
+.sun:focus-visible ~ .sun__tag-group .sun__tag-text {
+  fill: var(--surface);
 }
 </style>

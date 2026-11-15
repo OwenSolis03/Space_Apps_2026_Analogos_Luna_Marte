@@ -1,6 +1,5 @@
 <script setup lang="ts">
 // About (SEC.06): the team, its track record, the crew, and the acknowledgements.
-import PageHero from "@/components/layout/PageHero.vue";
 import SectionBlock from "@/components/layout/SectionBlock.vue";
 import RButton from "@/components/reticula/RButton.vue";
 import RGlyph from "@/components/reticula/RGlyph.vue";
@@ -12,13 +11,18 @@ import isotipo from "@/assets/Isotipo.svg";
 
 <template>
   <main class="page">
-    <PageHero code="SEC.06" title="ENDURANCE CXXV" subtitle="FROM DATA TO ACTION">
-      <template #aside>
-        <div class="logo">
-          <img :src="isotipo" alt="Endurance CXXV logo" width="280" />
+    <!-- Hero built from the Headline parts so the logo can sit on the title's line, at the title's height. -->
+    <section class="page-hero">
+      <header class="tm-headline">
+        <span class="tm-headline__rule" aria-hidden="true" />
+        <p class="label tm-headline__kicker">SEC.06</p>
+        <div class="hero-row">
+          <h1 class="tm-headline__title display-a hero-row__title">ENDURANCE CXXV</h1>
+          <img class="hero-row__logo" :src="isotipo" alt="Endurance CXXV logo" />
         </div>
-      </template>
-    </PageHero>
+        <p class="byline tm-headline__subtitle">FROM DATA TO ACTION</p>
+      </header>
+    </section>
 
     <SectionBlock id="story" code="SEC.06" title="THE TEAM" subtitle="WHO WE ARE">
       <div class="story">
@@ -71,17 +75,37 @@ import isotipo from "@/assets/Isotipo.svg";
 </template>
 
 <style lang="scss" scoped>
-.logo {
-  display: grid;
-  place-items: center;
-  padding: var(--space-5);
-  background: var(--surface-raised);
-  border: var(--stroke-hairline) solid var(--line-faint);
+.hero-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-5);
+}
 
-  img {
-    width: 100%;
-    max-width: 280px;
-    height: auto;
+.hero-row__title {
+  // Wraps after ENDURANCE, as in the other heroes.
+  max-width: 8em;
+}
+
+.hero-row__logo {
+  width: 160px;
+  height: auto;
+}
+
+// Wide screens: the logo stands on the title's line and takes the title's full height.
+@media (min-width: 900px) {
+  .hero-row {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-7);
+  }
+
+  // Same height as the two lines of the display-a title (line-height 1).
+  .hero-row__logo {
+    width: auto;
+    height: calc(2 * clamp(40px, 8vw, 96px));
+    align-self: flex-start;
   }
 }
 

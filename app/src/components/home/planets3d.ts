@@ -228,6 +228,10 @@ function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
 }
 
 const RADIUS = 34;
+// The small moon that circles Earth: its size, its distance from Earth's centre, and turns per minute.
+const SATELLITE_RADIUS = 8;
+const SATELLITE_DISTANCE = 56;
+const SATELLITE_TURNS = 3;
 
 /** Builds the scene. Throws if WebGL is unavailable, so the caller can fall back to the flat SVG planets. */
 export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec[]): PlanetScene {
@@ -264,6 +268,25 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
     return { spec: p, mesh, pivot, texture, material };
   });
 
+  // A small moon circles Earth. Its orbit is tilted towards the camera, so it passes in front of
+  // Earth and behind it (hidden by the depth test).
+  const earth = items.find((it) => it.spec.body === "earth");
+  const satGeometry = new SphereGeometry(SATELLITE_RADIUS, 12, 8);
+  const satTexture = new CanvasTexture(drawTexture("moon", palette));
+  satTexture.colorSpace = SRGBColorSpace;
+  const satMaterial = new MeshLambertMaterial({ map: satTexture, flatShading: true });
+  const satOrbit = new Group();
+  if (earth) {
+    satOrbit.position.copy(earth.pivot.position);
+    satOrbit.rotation.x = 0.45;
+    satOrbit.rotation.z = -0.2;
+    const satellite = new Mesh(satGeometry, satMaterial);
+    satellite.position.set(SATELLITE_DISTANCE, 0, 0);
+    satOrbit.add(satellite);
+    satOrbit.rotation.y = 0.8;
+    scene.add(satOrbit);
+  }
+
   let frame = 0;
   let last = 0;
 
@@ -273,6 +296,7 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
     const dt = last ? Math.min((t - last) / 1000, 0.1) : 0;
     last = t;
     for (const it of items) it.mesh.rotation.y += ((it.spec.spin * Math.PI * 2) / 60) * dt;
+    satOrbit.rotation.y += ((SATELLITE_TURNS * Math.PI * 2) / 60) * dt;
     render();
     frame = requestAnimationFrame(loop);
   };
@@ -296,6 +320,7 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
     },
     setVisible(names) {
       for (const it of items) it.pivot.visible = names.has(it.spec.name);
+      satOrbit.visible = earth ? names.has(earth.spec.name) : false;
       render();
     },
     start(still) {
@@ -314,10 +339,14 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
         it.material.dispose();
       }
       geometry.dispose();
+      satGeometry.dispose();
+      satTexture.dispose();
+      satMaterial.dispose();
       renderer.dispose();
     },
     probe() {
-      return items.map((it) => ({ name: it.spec.name, rotation: it.mesh.rotation.y, x: it.pivot.position.x, y: -it.pivot.position.y }));
+      const planetsNow = items.map((it) => ({ name: it.spec.name, rotation: it.mesh.rotation.y, x: it.pivot.position.x, y: -it.pivot.position.y }));
+      return [...planetsNow, { name: "earth-moon", rotation: satOrbit.rotation.y, x: satOrbit.position.x, y: -satOrbit.position.y }];
     },
   };
 }
