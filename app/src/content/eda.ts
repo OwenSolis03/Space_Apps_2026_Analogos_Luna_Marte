@@ -96,11 +96,16 @@ export interface FigureSlot {
 }
 
 export const FIGURES: FigureSlot[] = [
-  { code: "FIG.001", file: "map_earth_mean_slope_deg.png", run: "2242438", caption: "FIG.001 Earth mean slope, bare-ground patches", alt: "Map of mean slope over Earth's bare ground" },
-  { code: "FIG.002", file: "map_earth_classification.png", run: "2242438", caption: "FIG.002 Earth classification: missing NDVI, known analog, new candidate", alt: "Map of Earth's classification of candidate sites" },
-  { code: "FIG.003", file: "map_targets_mars.png", run: "2242423", caption: "FIG.003 Mars targets", alt: "Map of the Mars targets" },
-  { code: "FIG.004", file: "map_targets_moon.png", run: "2242423", caption: "FIG.004 Moon targets", alt: "Map of the Moon targets" },
-  { code: "FIG.005", file: "map_dust_level_*.png", run: "2242484", caption: "FIG.005 Mars dust level", alt: "Map of Mars dust level" },
+  { code: "FIG.001", file: "map_earth_mean_slope_deg.png", run: "2242438", caption: "FIG.001 Earth mean slope, bare-ground patches", alt: "Map of mean slope over Earth's bare ground", src: "figures/map_earth_mean_slope_deg.png" },
+  { code: "FIG.002", file: "map_earth_classification.png", run: "2242438", caption: "FIG.002 Earth classification: missing NDVI, known analog, new candidate", alt: "Map of Earth's classification of candidate sites", src: "figures/map_earth_classification.png" },
+  { code: "FIG.003", file: "map_targets_mars.png", run: "2242423", caption: "FIG.003 Mars targets and landing sites distribution", alt: "Map of the Mars targets", src: "figures/map_targets_mars.png" },
+  { code: "FIG.004", file: "map_targets_moon.png", run: "2242423", caption: "FIG.004 Moon targets and Artemis III polar exploration sites", alt: "Map of the Moon targets", src: "figures/map_targets_moon.png" },
+  { code: "FIG.005", file: "map_dust_level_mars.png", run: "2242484", caption: "FIG.005 Mars atmospheric dust level (CDOD climatology)", alt: "Map of Mars dust level", src: "figures/map_dust_level_mars.png" },
+  { code: "FIG.006", file: "map_known_analogs.png", run: "2242438", caption: "FIG.006 Ground-truth known terrestrial analogs distribution", alt: "Map of ground-truth known terrestrial analog stations", src: "figures/map_known_analogs.png" },
+  { code: "FIG.007", file: "map_lst_amplitude.png", run: "2242438", caption: "FIG.007 Earth land surface temperature (LST) diurnal amplitude", alt: "Map of Earth LST thermal amplitude", src: "figures/map_lst_amplitude.png" },
+  { code: "FIG.008", file: "map_ndvi_max.png", run: "2242438", caption: "FIG.008 MODIS annual maximum NDVI vegetation mask", alt: "Map of MODIS annual maximum NDVI", src: "figures/map_ndvi_max.png" },
+  { code: "FIG.009", file: "map_mars_mean_slope_deg.png", run: "2242423", caption: "FIG.009 Mars mean slope distribution (MOLA DEM 463 m)", alt: "Map of Mars mean slope distribution", src: "figures/map_mars_mean_slope_deg.png" },
+  { code: "FIG.010", file: "map_moon_mean_slope_deg.png", run: "2242423", caption: "FIG.010 Moon mean slope distribution (LOLA DEM 118 m)", alt: "Map of Moon mean slope distribution", src: "figures/map_moon_mean_slope_deg.png" },
 ];
 
 /** Stage counts of the Earth prefilter (docs/logbook.md, prefilter_stats.json). */

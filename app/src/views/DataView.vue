@@ -283,7 +283,7 @@ const normRows = computed(() => {
 
       <div class="block">
         <p class="label group__label">FIGURES</p>
-        <p class="footnote">The control maps are produced on Yuca. Until they are copied into public/figures/, each slot shows its caption.</p>
+        <p class="footnote">Exploratory data analysis (EDA) and planetary control maps produced during Slurm batch runs on the Yuca supercomputer (ACARUS).</p>
         <div class="figures">
           <FigureSlot v-for="f in FIGURES" :key="f.code" :src="f.src" :caption="f.caption" :alt="f.alt" />
         </div>
