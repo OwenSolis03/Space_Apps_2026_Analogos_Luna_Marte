@@ -49,7 +49,7 @@ export interface PlanetScene {
 const TEX_W = 512;
 const TEX_H = 256;
 
-type Palette = Record<"surface" | "raised" | "sunken" | "ink" | "muted" | "graphite" | "signal" | "tint" | "signalInk" | "line" | "faint" | "sea" | "land" | "soil", string>;
+type Palette = Record<"surface" | "raised" | "sunken" | "ink" | "muted" | "graphite" | "signal" | "tint" | "signalInk" | "line" | "faint" | "sea" | "land" | "soil" | "marsRed" | "marsDark" | "marsDust" | "moonGrey" | "moonDark" | "moonRim" | "mercuryBase" | "mercuryDark" | "mercuryLight" | "neptuneDeep" | "neptuneMid" | "neptuneLight", string>;
 
 function readPalette(): Palette {
   const css = getComputedStyle(document.documentElement);
@@ -69,6 +69,18 @@ function readPalette(): Palette {
     sea: v("--earth-sea"),
     land: v("--earth-land"),
     soil: v("--earth-soil"),
+    marsRed: v("--mars-red"),
+    marsDark: v("--mars-dark"),
+    marsDust: v("--mars-dust"),
+    moonGrey: v("--moon-grey"),
+    moonDark: v("--moon-dark"),
+    moonRim: v("--moon-rim"),
+    mercuryBase: v("--mercury-base"),
+    mercuryDark: v("--mercury-dark"),
+    mercuryLight: v("--mercury-light"),
+    neptuneDeep: v("--neptune-deep"),
+    neptuneMid: v("--neptune-mid"),
+    neptuneLight: v("--neptune-light"),
   };
 }
 
@@ -148,6 +160,35 @@ const CONTINENTS: [number, number][][] = [
   [[114, -22], [130, -12], [142, -11], [153, -27], [146, -39], [130, -32], [115, -34]],
 ];
 
+/** Mars in the logo's reds: rust ground, darker regions, light dust craters and graticule. */
+function drawMars(ctx: CanvasRenderingContext2D, p: Palette, rand: () => number) {
+  ctx.fillStyle = p.marsRed;
+  ctx.fillRect(0, 0, TEX_W, TEX_H);
+  const rr = seeded(41);
+  for (let i = 0; i < 7; i++) {
+    ctx.fillStyle = p.marsDark;
+    ctx.beginPath();
+    ctx.ellipse(rr() * TEX_W, TEX_H * 0.35 + rr() * TEX_H * 0.35, 30 + rr() * 45, 10 + rr() * 16, rr() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  craters(ctx, rand, 26, 3, 10, p.marsDust);
+  graticule(ctx, p.marsDust, 0.6);
+}
+
+/** Moon in warm greys: highlands, darker maria, crater rims. */
+function drawMoon(ctx: CanvasRenderingContext2D, p: Palette, rand: () => number) {
+  ctx.fillStyle = p.moonGrey;
+  ctx.fillRect(0, 0, TEX_W, TEX_H);
+  const rr = seeded(7);
+  for (let i = 0; i < 6; i++) {
+    ctx.fillStyle = p.moonDark;
+    ctx.beginPath();
+    ctx.ellipse(rr() * TEX_W, TEX_H * 0.3 + rr() * TEX_H * 0.4, 18 + rr() * 30, 12 + rr() * 18, rr() * Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  craters(ctx, rand, 40, 3, 14, p.moonRim);
+}
+
 function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
   const canvas = document.createElement("canvas");
   canvas.width = TEX_W;
@@ -158,46 +199,27 @@ function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
   if (body === "earth") {
     drawEarth(ctx, p);
   } else if (body === "mars") {
-    ctx.fillStyle = p.tint;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    // Dark albedo regions as signal-coloured patches
-    const rr = seeded(41);
-    for (let i = 0; i < 7; i++) {
-      ctx.fillStyle = p.signal;
-      ctx.beginPath();
-      ctx.ellipse(rr() * TEX_W, TEX_H * 0.35 + rr() * TEX_H * 0.35, 30 + rr() * 45, 10 + rr() * 16, rr() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    craters(ctx, rand, 26, 3, 10, p.signalInk);
+    drawMars(ctx, p, rand);
+    // White polar caps (Home only; the three-colour version leaves them out)
     ctx.fillStyle = p.raised;
     ctx.fillRect(0, 0, TEX_W, ly(78));
     ctx.fillRect(0, ly(-80), TEX_W, TEX_H - ly(-80));
-    graticule(ctx, p.signalInk, 0.6);
   } else if (body === "moon") {
-    ctx.fillStyle = p.sunken;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    const rr = seeded(7);
-    for (let i = 0; i < 6; i++) {
-      ctx.fillStyle = p.graphite;
-      ctx.beginPath();
-      ctx.ellipse(rr() * TEX_W, TEX_H * 0.3 + rr() * TEX_H * 0.4, 18 + rr() * 30, 12 + rr() * 18, rr() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    craters(ctx, rand, 40, 3, 14, p.muted);
+    drawMoon(ctx, p, rand);
   } else if (body === "mercury") {
-    ctx.fillStyle = p.graphite;
+    ctx.fillStyle = p.mercuryBase;
     ctx.fillRect(0, 0, TEX_W, TEX_H);
-    craters(ctx, rand, 90, 2, 9, p.sunken);
-    craters(ctx, rand, 12, 10, 18, p.faint);
+    craters(ctx, rand, 90, 2, 9, p.mercuryDark);
+    craters(ctx, rand, 12, 10, 18, p.mercuryLight);
   } else {
-    // Neptune: flat latitude bands
-    const bands = [p.raised, p.faint, p.raised, p.sunken, p.raised, p.faint, p.raised, p.line, p.raised];
+    // Neptune: blue latitude bands and a dark spot
+    const bands = [p.neptuneMid, p.neptuneLight, p.neptuneMid, p.neptuneDeep, p.neptuneMid, p.neptuneLight, p.neptuneMid, p.neptuneDeep, p.neptuneMid];
     const h = TEX_H / bands.length;
     bands.forEach((c, i) => {
       ctx.fillStyle = c;
       ctx.fillRect(0, i * h, TEX_W, h + 1);
     });
-    ctx.fillStyle = p.graphite;
+    ctx.fillStyle = p.neptuneDeep;
     ctx.beginPath();
     ctx.ellipse(TEX_W * 0.3, TEX_H * 0.6, 26, 12, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -237,30 +259,11 @@ function drawTextureThree(body: PlanetBody, p: Palette): HTMLCanvasElement {
   if (body === "earth") {
     drawEarth(ctx, p);
   } else if (body === "mars") {
-    // signal-tint (ground), signal (dark regions), signal-ink (craters, graticule)
-    ctx.fillStyle = p.tint;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    const rr = seeded(41);
-    for (let i = 0; i < 7; i++) {
-      ctx.fillStyle = p.signal;
-      ctx.beginPath();
-      ctx.ellipse(rr() * TEX_W, TEX_H * 0.35 + rr() * TEX_H * 0.35, 30 + rr() * 45, 10 + rr() * 16, rr() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    craters(ctx, rand, 26, 3, 10, p.signalInk);
-    graticule(ctx, p.signalInk, 0.6);
+    // mars-red (ground), mars-dark (regions), mars-dust (craters, graticule)
+    drawMars(ctx, p, rand);
   } else {
-    // Moon: surface-sunken (highlands), graphite (maria), ink-muted (crater rims)
-    ctx.fillStyle = p.sunken;
-    ctx.fillRect(0, 0, TEX_W, TEX_H);
-    const rr = seeded(7);
-    for (let i = 0; i < 6; i++) {
-      ctx.fillStyle = p.graphite;
-      ctx.beginPath();
-      ctx.ellipse(rr() * TEX_W, TEX_H * 0.3 + rr() * TEX_H * 0.4, 18 + rr() * 30, 12 + rr() * 18, rr() * Math.PI, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    craters(ctx, rand, 40, 3, 14, p.muted);
+    // moon-grey (highlands), moon-dark (maria), moon-rim (crater rims)
+    drawMoon(ctx, p, rand);
   }
   return canvas;
 }

@@ -8,8 +8,8 @@
 //    and chamfer. Leaflet map tiles keep their original colours.
 // 3. Long text. The .prose class (Challenge, Algorithm, Data) uses Roboto 16/26px, --ink, max 64ch.
 // 4. Language. The site is written in English; the design system examples are in Spanish.
-// 5. Earth colours. The 3D Earth (Home and How It Works) uses three natural colours outside the
-//    RETÍCULA palette: sea blue, land green and soil brown. They are used nowhere else.
+// 5. Planet colours. The 3D planets (Home, How It Works, click transition) use natural colours outside
+//    the RETÍCULA palette, three per body. Earth and Mars follow the PROTOTERRA logo. Used nowhere else.
 
 :root {
   // Surfaces
@@ -34,10 +34,22 @@
   --line: #716f70;
   --line-faint: #bfbfbf;
 
-  // 3D Earth only (exception 5)
-  --earth-sea: #2f6e9e;
-  --earth-land: #5b8c4a;
+  // 3D planets only (exception 5). Earth and Mars are taken from the PROTOTERRA logo.
+  --earth-sea: #3f7cb5;
+  --earth-land: #3f8f4f;
   --earth-soil: #8a6440;
+  --mars-red: #a8401f;
+  --mars-dark: #8c3418;
+  --mars-dust: #d06a42;
+  --moon-grey: #a7a29a;
+  --moon-dark: #77726b;
+  --moon-rim: #58534d;
+  --mercury-base: #8f7f6c;
+  --mercury-dark: #64574a;
+  --mercury-light: #b9a993;
+  --neptune-deep: #2f5fa8;
+  --neptune-mid: #5f95c6;
+  --neptune-light: #a9cbe8;
   --focus: #121212;
 
   // Spacing scale (4px base)
