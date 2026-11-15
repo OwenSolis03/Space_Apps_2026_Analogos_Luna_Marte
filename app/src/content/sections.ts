@@ -42,7 +42,7 @@ export interface SiteSection {
 
 export const PROJECT_NAME = "PROTOTERRA";
 export const PROJECT_TAGLINE = "Grounded in Earth. Built for beyond.";
-export const REPOSITORY_URL = "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte";
+export const REPOSITORY_URL = "https://github.com/OwenSolis03/prototerra";
 
 export const SECTIONS: SiteSection[] = [
   { code: "SEC.00", name: "home", path: "/", label: "HOME" },

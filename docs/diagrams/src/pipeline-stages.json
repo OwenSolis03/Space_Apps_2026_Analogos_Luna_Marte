@@ -7,7 +7,7 @@
     "quality_profile": "showcase",
     "output": "docs/diagrams/pipeline-stages.html",
     "repository": {
-      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "url": "https://github.com/OwenSolis03/prototerra.git",
       "provider": "github",
       "link_mode": "web",
       "revision": "368165574986e959ea823b35802ae77d7c94f24f"

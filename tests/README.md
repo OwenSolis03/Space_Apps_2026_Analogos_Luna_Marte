@@ -73,7 +73,7 @@ pytest tests/test_export.py
 ```text
 ============================= test session starts =============================
 platform: win32 / linux -- Python 3.11+ / 3.15, pytest-9.2+, pluggy-1.7+
-rootdir: /Space_Apps_2026_Analogos_Luna_Marte, configfile: pytest.ini
+rootdir: /prototerra, configfile: pytest.ini
 collected 119 items
 
 tests/test_dust.py ....                                                  [  3%]

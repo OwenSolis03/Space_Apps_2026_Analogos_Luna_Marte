@@ -381,12 +381,12 @@ Las gráficas son SVG propios en `components/charts/` (sin librerías). Una sola
 ### 7.1 Estructura
 
 1. `PageHero` `code="SEC.04"`, `title="ALGORITHM"`, `subtitle="FROM RAW ELEVATION TO A RANKED, EXPLAINABLE ANALOG"`.
-2. **Bloque del repositorio, lo primero de la página**: `RPanel tone="raised"` con `label="SOURCE CODE"`, un `RButton variant="primary" arrow` con `href="https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte"` y texto `OPEN REPOSITORY`, y un `CodeBlock lang="bash"` con `git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git`.
+2. **Bloque del repositorio, lo primero de la página**: `RPanel tone="raised"` con `label="SOURCE CODE"`, un `RButton variant="primary" arrow` con `href="https://github.com/OwenSolis03/prototerra"` y texto `OPEN REPOSITORY`, y un `CodeBlock lang="bash"` con `git clone https://github.com/OwenSolis03/prototerra.git`.
 3. `PipelineDiagram.vue`: SVG estático de las etapas `T3 → T4`, `T6 → T5`, `T12 / T13 / T14`, `T7 → T8 → APP` (cajas con chaflán y líneas rectas, cada caja enlaza al paso correspondiente). Fuente: bloque "How it works" del `README.md`.
 4. Dos columnas: a la izquierda un índice pegajoso de pasos (`STEP.01` … `STEP.11`, con el actual marcado por `tick-left`); a la derecha un `StepCard` por paso.
 5. Al final, "PARAMETERS AT A GLANCE": `RReadout` con todas las constantes del §7.4.
 
-`StepCard.vue` muestra en este orden: código y título, párrafos `.prose`, fórmulas (`MathTex`), tabla de parámetros (`RReadout`), y los bloques de código (`CodeBlock`) con la ruta del archivo y un enlace `VIEW ON GITHUB` a `https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte/blob/main/<ruta>`.
+`StepCard.vue` muestra en este orden: código y título, párrafos `.prose`, fórmulas (`MathTex`), tabla de parámetros (`RReadout`), y los bloques de código (`CodeBlock`) con la ruta del archivo y un enlace `VIEW ON GITHUB` a `https://github.com/OwenSolis03/prototerra/blob/main/<ruta>`.
 
 ### 7.2 Código real del repositorio, no copiado a mano
 

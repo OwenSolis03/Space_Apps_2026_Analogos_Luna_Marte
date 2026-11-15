@@ -7,7 +7,7 @@
     "output": "docs/diagrams/repository-layout.html",
     "quality_profile": "showcase",
     "repository": {
-      "url": "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git",
+      "url": "https://github.com/OwenSolis03/prototerra.git",
       "provider": "github",
       "link_mode": "web",
       "revision": "368165574986e959ea823b35802ae77d7c94f24f"
@@ -15,7 +15,7 @@
   },
   "layout": { "direction": "right" },
   "nodes": [
-    { "id": "root", "label": "PROTOTERRA", "sublabel": "Space_Apps_2026_Analogos_Luna_Marte",
+    { "id": "root", "label": "PROTOTERRA", "sublabel": "prototerra",
       "sources": [{ "path": "README.md", "line": 1, "end_line": 5 }] },
 
     { "id": "pipeline", "label": "pipeline/", "parent": "root", "sublabel": "v2 Python pipeline",

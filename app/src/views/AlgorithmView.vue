@@ -50,7 +50,7 @@ onBeforeUnmount(() => observer?.disconnect());
         <RButton variant="primary" arrow :href="REPO_URL">OPEN REPOSITORY</RButton>
         <CodeBlock
           lang="bash"
-          code="git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git"
+          code="git clone https://github.com/OwenSolis03/prototerra.git"
         />
       </RPanel>
     </section>

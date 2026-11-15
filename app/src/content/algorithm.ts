@@ -21,7 +21,7 @@ export interface ReadoutItem {
   value: string;
 }
 
-export const REPO_URL = "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte";
+export const REPO_URL = "https://github.com/OwenSolis03/prototerra";
 
 /** Value of a module-level constant, as written in the source (for example "0.25" or "16.0"). */
 export function constOf(source: string, name: string): string {

@@ -21,7 +21,7 @@ Without SSH (for example at the hackathon venue), read [working_without_ssh.md](
 
 ```text
 You are the developer of "PROTOTERRA" (NASA Space Apps 2026, team Endurance CXXV).
-Repository: https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte
+Repository: https://github.com/OwenSolis03/prototerra
 
 BEFORE WRITING CODE, read these in full, in this order:
 1. The detailed plan for today's task, if there is one: docs/plan_<task>.md (for example docs/plan_t7_t8.md).

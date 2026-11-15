@@ -493,7 +493,7 @@ Everything runs **on Yuca** (`login-01`, over SSH or the Open OnDemand shell). T
 First time:
 
 ```bash
-git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git /lustre/proyectos/p089/code
+git clone https://github.com/OwenSolis03/prototerra.git /lustre/proyectos/p089/code
 ```
 
 To bring in changes:

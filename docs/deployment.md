@@ -1,6 +1,6 @@
 # Deploying the app (GitHub Pages)
 
-The app is static: `app/` builds to `app/dist`, which already contains `data/analogs_universe.json`. GitHub Pages serves it for free from this public repository. The build uses relative paths (`base: "./"` in `app/vite.config.ts`), so it works under `https://owensolis03.github.io/Space_Apps_2026_Analogos_Luna_Marte/` and under a custom domain at the root.
+The app is static: `app/` builds to `app/dist`, which already contains `data/analogs_universe.json`. It is hosted in production on Firebase Hosting at `https://prototerra.web.app`. Source repository: `https://github.com/OwenSolis03/prototerra`.
 
 The workflow is [`.github/workflows/pages.yml`](../.github/workflows/pages.yml): it installs, type-checks and builds the app, then publishes it. It runs on every push to `main` and can be run by hand.
 
@@ -16,7 +16,7 @@ GitHub refuses to let a token without the `workflow` permission create or change
 1. Get the code into `main` (merge the pull request). The workflow only runs from `main`, because the `github-pages` environment accepts deployments from the default branch.
 2. In the repository: **Settings > Pages > Build and deployment > Source: GitHub Actions**. One time only.
 3. Open the **Actions** tab. If the workflow did not start, choose "Deploy app to GitHub Pages" and **Run workflow**. A green run ends with the page URL.
-4. Open `https://owensolis03.github.io/Space_Apps_2026_Analogos_Luna_Marte/` from a phone on mobile data, not from the venue Wi-Fi, and check: the map loads, the Moon and Mars buttons work, a slider reorders the list, and the site sheet opens.
+4. Open `https://prototerra.web.app/#/` from a phone on mobile data, not from the venue Wi-Fi, and check: the map loads, the Moon and Mars buttons work, a slider reorders the list, and the site sheet opens.
 
 To update the live app: push to `main`. To update only the data: replace `app/public/data/analogs_universe.json` and push.
 

@@ -18,7 +18,7 @@
 
 <p align="center">
   <a href="https://prototerra.web.app/#/"><img src="https://img.shields.io/badge/Live_App-prototerra.web.app-10b981?style=for-the-badge&logo=firebase&logoColor=white" alt="Live App"></a>
-  <a href="https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte"><img src="https://img.shields.io/badge/GitHub-Repository-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo"></a>
+  <a href="https://github.com/OwenSolis03/prototerra"><img src="https://img.shields.io/badge/GitHub-Repository-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo"></a>
   <a href="https://www.spaceappschallenge.org/"><img src="https://img.shields.io/badge/NASA_Space_Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA Space Apps"></a>
   <a href="#high-performance-supercomputing-acarus--yuca"><img src="https://img.shields.io/badge/Supercomputing-ACARUS_Yuca_HPC-6b21a8?style=for-the-badge" alt="Yuca HPC"></a>
   <a href="#the-crew--acknowledgments"><img src="https://img.shields.io/badge/Team-Endurance_CXXV-ff8500?style=for-the-badge" alt="Team Endurance CXXV"></a>
@@ -353,8 +353,8 @@ PROTOTERRA combines modern reactive web technologies, high-performance supercomp
 
 ```bash
 # Clone the repository
-git clone https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte.git
-cd Space_Apps_2026_Analogos_Luna_Marte/app
+git clone https://github.com/OwenSolis03/prototerra.git
+cd prototerra/app
 
 # Install dependencies
 npm install
@@ -411,7 +411,7 @@ In compliance with NASA Space Apps Challenge regulations, AI usage in PROTOTERRA
 ## Repository Structure
 
 ```text
-Space_Apps_2026_Analogos_Luna_Marte/
+prototerra/
 ├── app/                          # Official Vue 3 + Vite web application
 │   ├── public/                   # Static assets, analogs_universe.json, icons
 │   ├── src/                      # TypeScript components, views, algorithms, styles
