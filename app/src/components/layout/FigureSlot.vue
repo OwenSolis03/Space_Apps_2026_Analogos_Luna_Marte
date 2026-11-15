@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// A figure from the analysis. Shown in grayscale when the image exists; otherwise a pending frame.
+// A figure from the analysis. Shown in full scientific color when the image exists; otherwise a pending frame.
 import RFrame from "@/components/reticula/RFrame.vue";
 
 const props = defineProps<{
@@ -32,6 +32,6 @@ const url = (src: string) => `${import.meta.env.BASE_URL}${src}`;
   width: 100%;
   height: auto;
   border: var(--stroke-hairline) solid var(--line);
-  filter: grayscale(1) contrast(1.05);
+  display: block;
 }
 </style>
