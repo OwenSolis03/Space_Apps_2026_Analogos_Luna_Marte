@@ -14,7 +14,7 @@
 
 # Packages & deliverables
 output.zip
-PROTOTERRA*
+/PROTOTERRA*
 *.zip
 *.tar
 *.tar.gz
