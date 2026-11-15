@@ -1,7 +1,11 @@
 # PROTOTERRA: Planetary Analog Finder for the Moon and Mars
 
 <p align="center">
-  <img src="app/public/og-image.png" alt="PROTOTERRA Banner" width="850" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/prototerra-logo-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/prototerra-logo-light.svg">
+    <img alt="PROTOTERRA Official Logo" src="docs/images/prototerra-logo-dark.svg" width="460">
+  </picture>
 </p>
 
 <p align="center">
