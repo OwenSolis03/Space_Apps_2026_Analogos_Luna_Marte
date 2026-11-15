@@ -115,10 +115,13 @@ const share = (d: Dimension) =>
       <p v-if="presetText" class="body">{{ presetText }}</p>
     </fieldset>
 
+    <div class="scenario__body">
     <fieldset class="group">
       <legend class="label group__legend">Weights by dimension</legend>
       <p class="body">{{ CONTROL_EXPLANATION.weightsShare }}</p>
-      <div v-for="d in DIMENSIONS" :key="d" class="control" :class="{ 'is-off': !available.has(d) }">
+      <div class="weights">
+      <template v-for="d in DIMENSIONS" :key="d">
+      <div class="control control--cell" :class="{ 'is-off': !available.has(d) }">
         <div class="control__row">
           <div class="control__label">
             <label :for="`w-${d}`" :title="dimInfo[d]?.description" class="label">
@@ -141,10 +144,14 @@ const share = (d: Dimension) =>
           @input="emit('weight', d, Number(($event.target as HTMLInputElement).value) / 100)"
         />
         <span v-if="!available.has(d)" class="tm-tag tm-tag--outline pending">NOT MODELLED FOR {{ bodyName.toUpperCase() }}</span>
-        <InfoPanel :id="`dim-${d}`" :title="DIM_LABEL[d].label" :open="open.has(`dim-${d}`)" :explanation="DIM_EXPLANATION[d]" />
+      </div>
+      <!-- The explanation spans the whole row, so an open panel never squeezes the columns. -->
+      <InfoPanel class="weights__panel" :id="`dim-${d}`" :title="DIM_LABEL[d].label" :open="open.has(`dim-${d}`)" :explanation="DIM_EXPLANATION[d]" />
+      </template>
       </div>
     </fieldset>
 
+    <div class="filters">
     <div class="control">
       <div class="control__row">
         <div class="control__label">
@@ -214,6 +221,8 @@ const share = (d: Dimension) =>
         />
       </div>
     </fieldset>
+    </div>
+    </div>
   </aside>
 </template>
 
@@ -225,6 +234,43 @@ const share = (d: Dimension) =>
   padding: var(--space-4);
   background: var(--surface-raised);
   border: var(--stroke-hairline) solid var(--line-faint);
+}
+
+.scenario__body {
+  display: grid;
+  gap: var(--space-6);
+
+  @media (min-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
+    align-items: start;
+  }
+}
+
+.weights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4) var(--space-5);
+}
+
+.weights__panel {
+  grid-column: 1 / -1;
+}
+
+.control--cell {
+  align-content: start;
+  padding-top: var(--space-3);
+  border-top: var(--stroke-hairline) solid var(--line-faint);
+}
+
+.filters {
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+
+  @media (min-width: 1024px) {
+    padding-left: var(--space-5);
+    border-left: var(--stroke-hairline) solid var(--line-faint);
+  }
 }
 
 .scenario__head {

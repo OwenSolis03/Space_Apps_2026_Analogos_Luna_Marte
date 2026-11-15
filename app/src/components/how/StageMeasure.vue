@@ -34,12 +34,12 @@ onBeforeUnmount(() => scope?.revert());
 
 <template>
   <div ref="root" class="measure">
-    <svg viewBox="0 0 480 300" class="measure__svg" role="img" aria-label="A terrain profile and six footprint bars labelled with the six terrain features">
+    <svg viewBox="-80 0 560 440" class="measure__svg" role="img" aria-label="A terrain profile and six footprint bars labelled with the six terrain features">
       <line x1="0" y1="160" x2="480" y2="160" class="measure__ground" />
       <path :d="profile" class="profile" fill="none" />
       <g v-for="(h, i) in HEIGHTS" :key="i" :transform="`translate(${i * 80 + 20} 0)`">
         <rect class="footprint-bar" x="0" :y="250 - h" width="40" :height="h" />
-        <text class="label footprint-name" x="0" y="278">{{ names[i] }}</text>
+        <text class="label footprint-name" x="40" y="266" text-anchor="end" transform="rotate(-62 40 266)">{{ names[i] }}</text>
       </g>
     </svg>
   </div>

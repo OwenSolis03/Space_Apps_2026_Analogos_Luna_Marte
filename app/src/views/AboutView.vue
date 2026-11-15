@@ -3,12 +3,11 @@
 import PageHero from "@/components/layout/PageHero.vue";
 import SectionBlock from "@/components/layout/SectionBlock.vue";
 import RButton from "@/components/reticula/RButton.vue";
-import RFrame from "@/components/reticula/RFrame.vue";
 import RGlyph from "@/components/reticula/RGlyph.vue";
 import RPanel from "@/components/reticula/RPanel.vue";
 import RTag from "@/components/reticula/RTag.vue";
 import { ACKNOWLEDGEMENTS, CREW, STORY, STORY_CLOSING, TRACK_RECORD } from "@/content/about";
-import imagotipo from "@/assets/Imagotipo.svg";
+import isotipo from "@/assets/Isotipo.svg";
 </script>
 
 <template>
@@ -16,7 +15,7 @@ import imagotipo from "@/assets/Imagotipo.svg";
     <PageHero code="SEC.06" title="ENDURANCE CXXV" subtitle="FROM DATA TO ACTION">
       <template #aside>
         <div class="logo">
-          <img :src="imagotipo" alt="Endurance CXXV logo" width="320" />
+          <img :src="isotipo" alt="Endurance CXXV logo" width="280" />
         </div>
       </template>
     </PageHero>
@@ -38,7 +37,7 @@ import imagotipo from "@/assets/Imagotipo.svg";
       </ol>
     </SectionBlock>
 
-    <SectionBlock id="members" code="SEC.06" title="CREW" subtitle="EIGHT STUDENTS">
+    <SectionBlock id="members" code="SEC.06" title="CREW" subtitle="SIX STUDENTS">
       <ul class="crew">
         <li v-for="(m, i) in CREW" :key="i" class="crew__item">
           <template v-if="m.photo">
@@ -56,9 +55,6 @@ import imagotipo from "@/assets/Imagotipo.svg";
             >
               LINKEDIN <RGlyph name="chevron-right" :size="14" />
             </a>
-          </template>
-          <template v-else>
-            <RFrame ratio="1 / 1" :caption="`CREW.0${i + 1} · [PENDING]`" label="Pending crew member" />
           </template>
         </li>
       </ul>
@@ -84,7 +80,7 @@ import imagotipo from "@/assets/Imagotipo.svg";
 
   img {
     width: 100%;
-    max-width: 320px;
+    max-width: 280px;
     height: auto;
   }
 }
@@ -163,7 +159,6 @@ import imagotipo from "@/assets/Imagotipo.svg";
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: grayscale(1) contrast(1.05);
 }
 
 .crew__code {

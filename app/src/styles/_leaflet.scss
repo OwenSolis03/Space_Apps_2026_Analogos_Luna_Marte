@@ -1,4 +1,4 @@
-// Leaflet theming in RETÍCULA. Map tiles are grayscale (exception 2 in _tokens.scss).
+// Leaflet theming in RETÍCULA. Map tiles keep their colours (exception 2 in _tokens.scss).
 // Markers: targets are signal-filled, Earth analogs are white; the selected marker turns ink and grows.
 
 .leaflet-container {
@@ -6,10 +6,6 @@
   background: var(--surface);
   color: var(--ink);
   outline: none;
-}
-
-.leaflet-tile-pane {
-  filter: grayscale(1) contrast(1.05);
 }
 
 .leaflet-bar {

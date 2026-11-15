@@ -23,12 +23,11 @@ export interface TrackRecord {
 
 export const TRACK_RECORD: TrackRecord[] = [
   { year: "2024", event: "NASA Space Apps Challenge 2024" },
-  { year: "2025", event: "Summer of Research 2025 — Universidad de Guadalajara" },
   { year: "2025", event: "NASA Space Apps Challenge 2025" },
   { year: "2026", event: "TE AI Cup 2026", award: "1ST PLACE · INTERNATIONAL", tone: "signal" },
   { year: "2026", event: "SmartCity Hackathon 2026", award: "PEOPLE'S CHOICE", tone: "signal" },
   { year: "2026", event: "Health Systems Innovation Lab Hackathon 2026", award: "3RD PLACE", tone: "signal" },
-  { year: "2026", event: "NASA Space Apps Challenge 2026", award: "IN PROGRESS", tone: "outline" },
+  { year: "2026", event: "NASA Space Apps Challenge 2026", award: "CURRENTLY PARTICIPATING", tone: "outline" },
 ];
 
 export interface Member {
@@ -37,7 +36,7 @@ export interface Member {
   linkedin?: string;
 }
 
-/** Eight crew slots. Two are still pending: add a member by adding an object here. */
+/** Crew of this project. Add a member by adding an object here. */
 export const CREW: Member[] = [
   { name: "Ángel Fernando Bórquez Guerrero", photo: fernando, linkedin: "https://www.linkedin.com/in/fernandoborquez/" },
   { name: "Elías Peregrina Cázares", photo: elias, linkedin: "https://www.linkedin.com/in/el%C3%ADas-peregrina-c%C3%A1zares-4886503a7/" },
@@ -45,8 +44,6 @@ export const CREW: Member[] = [
   { name: "Flor María Machado Félix", photo: flor, linkedin: "https://www.linkedin.com/in/flor-maria-machado-felix-a318633a8/" },
   { name: "Javier Leonardo Miranda Sánchez", photo: javier, linkedin: "https://www.linkedin.com/in/javier-miranda-sanchez-201aa1383/" },
   { name: "Owen Adiel Solis Zatarain", photo: owen, linkedin: "https://www.linkedin.com/in/owen-solis/" },
-  { name: "" },
-  { name: "" },
 ];
 
 export const ACKNOWLEDGEMENTS =

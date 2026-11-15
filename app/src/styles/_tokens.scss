@@ -4,8 +4,8 @@
 // Intentional exceptions to the design system (approved; see docs/plan_t18_website.md §2.4):
 // 1. Motion. The solar system (Home) and How It Works use anime.js for ambient loops and one-off
 //    intros. They are disabled under prefers-reduced-motion. Interface state changes stay instant.
-// 2. Photography. The About page shows team portraits in grayscale, square crop, 1px --line frame and
-//    chamfer. Leaflet map tiles are grayscale as well.
+// 2. Photography and maps. The About page shows team portraits in colour, square crop, 1px --line frame
+//    and chamfer. Leaflet map tiles keep their original colours.
 // 3. Long text. The .prose class (Challenge, Algorithm, Data) uses Roboto 16/26px, --ink, max 64ch.
 // 4. Language. The site is written in English; the design system examples are in Spanish.
 

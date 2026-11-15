@@ -127,63 +127,6 @@ async function openFromTable(id: string, targetBody: Body) {
 
     <template v-if="universe">
       <SectionBlock
-        id="headline"
-        code="SEC.01"
-        title="BEST ANALOG PER MISSION SITE"
-        subtitle="ONE ROW PER CURATED TARGET · MSI FOR THE SELECTED PRESET"
-      >
-        <div class="chips" role="group" aria-label="Mission preset for this table">
-          <button
-            v-for="[id, p] in presets"
-            :key="id"
-            type="button"
-            class="tm-chip"
-            :aria-pressed="tablePreset === id"
-            @click="tablePreset = id"
-          >
-            {{ p.label }}
-          </button>
-        </div>
-
-        <DataTable caption="Best Earth analog for each curated Moon and Mars target, for the selected preset">
-          <thead>
-            <tr>
-              <th class="label" scope="col">SITE</th>
-              <th class="label" scope="col">BODY</th>
-              <th class="label" scope="col">CATEGORY</th>
-              <th class="label" scope="col">BEST ANALOG</th>
-              <th class="label num" scope="col">MSI</th>
-              <th class="label" scope="col">STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="p in picks" :key="p.target.id">
-              <td>
-                <button type="button" class="row-link tm-focusable" @click="openFromTable(p.target.id, p.target.body)">
-                  {{ p.target.name }}
-                </button>
-              </td>
-              <td class="label">{{ p.target.body.toUpperCase() }}</td>
-              <td>{{ p.target.category ?? "" }}</td>
-              <td>
-                <template v-if="p.analog">
-                  {{ p.analog.known_region ?? p.analog.country ?? "Copernicus DEM cell" }}
-                  <span class="num footnote block">{{ fmtLat(p.analog.lat) }}, {{ fmtLon(p.analog.lon) }}</span>
-                </template>
-                <span v-else class="footnote">NOT MODELLED FOR THIS PRESET</span>
-              </td>
-              <td class="num">{{ p.msi != null ? pct(p.msi) : "n/a" }}</td>
-              <td>
-                <RTag v-if="p.analog && p.analog.classification === 'NEW_CANDIDATE'" tone="signal" bracket>NEW CANDIDATE</RTag>
-                <RTag v-else-if="p.analog" tone="outline" bracket>KNOWN ANALOG</RTag>
-                <RTag v-else tone="outline" bracket>NOT MODELLED</RTag>
-              </td>
-            </tr>
-          </tbody>
-        </DataTable>
-      </SectionBlock>
-
-      <SectionBlock
         id="explorer"
         code="SEC.01"
         title="EXPLORER"
@@ -256,6 +199,63 @@ async function openFromTable(id: string, targetBody: Body) {
           @analog="setAnalogIndex"
         />
         <p v-else class="body">SELECT A TARGET IN THE RANKING OR ON THE MAP TO SEE ITS SHEET.</p>
+      </SectionBlock>
+
+      <SectionBlock
+        id="headline"
+        code="SEC.01"
+        title="BEST ANALOG PER MISSION SITE"
+        subtitle="ONE ROW PER CURATED TARGET · MSI FOR THE SELECTED PRESET"
+      >
+        <div class="chips" role="group" aria-label="Mission preset for this table">
+          <button
+            v-for="[id, p] in presets"
+            :key="id"
+            type="button"
+            class="tm-chip"
+            :aria-pressed="tablePreset === id"
+            @click="tablePreset = id"
+          >
+            {{ p.label }}
+          </button>
+        </div>
+
+        <DataTable caption="Best Earth analog for each curated Moon and Mars target, for the selected preset">
+          <thead>
+            <tr>
+              <th class="label" scope="col">SITE</th>
+              <th class="label" scope="col">BODY</th>
+              <th class="label" scope="col">CATEGORY</th>
+              <th class="label" scope="col">BEST ANALOG</th>
+              <th class="label num" scope="col">MSI</th>
+              <th class="label" scope="col">STATUS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="p in picks" :key="p.target.id">
+              <td>
+                <button type="button" class="row-link tm-focusable" @click="openFromTable(p.target.id, p.target.body)">
+                  {{ p.target.name }}
+                </button>
+              </td>
+              <td class="label">{{ p.target.body.toUpperCase() }}</td>
+              <td>{{ p.target.category ?? "" }}</td>
+              <td>
+                <template v-if="p.analog">
+                  {{ p.analog.known_region ?? p.analog.country ?? "Copernicus DEM cell" }}
+                  <span class="num footnote block">{{ fmtLat(p.analog.lat) }}, {{ fmtLon(p.analog.lon) }}</span>
+                </template>
+                <span v-else class="footnote">NOT MODELLED FOR THIS PRESET</span>
+              </td>
+              <td class="num">{{ p.msi != null ? pct(p.msi) : "n/a" }}</td>
+              <td>
+                <RTag v-if="p.analog && p.analog.classification === 'NEW_CANDIDATE'" tone="signal" bracket>NEW CANDIDATE</RTag>
+                <RTag v-else-if="p.analog" tone="outline" bracket>KNOWN ANALOG</RTag>
+                <RTag v-else tone="outline" bracket>NOT MODELLED</RTag>
+              </td>
+            </tr>
+          </tbody>
+        </DataTable>
       </SectionBlock>
 
       <SectionBlock id="overview" code="SEC.01" title="THE BIG PICTURE" subtitle="THREE VIEWS OF THE WHOLE RUN">
@@ -364,13 +364,13 @@ async function openFromTable(id: string, targetBody: Body) {
   gap: var(--space-4);
   align-items: start;
 
-  @media (min-width: 768px) {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  @media (min-width: 1024px) {
+    grid-template-columns: minmax(0, 1fr) 22rem;
   }
+}
 
-  @media (min-width: 1280px) {
-    grid-template-columns: 20rem minmax(0, 1fr) 20rem;
-  }
+.explorer__scenario {
+  grid-column: 1 / -1;
 }
 
 .explorer__maps {
@@ -380,11 +380,7 @@ async function openFromTable(id: string, targetBody: Body) {
   align-content: start;
 }
 
-.explorer__rank {
-  @media (min-width: 768px) and (max-width: 1279px) {
-    grid-column: 1 / -1;
-  }
-}
+
 
 .overview {
   display: grid;

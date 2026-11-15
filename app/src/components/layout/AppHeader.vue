@@ -1,11 +1,10 @@
 <script setup lang="ts">
-// Sticky header: project placeholder logo, six section links, and the Isotipo mark.
+// Sticky header: project placeholder logo and the six section links.
 import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import RGlyph from "@/components/reticula/RGlyph.vue";
 import RIconButton from "@/components/reticula/RIconButton.vue";
 import { NAV_SECTIONS, PROJECT_NAME } from "@/content/sections";
-import isotipo from "@/assets/Isotipo.svg";
 
 const route = useRoute();
 const open = ref(false);
@@ -47,7 +46,6 @@ const current = computed(() => route.name);
         :pressed="open"
         @click="open = !open"
       />
-      <img class="app-header__iso" :src="isotipo" alt="" width="32" height="32" />
     </div>
   </header>
 </template>
@@ -129,10 +127,6 @@ const current = computed(() => route.name);
   display: inline-flex;
 }
 
-.app-header__iso {
-  width: 32px;
-  height: 32px;
-}
 
 @media (min-width: 900px) {
   .app-header__nav {
