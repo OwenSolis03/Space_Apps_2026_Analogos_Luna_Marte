@@ -1,4 +1,4 @@
-"""Converts output/analogs.json (v1) to the v2 app schema.
+"""Converts legacy_v1/output/analogs.json (v1) to the v2 app schema.
 
 Serves as a transition bridge: sub_scores are computed with an interim RBF
 kernel over the four metrics available in v1 (mean slope, P90 slope, elevation sigma,
@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "output" / "analogs.json"
+SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "legacy_v1" / "output" / "analogs.json"
 DST = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "app" / "public" / "data" / "sample.json"
 
 # v1 metric -> (v2 feature name, dimension, relative sigma, absolute floor)
@@ -71,7 +71,7 @@ def rbf(t: float, e: float, rel: float, floor: float) -> float:
 
 
 def main() -> None:
-    """Read v1 output/analogs.json, compute sub-scores and MSI presets, and write sample.json."""
+    """Read v1 legacy_v1/output/analogs.json, compute sub-scores and MSI presets, and write sample.json."""
     v1 = json.loads(SRC.read_text(encoding="utf-8"))
     targets = []
     for body, clusters in v1["targets"].items():
@@ -142,7 +142,7 @@ def main() -> None:
         "metadata": {
             "version": "2.0.0-sample",
             "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-            "source": "output/analogs.json (v1) converted with tools/v1_to_sample.py",
+            "source": "legacy_v1/output/analogs.json (v1) converted with tools/v1_to_sample.py",
             "slurm_job_id": None,
             "earth_patches_evaluated": v1.get("earth_sites_evaluated"),
             "datasets": [

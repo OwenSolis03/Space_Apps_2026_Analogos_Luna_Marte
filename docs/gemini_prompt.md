@@ -50,7 +50,7 @@ HOW TO WORK
 - In the same commit, add an entry at the top of docs/logbook.md (in English): date, what was done, why, what is
   left, and that the code was written by Gemini from Claude's plan. If you change data, runs or the pipeline,
   also update docs/pipeline.md and the table in docs/handoff.md.
-- Do not delete or rewrite the v1 scripts in the repo root (process_analogs.py, match_earth_analogs.py,
+- Do not delete or rewrite the v1 scripts in legacy_v1/ (process_analogs.py, match_earth_analogs.py,
   enrich_nomenclature.py) and do NOT import them: they have no `if __name__ == "__main__"` guard and importing
   them runs them and rewrites files in /lustre/proyectos/p089/output/.
 - New code goes in pipeline/, jobs/ and tests/; the app in app/.

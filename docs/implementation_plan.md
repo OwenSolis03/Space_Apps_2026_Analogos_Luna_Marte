@@ -11,7 +11,7 @@ Read first: [pipeline.md](pipeline.md) (data, scales and Yuca resources) and [HI
 ## 0. Rules for whoever implements
 
 1. **One task, one commit.** The message says which task it is. Until 2026-11-13 messages were in Spanish (`T3: features globales de Marte y Luna`); **since then they are in English** (`T7: RBF matching and MSI presets`). Add an entry to [logbook.md](logbook.md) in the same commit. The English history is in [HISTORY.md](HISTORY.md).
-2. **Do not delete v1.** The root scripts (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) stay as reference, and they must not be imported. New code goes in `pipeline/`.
+2. **Do not delete v1.** The scripts in `legacy_v1/` (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) stay as reference, and they must not be imported. New code goes in `pipeline/`.
 3. **Nothing heavy in the repo.** Rasters, parquet files and shards stay on Yuca (`/lustre/proyectos/p089/...`). Only the final app JSON (`app/public/data/`) is committed, and only if it is under 20 MB.
 4. **Yuca rules (mandatory):**
    - Anything that takes more than a minute runs with `sbatch`. Never `nohup`, `&` or long `python` on the login node.
@@ -121,8 +121,8 @@ Commands in section 7.
 
 | ID | What | Job | Status |
 | --- | --- | --- | --- |
-| T0.1 | THEMIS Night, LROC WAC, lunar ice, the rest of Copernicus | `run_download_missing.slurm` | Done (job 2242198): 26,475 tiles, 0 failures |
-| T0.2 | Natural Earth (roads, airports, countries) and MODIS NDVI and LST 2023 | `run_download_extra.slurm` | Done (job 2242203) |
+| T0.1 | THEMIS Night, LROC WAC, lunar ice, the rest of Copernicus | `jobs/download_missing.slurm` | Done (job 2242198): 26,475 tiles, 0 failures |
+| T0.2 | Natural Earth (roads, airports, countries) and MODIS NDVI and LST 2023 | `jobs/download_extra.slurm` | Done (job 2242203) |
 | T0.3 | Diviner Polar Resource Product (south): `dlre_prp_south.tab` (604,800,210 bytes) + `.lbl` + `.xml` | `jobs/download_diviner.slurm` | Done. Source: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
 | T0.4 | Copernicus virtual mosaic | Inside T5 | `data/derived/copernicus_90m.vrt`, with the sea masked ([plan_t5.md](plan_t5.md)) |
 
@@ -505,11 +505,11 @@ cd /lustre/proyectos/p089/code && git pull
 Test without queueing, then submit (always from `code/`):
 
 ```bash
-cd /lustre/proyectos/p089/code && sbatch --test-only run_download_missing.slurm && sbatch --test-only run_download_extra.slurm
+cd /lustre/proyectos/p089/code && sbatch --test-only jobs/download_missing.slurm && sbatch --test-only jobs/download_extra.slurm
 ```
 
 ```bash
-cd /lustre/proyectos/p089/code && sbatch run_download_missing.slurm && sbatch run_download_extra.slurm
+cd /lustre/proyectos/p089/code && sbatch jobs/download_missing.slurm && sbatch jobs/download_extra.slurm
 ```
 
 MODIS needs a free account at https://urs.earthdata.nasa.gov and a `~/.netrc` file on Yuca created **by hand** (the password must never go through an agent):

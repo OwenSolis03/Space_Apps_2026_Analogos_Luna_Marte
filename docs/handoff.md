@@ -19,7 +19,7 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 
 | Task | Main files | Status | Evidence |
 | --- | --- | --- | --- |
-| **T0** data | `run_download_missing.slurm`, `run_download_extra.slurm`, `jobs/download_diviner.slurm` | **Done** | See below |
+| **T0** data | `jobs/download_missing.slurm`, `jobs/download_extra.slurm`, `jobs/download_diviner.slurm` | **Done** | See below |
 | **T1** patch extraction | `pipeline/config.py`, `pipeline/geo.py`, `tests/test_geo.py` | **Done** (`ac743ce`, adjusted in `920f812`, `bcf10de`; polar branch in `115e0c3`) | Local AEQD 64 × 64 patch at 500 m/px; `scale`/`offset` applied after masking nodata |
 | **T2** features | `pipeline/features.py`, `tests/test_features.py` | **Done** (`a661bb7`, `920f812`) | 7 float32 features |
 | **T3** Mars and Moon sweep | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm` | **Done and run** (`19e3899`…`57f4f36`) | Jobs 2242278 (array 0–15) and 2242279 (merge): 140,916 Mars patches and 36,741 Moon patches. Visual check passed |
@@ -128,7 +128,7 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 ## 4. Operational notes
 
 1. **`sbatch --wrap` runs under `/bin/sh`,** where `conda activate spaceapps_2026` fails with exit code 2. Use `.slurm` scripts with `#!/usr/bin/env bash`, or `--wrap 'bash -c "..."'`.
-2. **Do not touch or import the v1 scripts** in the repo root (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`). They have no `__main__` guard. Leave the pre-existing untracked file `documentaci_n_t_cnica_del_pipeline_de_an_logos_planetarios.md` alone.
+2. **Do not touch or import the v1 scripts** in `legacy_v1/` (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`). They have no `__main__` guard.
 3. **Cluster rules:**
    - `-A p089`, `-p cpu`, `--time`, `--mem`;
    - logs in `/lustre/proyectos/p089/output/`;

@@ -24,7 +24,7 @@ T7/T8/T15/T16: match.py, export.py ───┴─► runs/2242506/analogs_unive
 
 **Run directories:** each run writes to a new `runs/<jobid>/`. The one exception is T5: its three stages (prepare, array, merge) share the directory of the prepare job (e.g., jobs `2242438`–`2242440` write into `runs/2242438/`, `plan_t5.md` §2).
 
-### v1 prototype (repo root, kept as reference)
+### v1 prototype (`legacy_v1/`, kept as reference)
 
 ```text
 setup_and_download.sh ──┐
@@ -125,7 +125,7 @@ Assigns each archetype the nearest IAU feature and the nearest major feature (�
 
 ## Recorded runs
 
-Logs in `/lustre/proyectos/p089/output/` (v2) and `logs/slurm/` (v1).
+Logs in `/lustre/proyectos/p089/output/` (v2) and `legacy_v1/logs/slurm/` (v1).
 
 | Job | Script | Result |
 | --- | --- | --- |
@@ -213,14 +213,14 @@ In practice the resources belong to the team. `qos089` limits are **500 CPUs and
 On Yuca, with the `spaceapps_2026` environment:
 
 ```bash
-bash setup_and_download.sh
+bash legacy_v1/setup_and_download.sh
 ```
 
 ```bash
-sbatch run_download_missing.slurm
+sbatch jobs/download_missing.slurm
 ```
 
-`run_download_missing.slurm` replaces `download_full_night.sh`: it runs as a job (not on the login node) and uses the corrected URLs.
+`jobs/download_missing.slurm` replaces `legacy_v1/download_full_night.sh`: it runs as a job (not on the login node) and uses the corrected URLs.
 
 Project quota and usage:
 
@@ -231,15 +231,15 @@ lfs quota -h -g p089 /lustre
 The v1 steps, kept for reference:
 
 ```bash
-sbatch run_clustering.slurm
+sbatch legacy_v1/run_clustering.slurm
 ```
 
 ```bash
-python3 enrich_nomenclature.py
+python3 legacy_v1/enrich_nomenclature.py
 ```
 
 ```bash
-sbatch run_earth_matching.slurm
+sbatch legacy_v1/run_earth_matching.slurm
 ```
 
 The v2 commands are in each task plan and in the README.

@@ -97,15 +97,16 @@ The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](
 | --- | --- |
 | `pipeline/` | v2 pipeline: patch extraction (`geo.py`), features (`features.py`), Mars/Moon sweep (`planet_features.py`), targets (`targets.py`, `iau.py`), Earth layers (`earth_layers.py`), Earth sweep (`earth_features.py`) |
 | `pipeline/data/` | Hand-written definitions: curated targets, known analog regions, physical limits |
-| `jobs/` | Slurm jobs for each task |
+| `jobs/` | Slurm jobs: the data downloads and one per task |
 | `tests/` | Synthetic unit tests |
 | `app/` | Web app (React, Vite, TypeScript, Tailwind, Leaflet) |
-| `tools/` | Dataset explorer and the v1-to-v2 sample converter |
+| `tools/` | Data downloaders (`download_*.py`), dataset explorer, T16 verifier, weight sensitivity test and the v1-to-v2 sample converter |
 | `docs/` | Documentation (see below) |
-| Root `*.py`, `*.sh`, `*.slurm` | v1 prototype and the download jobs, kept as reference |
-| `output/`, `logs/` | v1 outputs and logs |
+| `legacy_v1/` | v1 prototype (scripts, Slurm jobs, outputs and logs), kept as reference and never imported |
 
 ## Documentation
+
+Full index with what each document is for: [docs/README.md](docs/README.md).
 
 | File | What it covers |
 | --- | --- |

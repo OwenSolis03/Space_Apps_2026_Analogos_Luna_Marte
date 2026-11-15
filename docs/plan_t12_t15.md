@@ -122,7 +122,7 @@ Implementation order: **downloads → T14 and T13 (in parallel) → T12 → T15.
 | Mars dust (kriged, all years) | `https://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2/krigedcdod_v2.tar.gz` | `mars/dust_montabone/` (untar) |
 | Earth AOD | `earthaccess.search_data(short_name="MOD08_M3", version="061", temporal=("2019-01-01","2023-12-31"))` → 60 files | `earth/modis/aod/` |
 
-- **MOD08_M3 step:** a small new script, `download_aod.py` in the repo root next to `download_earthdata.py`, run inside the same job. Check the granule count (expected 60) and fail if it is lower.
+- **MOD08_M3 step:** a small new script, `download_aod.py` next to `download_earthdata.py` (both now in `tools/`), run inside the same job. Check the granule count (expected 60) and fail if it is lower.
 - **Disk:** about 4–5 GB in total, well within the 18 TB quota.
 
 ---

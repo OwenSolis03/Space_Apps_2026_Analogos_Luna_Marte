@@ -18,7 +18,7 @@
 set -euo pipefail
 
 PROJECT_DIR="/lustre/proyectos/p089"
-# Folder containing download_earthdata.py: submission directory (repo clone).
+# Repo clone (the submission directory); the downloader is tools/download_earthdata.py.
 CODE_DIR="${CODE_DIR:-${SLURM_SUBMIT_DIR:-$PROJECT_DIR/code}}"
 RAW_EARTH="$PROJECT_DIR/data/raw/earth"
 mkdir -p "$RAW_EARTH/naturalearth" "$RAW_EARTH/modis"
@@ -40,7 +40,7 @@ done
 echo "[2/2] MODIS NDVI and LST (Earthdata)"
 if [ -f "$HOME/.netrc" ]; then
   python -c "import earthaccess" 2>/dev/null || pip install --quiet earthaccess
-  python "$CODE_DIR/download_earthdata.py" --out-dir "$RAW_EARTH/modis" --year 2023 || echo "[WARN] MODIS failed"
+  python "$CODE_DIR/tools/download_earthdata.py" --out-dir "$RAW_EARTH/modis" --year 2023 || echo "[WARN] MODIS failed"
 else
   echo "[SKIP] ~/.netrc not found; configure Earthdata credentials in ~/.netrc and resubmit."
 fi

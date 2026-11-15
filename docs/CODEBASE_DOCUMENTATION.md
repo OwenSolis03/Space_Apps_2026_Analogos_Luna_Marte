@@ -142,9 +142,6 @@ Space_Apps_2026_Analogos_Luna_Marte/
 │   ├── match.py                     # Multidimensional Similarity Index (MSI) engine
 │   ├── planet_features.py           # Global planetary quasi-equiareal grid processor
 │   └── targets.py                   # Curated exploration targets & K-Means clustering
-├── scripts/                         # HPC batch execution scripts (Slurm/PBS)
-│   ├── run_earth_stripes.sh         # Distributed Slurm stripe array for GLO-90
-│   └── run_mars_grid.sh             # Slurm script for planetary MOLA extraction
 ├── tests/                           # Complete pytest unit and integration test suite
 │   ├── __init__.py                  # Test package initialization
 │   ├── test_dust.py                 # Tests for optical depth and dust seasonality
@@ -162,12 +159,14 @@ Space_Apps_2026_Analogos_Luna_Marte/
 ├── tools/                           # Standalone data conversion and diagnostic utilities
 │   ├── explore_datasets.py          # Multimodal dataset inspector (HTML/JSON/MD)
 │   ├── v1_to_sample.py              # Converter from v1 pipeline outputs to sample data
-│   └── verify_t16.py                # Mathematical verifier for T16 missing data logic
-├── download_aod.py                  # NASA Earthdata downloader for MOD08_M3 Deep Blue
-├── download_earthdata.py            # Earthaccess downloader for MODIS NDVI & LST
-├── enrich_nomenclature.py           # Feature enrichment via IAU Gazetteer shapefiles
-├── match_earth_analogs.py           # v1 similarity matcher for Copernicus GLO-90
-└── process_analogs.py               # v1 MOLA/LOLA windowed extractor and clustering
+│   ├── verify_t16.py                # Mathematical verifier for T16 missing data logic
+│   └── legacy_v1/                       # v1 prototype, kept as reference and never imported
+    ├── process_analogs.py           # v1 MOLA/LOLA windowed extractor and clustering
+    ├── match_earth_analogs.py       # v1 similarity matcher for Copernicus GLO-90
+    ├── enrich_nomenclature.py       # Feature enrichment via IAU Gazetteer shapefiles
+    ├── *.slurm, *.sh                # v1 download and run scripts
+    ├── output/                      # v1 JSON outputs
+    └── logs/                        # v1 download and Slurm logs
 ```
 
 ---
@@ -370,18 +369,18 @@ from pipeline.export import export_to_json, validate_universe_schema
 
 ### 4.1 Data Acquisition Scripts (`download_earthdata.py`, `download_aod.py`)
 
-- **`download_earthdata.py`**:
+- **`tools/download_earthdata.py`**:
   Automates the search and concurrent download of MODIS Terra/Aqua Land Surface Temperature (`MOD11C3`) and Vegetation Indices (`MOD13C2`) via the NASA `earthaccess` Python library. Handles Earthdata Login authentication, spatial bounding box queries, and local cache validation.
-- **`download_aod.py`**:
+- **`tools/download_aod.py`**:
   Automates the download of MODIS Atmosphere Monthly Global Product (`MOD08_M3`) containing Deep Blue Aerosol Optical Depth (AOD) gridded rasters from the NASA LAADS DAAC archive.
 
 ### 4.2 Pipeline v1 Legacy & Transition Scripts
 
-- **`process_analogs.py`**:
+- **`legacy_v1/process_analogs.py`**:
   Initial v1 prototype for extracting windowed elevation patches from MOLA and LOLA global rasters and clustering planetary surfaces using `MiniBatchKMeans`.
-- **`match_earth_analogs.py`**:
+- **`legacy_v1/match_earth_analogs.py`**:
   v1 matching script that queries Copernicus GLO-90 DEM tiles and computes initial Euclidean distance rankings.
-- **`enrich_nomenclature.py`**:
+- **`legacy_v1/enrich_nomenclature.py`**:
   Extracts nomenclature attributes from ESRI Shapefile dBASE (`.dbf`) records and computes nearest IAU landmark proximities.
 
 ### 4.3 Verification & Tooling (`tools/`)

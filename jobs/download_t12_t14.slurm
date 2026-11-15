@@ -93,7 +93,7 @@ fi
 
 # 5. Earth MODIS MOD08_M3 monthly AOD (2019-2023, 60 granules)
 AOD_DIR="$RAW_DIR/earth/modis/aod"
-python "$CODE_DIR/download_aod.py" \
+python "$CODE_DIR/tools/download_aod.py" \
   --out-dir "$AOD_DIR" \
   --start "2019-01-01" \
   --end "2023-12-31" \
