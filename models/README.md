@@ -73,6 +73,15 @@ Where $\mathbf{w} = [w_1, \dots, w_7]$ represents the mission weight vector.
 
 ---
 
+### 5. Informative Orbital Mineralogy (`CONTEXT · NOT SCORED`)
+
+A rigorous scientific distinction is maintained between macroscopic lithology (which enters the MSI via categorical rock class compatibility) and orbital mineralogy:
+- **Planetary Spectra (Primary Silicates):** JAXA Kaguya MI (Moon) and MGS TES (Mars) observe **primary igneous rock-forming silicates** (plagioclase, olivine, clinopyroxene, orthopyroxene, FeO).
+- **Terrestrial Spectra (Secondary Alteration):** NASA EMIT L3 (Earth) measures **secondary aqueous alteration minerals** (phyllosilicates, clays, carbonates, sulfates).
+- **Methodological Boundary:** Directly computing an RBF or Mahalanobis distance between primary igneous minerals and aqueous weathering products would create false equivalence artifacts. PROTOTERRA isolates orbital mineralogy as an auditable contextual block (`CONTEXT · NOT SCORED`) displayed on the site sheet dossier alongside instrument caveats and sensor coverage limits.
+
+---
+
 ## Pre-Calibrated Mission Presets
 
 Defined in `scripts/pipeline/match.py` (`PRESETS`):

@@ -32,27 +32,37 @@ app/
 │   ├── data/
 │   │   └── analogs_universe.json # Pre-computed universe (76 targets, 5,010 analog pairs)
 │   ├── diagrams/                 # Interactive Archify system blueprints
-│   ├── figures/                  # Publication figures and planetary imagery
+│   ├── figures/                  # 10 High-resolution scientific EDA control maps
 │   └── favicon.ico               # Application favicon
 ├── src/
 │   ├── assets/                   # Local fonts, team portraits, and branding icons
 │   ├── components/               # Reusable RETÍCULA UI components
-│   │   ├── AnalogCard.vue        # Analog candidate inspection card & mismatch badges
-│   │   ├── AnalogMap.vue         # Interactive Leaflet map with candidate markers
-│   │   ├── MissionWeights.vue    # Interactive slider controls for the 7 MSI dimensions
-│   │   ├── PlanetSelector.vue    # Moon / Mars orbital selector
-│   │   └── TargetDetails.vue     # Geodetic metadata, literature anchors & limits
-│   ├── composables/              # Vue 3 reactive composables
-│   │   └── useUniverse.ts        # In-memory database, search index, and active state
+│   │   ├── explorer/             # Explorer & Site Sheet components
+│   │   │   ├── ScenarioPanel.vue # Preset picker, weight sliders, animated InfoButtons
+│   │   │   ├── SiteMap.vue       # Tactical Leaflet maps (selective opacity & beacon focus)
+│   │   │   ├── RankList.vue      # Filtered & sorted target list with MSI bars
+│   │   │   ├── SiteDossier.vue   # Deep site sheet: target vs. analog feature comparison
+│   │   │   ├── MineralogyPanel.vue # Orbital mineralogy context (Kaguya MI, TES, EMIT)
+│   │   │   ├── RadarChart.vue    # 7-Dimensional similarity radar profile
+│   │   │   ├── InfoButton.vue    # Rotating 45° (+) to (×) explanation toggle
+│   │   │   └── InfoPanel.vue     # Full-width explanation callout panels
+│   │   ├── charts/               # Reactive SVG data visualization components
+│   │   │   ├── BarChart.vue      # Top countries by unique analog candidate count
+│   │   │   ├── StripPlot.vue     # MSI distribution strip plot for Moon and Mars
+│   │   │   ├── FunnelChart.vue   # EDA candidate retention funnel visualization
+│   │   │   └── SimilarityMatrix.vue # Target-analog correlation heatmap
+│   │   ├── home/                 # Interactive 3D home components (SolarSystem, SectionRail)
+│   │   ├── how/                  # 6-Stage interactive pipeline walkthrough stages
+│   │   ├── layout/               # Header, Footer, Hero, SectionBlock, DataTable, FigureSlot
+│   │   └── reticula/             # RETÍCULA design tokens (RButton, RTag, RGlyph, RReadout, RPanel...)
+│   ├── composables/              # Vue 3 reactive composables (useUniverse, useExplorer, useReducedMotion)
 │   ├── content/                  # Text copy, explainability formulas, and team bios
-│   ├── lib/                      # Core mathematical & client-side algorithms
-│   │   ├── msi.ts                # Real-time Mission Similarity Index (MSI) calculator
-│   │   └── haversine.ts          # Geodesic distance & spatial diversity utilities
+│   ├── lib/                      # Core mathematical & client-side algorithms (msi.ts, content.ts, stats.ts)
 │   ├── styles/                   # RETÍCULA design tokens, typography, and SCSS modules
-│   ├── views/                    # Top-level view routes (Explorer, Algorithm, Team)
+│   ├── views/                    # 7 Route Views (Home, Results, Challenge, HowItWorks, Algorithm, Data, About)
 │   ├── App.vue                   # Root application shell
 │   ├── main.ts                   # Application bootstrap and plugin initialization
-│   └── router.ts                 # Vue Router configuration
+│   └── router/                   # Vue Router hash-mode configuration
 ├── package.json                  # Dependencies, scripts, and package metadata
 ├── tsconfig.json                 # TypeScript compiler configuration
 └── vite.config.ts                # Vite bundler configuration
@@ -65,7 +75,7 @@ app/
 1. **Interactive 3D Celestial Selector:**
    Seamlessly switch between the **Moon (Artemis III polar zones & equatorial maria)** and **Mars (Perseverance Jezero, Gale, Valles Marineris)** with 3D coordinate anchoring.
 2. **Real-Time Client-Side Multi-Dimensional Scoring (MSI):**
-   Drag weights across 7 physical dimensions (*Topography*, *Roughness*, *Environment*, *Thermal*, *Geology*, *Dust*, *Ice*). The client re-sorts all 5,010 candidates on-the-fly in <50 ms without server round-trips.
+   Drag weights across 7 physical dimensions (*Topography*, *Roughness*, *Aridity*, *Thermal*, *Geology*, *Dust*, *Ice*). The client re-sorts all 5,010 candidates on-the-fly in <50 ms without server round-trips.
 3. **Mission Presets:**
    One-click presets calibrated in `scripts/pipeline/match.py` for specific aerospace testing goals:
    - 🚗 **Rover mobility and traction** (`mobility_and_traction`): Focuses on slope hazards, roughness, and terrain ruggedness (Moon & Mars).
@@ -73,9 +83,11 @@ app/
    - 🪨 **Geology and surface materials** (`geology_and_materials`): Heavy weight on lithologic and stratigraphic compatibility (Moon & Mars).
    - 🌪 **Dust storms and seasons** (`dust_and_seasons`): Focuses on atmospheric aerosols, aeolian saltation, and thermal swings (Mars only).
    - 🧊 **Water ice and cold traps (ISRU)** (`isru_and_ice`): Prioritizes volatiles stability, cryospheric permafrost, and permanently shadowed regions (Moon & Mars).
-4. **Logistics & Fieldwork Grounding:**
+4. **Orbital Mineralogy & Composition Context (`CONTEXT · NOT SCORED`):**
+   Renders JAXA Kaguya MI (Moon) and MGS TES (Mars) rock-forming silicate abundances alongside NASA EMIT L3 (Earth) secondary weathering mineralogy directly on each site dossier without unscientifically mixing them into the physical similarity score.
+5. **Logistics & Fieldwork Grounding:**
    Calculates travel distances to the nearest paved road and commercial/cargo airport for all candidate Earth sites using global vector networks (Natural Earth).
-5. **"Where the Analogy Breaks":**
+6. **"Where the Analogy Breaks":**
    Explicit warning badges indicating physical non-substitutable barriers (1/6th gravity, hard vacuum, cosmic ionizing radiation) so engineers and scientists never make false assumptions.
 
 ---

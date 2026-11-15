@@ -17,6 +17,7 @@ scripts/
 │   ├── export.py                # Schema validation & JSON universe serialization
 │   ├── targets.py               # 16 curated targets ingestion + 60 k-means clusters
 │   ├── geology.py               # USGS/GLiM stratigraphic unit harmonizer
+│   ├── minerals.py              # Orbital mineralogy context (Kaguya MI, TES, EMIT)
 │   ├── dust.py                  # Aerosol Optical Depth (AOD) dust climatology
 │   └── ice.py                   # Lunar PSR & Martian cryospheric stability markers
 ├── jobs/                         # Slurm batch submission scripts (.slurm) for Yuca HPC
@@ -26,7 +27,8 @@ scripts/
 │   ├── t5_earth_sweep.slurm
 │   ├── t6_earth_layers.slurm
 │   ├── t7_matching.slurm
-│   └── t8_export_universe.slurm
+│   ├── t8_export_universe.slurm
+│   └── t18_minerals.slurm
 ├── tools/                        # Diagnostic, verification, and inspection utilities
 │   ├── verify_datasets.py       # Checksum and coordinate bounding box integrity checker
 │   ├── inspect_cluster_hpc.py   # Telemetry reader for intermediate memory-mapped arrays

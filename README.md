@@ -61,6 +61,7 @@
    - [Scale-Invariant Morphometric Feature Vector](#2-scale-invariant-morphometric-feature-vector)
    - [Explainable Mission Similarity Index (MSI) via RBF Kernels](#3-explainable-mission-similarity-index-msi-via-rbf-kernels)
    - [Mission Presets](#4-mission-presets)
+   - [Informative Orbital Mineralogy](#5-informative-orbital-mineralogy-context--not-scored)
 8. [Where the Analogy Breaks: Physical Limitations](#where-the-analogy-breaks-physical-limitations)
 9. [Social Impact & Democratizing Space Exploration](#social-impact--democratizing-space-exploration)
 10. [Web Application Overview](#web-application-overview)
@@ -240,13 +241,16 @@ PROTOTERRA is grounded in rigorous scientific datasets published by NASA, the Eu
 | :--- | :--- | :---: | :--- | :--- |
 | **Mars** | **MGS MOLA** (Mars Orbiter Laser Altimeter) MEGDR | 463 m/px | Global digital elevation model & morphometric feature extraction | [NASA PDS / USGS](https://astrogeology.usgs.gov/search) |
 | **Mars** | **Mars Odyssey THEMIS** (Thermal Emission Imaging) | 100 m/px | Global day & night brightness temperature; relative thermal inertia | [NASA PDS Geosciences](https://pds-geosciences.wustl.edu/) |
+| **Mars** | **MGS TES** (Thermal Emission Spectrometer — Bandfield 2002) | 3 km/px | Global primary rock-forming silicates (olivine, pyroxenes, plagioclase) | [NASA PDS / ASU](https://tes.asu.edu/) |
 | **Moon** | **LRO LOLA** (Lunar Orbiter Laser Altimeter) LDEM | 118 m/px | Polar & equatorial digital elevation model; terrain slope and roughness | [USGS Astrogeology](https://astrogeology.usgs.gov/) |
 | **Moon** | **LRO LROC WAC** (Wide Angle Camera) Mosaic | 100 m/px | Surface visual albedo percentile benchmarking | [NASA / ASU](https://wms.lroc.asu.edu/) |
 | **Moon** | **LRO Diviner** Polar Resource Products (PRP) | 240 m/px | Maximum/mean surface temperature & subsurface ice stability depth | [NASA PDS Geosciences](https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/) |
+| **Moon** | **JAXA Kaguya Multiband Imager (MI)** | 500 m/px | FeO, plagioclase, olivine, pyroxenes & optical maturity index (OMAT) | [JAXA / DARTS](https://www.darts.isas.jaxa.jp/planet/pdap/selene/) |
 | **Moon** | **Artemis III Candidate Landing Regions** | Vector | South Polar candidate exploration zones (NASA 2024 announcements) | [NASA Artemis](https://www.nasa.gov/artemis/) |
 | **Earth** | **ESA Copernicus DEM GLO-90** (26,475 tiles) | 90 m/px | High-resolution global terrestrial elevation baseline | [ESA / AWS Open Data](https://registry.opendata.aws/copernicus-dem/) |
 | **Earth** | **Terra/Aqua MODIS MOD13C2** (NDVI) | 0.05° (~5.6 km) | Vegetation suppression mask (retaining only arid & bare land) | [NASA Earthdata](https://doi.org/10.5067/MODIS/MOD13C2.061) |
 | **Earth** | **Terra/Aqua MODIS MOD11C3** (LST) | 0.05° (~5.6 km) | Land Surface Temperature day/night amplitude cycling | [NASA Earthdata](https://doi.org/10.5067/MODIS/MOD11C3.061) |
+| **Earth** | **NASA EMIT L3** (Earth Surface Mineral Dust Investigation) | 60 m/px | Terrestrial arid mineral composition context (clays, carbonates, hematite) | [NASA LP DAAC](https://lpdaac.usgs.gov/products/emitl3asa_mineralv001/) |
 | **All** | **Gazetteer of Planetary Nomenclature** | Point / Feature | Official feature anchors, crater rim names, and spatial coordinates | [USGS / IAU](https://planetarynames.wr.usgs.gov/) |
 | **Earth** | **Natural Earth Data** (1:10m Cultural/Physical) | Vector | Global roads, commercial/military airports, and administrative borders | [Natural Earth](https://www.naturalearthdata.com/) |
 
@@ -278,11 +282,17 @@ $$\text{MSI} = \frac{\sum_{i=1}^{M} w_i \cdot S_i}{\sum_{i=1}^{M} w_i}$$
 
 ### 4. Mission Presets
 Engineers can instantly tailor site rankings for specific operational testing goals (calibrated in `scripts/pipeline/match.py`):
-- 🚗 **Rover mobility and traction:** Focuses on slope limits, surface roughness, and terrain ruggedness (TRI).
-- 🏗 **Base construction and landing:** Emphasizes flat relief, low slopes, and stable regolith foundation analogs.
-- 🪨 **Geology and surface materials:** Heavy weight on lithologic, rock substrate, and mineralogical compatibility.
-- 🌪 **Dust storms and seasons:** Focuses on atmospheric aerosols, aeolian saltation, and seasonal thermal swings (Mars).
-- 🧊 **Water ice and cold traps (ISRU):** Prioritizes volatiles stability, subsurface permafrost, and permanently shadowed regions (Moon & Mars).
+- 🚗 **Rover mobility and traction** (`mobility_and_traction`): Focuses on slope limits, surface roughness, and terrain ruggedness (TRI).
+- 🏗 **Base construction and landing** (`construction_and_base`): Emphasizes flat relief, low slopes, and stable regolith foundation analogs.
+- 🪨 **Geology and surface materials** (`geology_and_materials`): Heavy weight on lithologic, rock substrate, and regional stratigraphic compatibility.
+- 🌪 **Dust storms and seasons** (`dust_and_seasons`): Focuses on atmospheric aerosols, aeolian saltation, and seasonal thermal swings (Mars).
+- 🧊 **Water ice and cold traps (ISRU)** (`isru_and_ice`): Prioritizes volatiles stability, subsurface permafrost, and permanently shadowed regions (Moon & Mars).
+
+### 5. Informative Orbital Mineralogy (`CONTEXT · NOT SCORED`)
+A critical scientific principle embedded in PROTOTERRA is the distinction between primary igneous mineralogy and secondary terrestrial weathering:
+- **Planetary Sensors:** JAXA Kaguya MI on the Moon and MGS TES (Bandfield 2002) on Mars measure **primary igneous rock-forming silicates** (plagioclase feldspar, olivine, clinopyroxene, orthopyroxene, FeO).
+- **Terrestrial Remote Sensing:** NASA EMIT L3 on Earth measures **secondary alteration minerals** formed in the presence of water and atmosphere (kaolinite, illite, montmorillonite, carbonates, gypsum, hematite).
+- **The Scientific Boundary:** Computing a direct mathematical distance between pristine extraterrestrial igneous rocks and aqueous weathering products would be scientifically flawed. Therefore, PROTOTERRA treats orbital mineralogy as a transparent, high-value **contextual layer** (`CONTEXT · NOT SCORED`) displayed directly on the Site Dossier without introducing false-equivalence artifacts into the MSI scoring.
 
 ---
 
@@ -315,9 +325,16 @@ PROTOTERRA explicitly calculates and displays **"Where the Analogy Breaks"** for
 
 The client application is built with **Vue 3**, **Vite**, and **TypeScript**, operating as an ultra-fast, client-side reactive Single-Page Application (SPA):
 
-- 🪐 **Interactive Orbit Navigation:** Hash-routed 3D visual planetary browser (`/#/`, `/#/results`, `/#/algorithm`, `/#/challenge`, `/#/about`).
+- 🪐 **Interactive Orbit Navigation:** Hash-routed 3D visual planetary browser spanning 7 dedicated views:
+  - `/#/` — **Home:** 3D celestial system, mission selector, real-time planetary metrics.
+  - `/#/results` — **Explorer & Site Sheet:** Interactive 3D celestial sphere, dynamic weight sliders, tactical Leaflet cartography, site dossier with orbital mineralogy, and planetary distribution charts.
+  - `/#/challenge` — **The Challenge:** Formal NASA challenge framing, qualitative analog pitfalls, and core differentiators.
+  - `/#/how-it-works` — **Pipeline Tour:** Interactive 6-stage architectural walkthrough explaining how raw rasters become actionable analog pairs.
+  - `/#/algorithm` — **Mathematical Foundation:** RBF kernel formulations, scale-invariant geomorphometry, and sensitivity curves.
+  - `/#/data` — **Data & Provenance:** Open dataset index and 10 high-resolution, full-color scientific EDA control maps.
+  - `/#/about` — **The Crew:** Team Endurance CXXV roles, ACARUS supercomputing acknowledgments, and institutional sponsors.
 - ⚡ **Real-Time Client-Side Filtering:** Moving any weight slider re-calculates MSI across all targets and re-sorts thousands of candidate pairings in **&lt;50 ms** without server round-trips.
-- 🗺 **Spatial Radar & Leaflet Mapping:** High-contrast tactical cartography showing candidate site coordinates, satellite imagery, and road network proximity.
+- 🗺 **Spatial Radar & Leaflet Mapping:** High-contrast tactical cartography showing candidate site coordinates, satellite imagery, and road network proximity. Unselected candidates gently fade while selected targets pop as high-contrast beacons.
 - 🔒 **Hardened Security Posture:** Zero external runtime vulnerabilities, self-hosted typography (eliminating third-party CDN tracking), and strict HTTP security headers (`Content-Security-Policy`, `X-Frame-Options: DENY`, `Strict-Transport-Security`).
 
 ---

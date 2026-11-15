@@ -52,6 +52,7 @@ All six technical architecture blueprints are rendered with the **RETÍCULA Desi
 | **[`plan_t7_t8.md`](plan_t7_t8.md)** | **Tasks T7 & T8: Match & Export** | Multi-dimensional Gaussian RBF kernel scoring, 150 km spatial diversity enforcement, and packaging. |
 | **[`plan_t12_t15.md`](plan_t12_t15.md)** | **Tasks T12–T15: Specialized Layers** | Geologic unit harmonization, seasonal dust climatology, and cryospheric/ice stability indicators. |
 | **[`plan_t16_missing_data.md`](plan_t16_missing_data.md)**| **Task T16: Missing Data Policy** | Mathematical rules for handling missing coverage without introducing bias in the MSI score. |
+| **[`plan_mineralogy_context.md`](plan_mineralogy_context.md)**| **Task T18: Mineralogy & Composition Context** | Orbital mineral extraction from Kaguya MI (Moon), MGS TES (Mars), and NASA EMIT L3 (Earth) as un-scored contextual layers. |
 
 ---
 

@@ -17,6 +17,7 @@ The `pipeline` package is a modular Python 3.11+ library engineered for large-sc
 | **`match.py`** | **Multi-Dimensional RBF Matching Engine** | `rbf_kernel_distance()`, `calculate_msi()`, `rank_candidates()`, `apply_mission_presets()` |
 | **`export.py`** | **Contract Packaging & Schema Validation** | `build_universe_contract()`, `validate_contract_schema()`, `serialize_universe_json()` |
 | **`geology.py`** / **`geology_rules.py`** | **Harmonized Lithology Classifier** | `classify_glim_unit()`, `map_planetary_geology()`, `lithology_compatibility_matrix()` |
+| **`minerals.py`** / **`mineral.py`** | **Orbital Mineralogy & Spectrometry Context** | `extract_kaguya_minerals()`, `extract_tes_minerals()`, `extract_emit_minerals()` |
 | **`dust.py`** | **Atmospheric Particulates & Dust Aerosols** | `process_modis_aod()`, `process_mars_cdod()`, `dust_similarity_score()` |
 | **`ice.py`** | **Cryospheric Indicators & Volatiles Stability** | `evaluate_lunar_psr()`, `evaluate_mars_sharad_ice()`, `cryo_similarity_score()` |
 | **`iau.py`** | **IAU Geodetic Constants & Planetary Spheroids** | Planetary radii ($R_{\text{Earth}}, R_{\text{Moon}}, R_{\text{Mars}}$), flattening ratios, coordinate conventions |
