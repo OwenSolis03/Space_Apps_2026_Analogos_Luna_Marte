@@ -137,8 +137,38 @@ const normRows = computed(() => {
         </DataTable>
       </div>
 
+      <div v-if="universe?.metadata.mineralogy" class="block">
+        <div class="mineralogy-block-head">
+          <p class="label group__label">ORBITAL MINERALOGY & COMPOSITION · INFORMATIVE CONTEXT</p>
+          <RTag tone="outline">CONTEXT · NOT SCORED</RTag>
+        </div>
+        <p class="body">
+          {{ universe.metadata.mineralogy.note }}
+        </p>
+        <div class="min-sources-grid">
+          <RPanel
+            v-for="(src, key) in universe.metadata.mineralogy.sources"
+            :key="key"
+            tone="raised"
+            class="min-source-card"
+          >
+            <p class="headline min-source-card__title">{{ src.body.toUpperCase() }} · {{ src.name }}</p>
+            <p class="label min-source-card__subtitle">MEASURED VARIABLES</p>
+            <div class="tags">
+              <RTag v-for="v in src.variables" :key="v.key" tone="graphite">
+                {{ v.label }} ({{ v.unit }})
+              </RTag>
+            </div>
+            <p v-if="src.caveats?.length" class="label min-source-card__caveats-label">INSTRUMENT LIMITS & CAVEATS</p>
+            <ul v-if="src.caveats?.length" class="refs footnote">
+              <li v-for="c in src.caveats" :key="c">{{ c }}</li>
+            </ul>
+          </RPanel>
+        </div>
+      </div>
+
       <div class="block">
-        <p class="label group__label">REFERENCES</p>
+        <p class="label group__label">REFERENCES & SCIENTIFIC CITATIONS</p>
         <ol v-if="universe?.metadata.citations?.length" class="refs footnote">
           <li v-for="c in universe.metadata.citations" :key="c">{{ c }}</li>
         </ol>
@@ -321,6 +351,42 @@ const normRows = computed(() => {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
+}
+
+.mineralogy-block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.min-sources-grid {
+  display: grid;
+  gap: var(--space-4);
+
+  @media (min-width: 860px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.min-source-card {
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.min-source-card__title {
+  font-size: var(--type-ui-lg-size);
+  margin: 0;
+}
+
+.min-source-card__subtitle,
+.min-source-card__caveats-label {
+  color: var(--ink-muted);
+  margin-top: var(--space-2);
+  margin-bottom: 0;
 }
 
 .source-link {
