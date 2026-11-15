@@ -100,6 +100,21 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 - Verified: `tsc` and the build pass; no emoji, no hard-coded values and no native select; every text and background pair of the system used by the app was measured with `contrast.py` and passes AA in both themes (15 pairs); looked at in the browser in light at 1366 by 768 and 390 px and in dark at 1366 by 768; no horizontal scroll at 390 px. Not checked: dark theme on a phone, and the Moon view.
 - A note for whoever reads the artifact with a tool: its automatic summary said the page only contains the text "Design System", but the artifact has 54 files (README, `tokens.json`, component CSS). Read the files, not the summary.
 
+## 2026-11-14: Architecture and pipeline diagram suite (Archify)
+
+**What was done** (requested by Owen, drawn by Claude with the Archify skill from the code at commit `b9cfa1f`):
+
+- Six standalone HTML diagrams in `docs/diagrams/`, each with its Archify JSON source in `docs/diagrams/src/` and clickable source links to the cited lines:
+  - `system-architecture.html`: open data → download → raw data store → batch stages → run outputs → reviewed copy → published dataset → static web app.
+  - `pipeline-lineage.html`: which raw datasets and run outputs feed T3, T4, T5, T6, T12, T13, T14, T7 and T8.
+  - `pipeline-stages.html`: stage order (measure terrain, add context, score), parallel Earth sweep and the hard-check quality gate.
+  - `app-sequence.html`: app load, re-weighting and site inspection, with the missing-data policy.
+  - `data-contract.html`: the `analogs_universe.json` contract (`types.ts` mirror of `export.py`).
+  - `repository-layout.html`: repository layout of the v2 code paths.
+- On review the diagrams were made infrastructure-neutral: no cluster, scheduler, storage paths or job ids in the labels (the Slurm runbook was replaced by the generic stage workflow); source links still point to the real files.
+- Abstraction choices: the v1 prototype, tests and tools appear only in the repository tree; secondary edges (layers sampling at T3/T4/T5 coordinates, `export.py` re-reading inputs) are listed in cards instead of drawn.
+- Automated Archify checks (schema, source evidence, browser render) passed for all six; not reviewed visually by a person yet. Documentation only: no code, data or run changed.
+
 ## 2026-11-14: UI pass on the Explorer and the Site sheet
 
 **What was done** (Claude, branch `feat/t17-plain-language`, no copy or behaviour changes):
