@@ -114,7 +114,7 @@ const idOf = (i: number) => `stage-${String(i + 1).padStart(2, "0")}`;
     <section class="closing" aria-labelledby="closing-h">
       <RPanel tone="graphite" class="closing__panel">
         <p id="closing-h" class="headline closing__title">{{ CLOSING.title }}</p>
-        <p class="body">{{ CLOSING.text }}</p>
+        <p class="body closing__text">{{ CLOSING.text }}</p>
         <RButton variant="secondary" to="/results#limits" arrow>SEE THE LIMITS</RButton>
       </RPanel>
     </section>
@@ -170,6 +170,25 @@ const idOf = (i: number) => `stage-${String(i + 1).padStart(2, "0")}`;
 .closing__title {
   font-weight: 500;
   color: var(--on-graphite);
+}
+
+.closing__text {
+  max-width: 68ch;
+  color: var(--on-graphite);
+  font-size: 15px;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.closing__panel :deep(.tm-btn--secondary) {
+  color: var(--on-graphite);
+  border-color: var(--on-graphite);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--on-graphite);
+    color: var(--graphite);
+  }
 }
 
 .closing__panel p {

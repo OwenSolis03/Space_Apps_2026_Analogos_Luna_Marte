@@ -20,7 +20,7 @@
 .tm-panel--raised { background: var(--surface-raised); color: var(--ink); }
 .tm-panel--signal { background: var(--signal); color: var(--on-signal); }
 .tm-panel--tint { background: var(--signal-tint); color: var(--ink); }
-.tm-panel--graphite { background: var(--graphite); color: var(--on-graphite); }
+.tm-panel--graphite { background: var(--graphite); color: var(--on-graphite); .body, p { color: var(--on-graphite); } .tm-btn--secondary { color: var(--on-graphite); border-color: var(--on-graphite); text-decoration: none; } }
 .tm-panel--sunken { background: var(--surface-sunken); color: var(--ink); border: var(--stroke-hairline) solid var(--line-faint); }
 .tm-panel--outline { background: transparent; color: var(--ink); border: var(--stroke-hairline) solid var(--line); }
 .tm-panel__head { display: grid; gap: var(--space-1); }
