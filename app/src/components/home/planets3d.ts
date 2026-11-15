@@ -227,6 +227,79 @@ function drawTexture(body: PlanetBody, p: Palette): HTMLCanvasElement {
   return canvas;
 }
 
+/**
+ * Three-colour versions of Earth, Mars and the Moon (How It Works). Each body uses at most three
+ * token colours; the flat shading adds tone but no new hues.
+ */
+function drawTextureThree(body: PlanetBody, p: Palette): HTMLCanvasElement {
+  const canvas = document.createElement("canvas");
+  canvas.width = TEX_W;
+  canvas.height = TEX_H;
+  const ctx = canvas.getContext("2d")!;
+  const rand = seeded(body.length * 977 + body.charCodeAt(0));
+
+  if (body === "earth") {
+    // raised (sea and ice), sunken (land), graphite (hatching, coastlines, graticule)
+    ctx.fillStyle = p.raised;
+    ctx.fillRect(0, 0, TEX_W, TEX_H);
+    for (const poly of CONTINENTS) {
+      const path = new Path2D();
+      poly.forEach(([lon, lat], i) => (i === 0 ? path.moveTo(lx(lon), ly(lat)) : path.lineTo(lx(lon), ly(lat))));
+      path.closePath();
+      ctx.fillStyle = p.sunken;
+      ctx.fill(path);
+      hatch(ctx, path, p.graphite);
+      ctx.strokeStyle = p.graphite;
+      ctx.lineWidth = 2;
+      ctx.stroke(path);
+    }
+    ctx.fillStyle = p.raised;
+    ctx.fillRect(0, 0, TEX_W, ly(75));
+    ctx.fillRect(0, ly(-68), TEX_W, TEX_H - ly(-68));
+    graticule(ctx, p.graphite, 0.8);
+  } else if (body === "mars") {
+    // signal-tint (ground), signal (dark regions), signal-ink (craters, graticule)
+    ctx.fillStyle = p.tint;
+    ctx.fillRect(0, 0, TEX_W, TEX_H);
+    const rr = seeded(41);
+    for (let i = 0; i < 7; i++) {
+      ctx.fillStyle = p.signal;
+      ctx.beginPath();
+      ctx.ellipse(rr() * TEX_W, TEX_H * 0.35 + rr() * TEX_H * 0.35, 30 + rr() * 45, 10 + rr() * 16, rr() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    craters(ctx, rand, 26, 3, 10, p.signalInk);
+    graticule(ctx, p.signalInk, 0.6);
+  } else {
+    // Moon: surface-sunken (highlands), graphite (maria), ink-muted (crater rims)
+    ctx.fillStyle = p.sunken;
+    ctx.fillRect(0, 0, TEX_W, TEX_H);
+    const rr = seeded(7);
+    for (let i = 0; i < 6; i++) {
+      ctx.fillStyle = p.graphite;
+      ctx.beginPath();
+      ctx.ellipse(rr() * TEX_W, TEX_H * 0.3 + rr() * TEX_H * 0.4, 18 + rr() * 30, 12 + rr() * 18, rr() * Math.PI, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    craters(ctx, rand, 40, 3, 14, p.muted);
+  }
+  return canvas;
+}
+
+export interface SceneOptions {
+  /** Sphere radius in viewBox units. Default 34 (the Home planets). */
+  radius?: number;
+  /** Draw the small moon around Earth. Default true. */
+  satellite?: boolean;
+  /** Light position in scene units (y up). Default: the Home sun, at the centre. */
+  lightAt?: [number, number, number];
+  /** Use the three-colour textures. Default false. */
+  threeColour?: boolean;
+  /** Ambient and point-light intensities. Defaults 1.1 and 3.2 (the Home scene). */
+  ambient?: number;
+  light?: number;
+}
+
 const RADIUS = 34;
 // The small moon that circles Earth: its size, its distance from Earth's centre, and turns per minute.
 const SATELLITE_RADIUS = 8;
@@ -234,7 +307,9 @@ const SATELLITE_DISTANCE = 56;
 const SATELLITE_TURNS = 3;
 
 /** Builds the scene. Throws if WebGL is unavailable, so the caller can fall back to the flat SVG planets. */
-export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec[]): PlanetScene {
+export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec[], options: SceneOptions = {}): PlanetScene {
+  const radius = options.radius ?? RADIUS;
+  const paint = options.threeColour ? drawTextureThree : drawTexture;
   const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setClearAlpha(0);
@@ -246,14 +321,14 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
   camera.lookAt(0, 0, 0);
 
   // Light comes from the sun at the centre, a little in front of the planets, plus an even ambient.
-  scene.add(new AmbientLight(new Color(palette.raised), 1.1));
-  const sunLight = new PointLight(new Color(palette.raised), 3.2, 0, 0);
-  sunLight.position.set(0, 0, 160);
+  scene.add(new AmbientLight(new Color(palette.raised), options.ambient ?? 1.1));
+  const sunLight = new PointLight(new Color(palette.raised), options.light ?? 3.2, 0, 0);
+  sunLight.position.set(...(options.lightAt ?? [0, 0, 160]));
   scene.add(sunLight);
 
-  const geometry = new SphereGeometry(RADIUS, 20, 14);
+  const geometry = new SphereGeometry(radius, 20, 14);
   const items = planets.map((p) => {
-    const texture = new CanvasTexture(drawTexture(p.body, palette));
+    const texture = new CanvasTexture(paint(p.body, palette));
     texture.colorSpace = SRGBColorSpace;
     const material = new MeshLambertMaterial({ map: texture, flatShading: true });
     const mesh = new Mesh(geometry, material);
@@ -272,11 +347,11 @@ export function createPlanetScene(canvas: HTMLCanvasElement, planets: PlanetSpec
   // Earth and behind it (hidden by the depth test).
   const earth = items.find((it) => it.spec.body === "earth");
   const satGeometry = new SphereGeometry(SATELLITE_RADIUS, 12, 8);
-  const satTexture = new CanvasTexture(drawTexture("moon", palette));
+  const satTexture = new CanvasTexture(paint("moon", palette));
   satTexture.colorSpace = SRGBColorSpace;
   const satMaterial = new MeshLambertMaterial({ map: satTexture, flatShading: true });
   const satOrbit = new Group();
-  if (earth) {
+  if (earth && options.satellite !== false) {
     satOrbit.position.copy(earth.pivot.position);
     satOrbit.rotation.x = 0.45;
     satOrbit.rotation.z = -0.2;
