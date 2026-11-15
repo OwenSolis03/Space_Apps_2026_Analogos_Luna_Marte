@@ -4,7 +4,7 @@ import RHeadline from "@/components/reticula/RHeadline.vue";
 import RDotGrid from "@/components/reticula/RDotGrid.vue";
 import SolarSystem from "@/components/home/SolarSystem.vue";
 import SectionRail from "@/components/home/SectionRail.vue";
-import { PROJECT_NAME } from "@/content/sections";
+import { PROJECT_NAME, PROJECT_TAGLINE } from "@/content/sections";
 </script>
 
 <template>
@@ -22,7 +22,7 @@ import { PROJECT_NAME } from "@/content/sections";
           as="h1"
           kicker="NASA SPACE APPS CHALLENGE 2026 · ENDURANCE CXXV"
           :title="PROJECT_NAME"
-          subtitle="EARTH SITES THAT STAND IN FOR THE MOON AND MARS"
+          :subtitle="PROJECT_TAGLINE"
         />
       </div>
 

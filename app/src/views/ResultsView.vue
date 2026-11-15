@@ -2,7 +2,8 @@
 // Results (SEC.01): best analog per mission site, the explorer (ported from the React app),
 // the site sheet, overview charts, and what the analysis does not claim.
 import { computed, nextTick, ref, watch } from "vue";
-import { useUniverse } from "@/composables/useUniverse";
+import { RouterLink } from "vue-router";
+import { useUniverse, retryUniverse } from "@/composables/useUniverse";
 import { useExplorer } from "@/composables/useExplorer";
 import { useReducedMotion } from "@/composables/useReducedMotion";
 import { bestMsiByBody, bestPerTarget, sitesByCountry, summary } from "@/lib/stats";
@@ -13,6 +14,7 @@ import { NOT_TO_CLAIM } from "@/content/results";
 import PageHero from "@/components/layout/PageHero.vue";
 import SectionBlock from "@/components/layout/SectionBlock.vue";
 import DataTable from "@/components/layout/DataTable.vue";
+import RDotGrid from "@/components/reticula/RDotGrid.vue";
 import RReadout from "@/components/reticula/RReadout.vue";
 import RTag from "@/components/reticula/RTag.vue";
 import ScenarioPanel from "@/components/explorer/ScenarioPanel.vue";
@@ -53,15 +55,30 @@ const stats = computed(() => (universe.value ? summary(universe.value) : null));
 const B = computed(() => BODY_LABEL[body.value]);
 const fmt = (n: number) => n.toLocaleString("en-US");
 
-// Preset for the table and the overview charts. The explorer keeps its own preset.
+// Preset for the table and the overview charts. Synchronized with the Explorer.
 const tablePreset = ref("");
 watch(
   universe,
   (u) => {
-    if (u && !tablePreset.value) tablePreset.value = Object.keys(u.mission_presets)[0] ?? "";
+    if (u && !tablePreset.value) {
+      tablePreset.value = presetId.value || (Object.keys(u.mission_presets)[0] ?? "");
+    }
   },
   { immediate: true },
 );
+
+// Synchronize Explorer preset changes into table preset
+watch(presetId, (p) => {
+  if (p && p !== tablePreset.value) {
+    tablePreset.value = p;
+  }
+});
+
+// Synchronize Table preset selection into Explorer
+function chooseTablePreset(id: string) {
+  tablePreset.value = id;
+  choosePreset(id);
+}
 const presets = computed(() => (universe.value ? Object.entries(universe.value.mission_presets) : []));
 const picks = computed(() => (universe.value && tablePreset.value ? bestPerTarget(universe.value, tablePreset.value) : []));
 const countries = computed(() => (universe.value ? sitesByCountry(universe.value, 15) : []));
@@ -120,15 +137,28 @@ async function openFromTable(id: string, targetBody: Body) {
       </template>
     </PageHero>
 
-    <div v-if="load.state === 'error'" role="alert" class="alert">
-      <p class="label">THE ANALOG DATA COULD NOT BE LOADED.</p>
-      <p class="footnote">{{ load.message }}. Check that the file app/public/data/analogs_universe.json exists.</p>
+    <!-- Loading State -->
+    <div v-if="load.state === 'loading'" class="loading-panel" role="status" aria-live="polite">
+      <div class="loading-panel__card">
+        <RDotGrid :cols="8" :rows="2" tone="graphite" />
+        <p class="headline">LOADING PLANETARY ANALOG DATA…</p>
+        <p class="body">Retrieving 5,010 analog pairs across 76 lunar and Martian targets</p>
+      </div>
     </div>
 
-    <template v-if="universe">
+    <!-- Error State with Human Message and Retry -->
+    <div v-else-if="load.state === 'error'" role="alert" class="alert error-panel">
+      <p class="headline">COULD NOT LOAD PLANETARY DATA</p>
+      <p class="body">The analog dataset could not be retrieved. Please check your network connection and try again.</p>
+      <button type="button" class="tm-btn error-panel__retry" @click="retryUniverse">
+        RETRY LOADING DATA
+      </button>
+    </div>
+
+    <template v-else-if="universe">
       <SectionBlock
         id="explorer"
-        code="SEC.01"
+        code="SEC.01.1"
         title="EXPLORER"
         subtitle="PICK A MISSION CASE AND ADJUST THE WEIGHTS. THE RANKING IS RECALCULATED IN YOUR BROWSER."
       >
@@ -190,7 +220,7 @@ async function openFromTable(id: string, targetBody: Body) {
         </div>
       </SectionBlock>
 
-      <SectionBlock id="site" code="SEC.01" title="SITE SHEET" subtitle="HOW CLOSE EACH ANALOG IS, FEATURE BY FEATURE, AND WHAT EARTH CANNOT REPRODUCE">
+      <SectionBlock id="site" code="SEC.01.2" title="SITE SHEET" subtitle="HOW CLOSE EACH ANALOG IS, FEATURE BY FEATURE, AND WHAT EARTH CANNOT REPRODUCE">
         <SiteDossier
           v-if="selected"
           :ranked="selected"
@@ -203,22 +233,31 @@ async function openFromTable(id: string, targetBody: Body) {
 
       <SectionBlock
         id="headline"
-        code="SEC.01"
+        code="SEC.01.3"
         title="BEST ANALOG PER MISSION SITE"
         subtitle="ONE ROW PER CURATED TARGET · MSI FOR THE SELECTED PRESET"
       >
-        <div class="chips" role="group" aria-label="Mission preset for this table">
+        <div class="table-preset-header">
+          <p class="label">MISSION PRESET · ACTIVE: {{ presets.find(([id]) => id === tablePreset)?.[1].label.toUpperCase() }}</p>
+          <span class="footnote">(Synchronized across the explorer ranking, map, and overview charts)</span>
+        </div>
+
+        <div class="chips" role="group" aria-label="Mission preset for overview table and explorer">
           <button
             v-for="[id, p] in presets"
             :key="id"
             type="button"
             class="tm-chip"
             :aria-pressed="tablePreset === id"
-            @click="tablePreset = id"
+            @click="chooseTablePreset(id)"
           >
             {{ p.label }}
           </button>
         </div>
+
+        <p class="body msi-definition">
+          <strong>MSI (Multidimensional Similarity Index):</strong> Weighted composite similarity score (0–100) combining geomorphometry, terrain slope and roughness, aridity, and (for Mars) thermal contrast against the selected mission site.
+        </p>
 
         <DataTable caption="Best Earth analog for each curated Moon and Mars target, for the selected preset">
           <thead>
@@ -227,8 +266,8 @@ async function openFromTable(id: string, targetBody: Body) {
               <th class="label" scope="col">BODY</th>
               <th class="label" scope="col">CATEGORY</th>
               <th class="label" scope="col">BEST ANALOG</th>
-              <th class="label num" scope="col">MSI</th>
-              <th class="label" scope="col">STATUS</th>
+              <th class="label num" scope="col" title="MSI: Multidimensional Similarity Index (0 to 100)">MSI</th>
+              <th class="label" scope="col" title="Classification: KNOWN ANALOG vs NEW CANDIDATE">STATUS</th>
             </tr>
           </thead>
           <tbody>
@@ -249,16 +288,20 @@ async function openFromTable(id: string, targetBody: Body) {
               </td>
               <td class="num">{{ p.msi != null ? pct(p.msi) : "n/a" }}</td>
               <td>
-                <RTag v-if="p.analog && p.analog.classification === 'NEW_CANDIDATE'" tone="signal" bracket>NEW CANDIDATE</RTag>
-                <RTag v-else-if="p.analog" tone="outline" bracket>KNOWN ANALOG</RTag>
+                <RTag v-if="p.analog && p.analog.classification === 'NEW_CANDIDATE'" tone="signal" bracket title="Candidate discovered outside classical published analog regions">NEW CANDIDATE</RTag>
+                <RTag v-else-if="p.analog" tone="outline" bracket title="Site within a classically recognized analog region">KNOWN ANALOG</RTag>
                 <RTag v-else tone="outline" bracket>NOT MODELLED</RTag>
               </td>
             </tr>
           </tbody>
         </DataTable>
+
+        <p class="footnote status-legend">
+          <strong>[NEW CANDIDATE]</strong> indicates high-fidelity Earth sites discovered by the algorithm outside the 12 historically published analog regions. <strong>[KNOWN ANALOG]</strong> indicates sites within recognized literature fields (e.g. Atacama, McMurdo Dry Valleys, Hawaii).
+        </p>
       </SectionBlock>
 
-      <SectionBlock id="overview" code="SEC.01" title="THE BIG PICTURE" subtitle="THREE VIEWS OF THE WHOLE RUN">
+      <SectionBlock id="overview" code="SEC.01.4" title="THE BIG PICTURE" subtitle="THREE VIEWS OF THE WHOLE RUN">
         <div class="overview">
           <figure class="overview__card">
             <p class="label">SITES PER COUNTRY · TOP 15</p>
@@ -269,8 +312,7 @@ async function openFromTable(id: string, targetBody: Body) {
             <p class="label">BEST MSI PER MISSION SITE · {{ presets.find(([id]) => id === tablePreset)?.[1].label.toUpperCase() }}</p>
             <StripPlot label="Best MSI per curated target, Moon and Mars" :rows="strip" />
             <p class="footnote">
-              Lunar scores are lower because Earth has very little arid terrain as rugged as the lunar south pole at this scale.
-              That is a finding, not a bug.
+              Lunar similarity scores are systematically lower because terrestrial arid terrain rarely matches the extreme slope and relief of the lunar south pole at 32 km scale. See <RouterLink to="/algorithm" class="row-link">Algorithm (SEC.04)</RouterLink> for the geomorphometric distribution analysis and data sources.
             </p>
           </figure>
 
@@ -288,7 +330,7 @@ async function openFromTable(id: string, targetBody: Body) {
         </div>
       </SectionBlock>
 
-      <SectionBlock id="limits" code="SEC.01" title="WHAT THIS DOES NOT CLAIM" subtitle="MODEL LIMITS AND THE CLAIMS TO AVOID">
+      <SectionBlock id="limits" code="SEC.01.5" title="WHAT THIS DOES NOT CLAIM" subtitle="MODEL LIMITS AND THE CLAIMS TO AVOID">
         <div class="limits">
           <div>
             <p class="label">NOT MODELLED</p>
@@ -324,6 +366,63 @@ async function openFromTable(id: string, targetBody: Body) {
 
 .alert p {
   margin: 0;
+}
+
+.loading-panel {
+  margin-top: var(--space-6);
+  padding: var(--space-7) var(--space-4);
+  background: var(--surface-raised);
+  border: var(--stroke-hairline) solid var(--line-faint);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 240px;
+}
+
+.loading-panel__card {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--space-3);
+  max-width: 480px;
+
+  p {
+    margin: 0;
+  }
+}
+
+.error-panel {
+  display: grid;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.error-panel__retry {
+  justify-self: start;
+  margin-top: var(--space-2);
+}
+
+.table-preset-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+
+  p {
+    margin: 0;
+  }
+}
+
+.msi-definition {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-raised);
+  border-left: var(--stroke-bar) solid var(--line);
+}
+
+.status-legend {
+  margin-top: var(--space-3);
 }
 
 .chips {

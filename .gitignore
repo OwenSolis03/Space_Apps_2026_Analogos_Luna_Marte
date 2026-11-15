@@ -28,3 +28,7 @@ Thumbs.db
 /AGENTS.md
 /CLAUDE.md
 .claude/skills/gitnexus-*/
+.claude
+
+#Old stuff
+frontend

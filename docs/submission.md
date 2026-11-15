@@ -66,7 +66,7 @@ What has to be submitted, who does it and in what order, following our venue's r
 
 **Pitch and video:**
 
-- [ ] Slide 1: "Planetary Analog Finder" and the team number.
+- [ ] Slide 1: "PROTOTERRA" with the slogan "Grounded in Earth. Built for beyond." and the team number.
 - [ ] Minute 1: problem and context. Minute 2: solution and technology (demo). Minute 3: social impact and scalability.
 - [ ] The video is 30 s or less, in English, on YouTube (public or unlisted), with its link on the project page.
 - [ ] Rehearsed with a timer: 3:00 or less.

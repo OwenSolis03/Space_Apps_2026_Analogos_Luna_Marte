@@ -1,8 +1,10 @@
-# Planetary Analog Finder
+# PROTOTERRA
+
+*Grounded in Earth. Built for beyond.*
 
 **NASA Space Apps Challenge 2026 · Team Endurance CXXV · NASA Space Apps Sonora (Hermosillo, Mexico)**
 
-Planetary Analog Finder searches the whole Earth for places that resemble candidate landing and base sites on the Moon and Mars. It ranks them with an explainable score, and for every site it shows **where the analogy breaks**. Every comparison uses the same measurement on all three bodies: 32 × 32 km terrain patches, resampled to 500 m per pixel and reprojected around their own centre. The heavy processing runs on the Yuca supercomputer (Universidad de Sonora), and a static web app reads the result.
+PROTOTERRA searches the whole Earth for places that resemble candidate landing and base sites on the Moon and Mars. It ranks them with an explainable score, and for every site it shows **where the analogy breaks**. Every comparison uses the same measurement on all three bodies: 32 × 32 km terrain patches, resampled to 500 m per pixel and reprojected around their own centre. The heavy processing runs on the Yuca supercomputer (Universidad de Sonora), and a static web app reads the result.
 
 > **Status (2026-11-13):** prototype in progress.
 >
@@ -112,7 +114,7 @@ app/       website and explorer (Vue 3)
 | [`scripts/legacy_v1/`](scripts/legacy_v1/) | v1 prototype (scripts, Slurm jobs, outputs and logs), kept as reference and never imported |
 | [`docs/`](docs/) | Documentation (see below) |
 | [`tests/`](tests/) | Synthetic unit tests. `pytest.ini` puts `scripts/` on the import path |
-| [`app/`](app/) | Website and explorer: Vue 3, Vite, TypeScript, Sass, anime.js, vue-router, Leaflet, KaTeX, highlight.js. Seven hash-routed views: Home (solar system navigation), Results, Challenge, How It Works, Algorithm, Data, About |
+| [`app/`](app/) | **Official deployed web application** (Vue 3, Vite, TypeScript, Sass, anime.js, vue-router, Leaflet, KaTeX, highlight.js). Seven hash-routed views: Home (solar system navigation), Results, Challenge, How It Works, Algorithm, Data, About |
 
 **Running the pipeline after the move.** The Slurm jobs set `PYTHONPATH` to `scripts/` themselves, so submit them from the repository root: `sbatch scripts/jobs/t3_planet_features.slurm`. To run a module by hand: `PYTHONPATH=scripts python -m pipeline.targets --help`.
 

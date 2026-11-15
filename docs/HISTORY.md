@@ -1,6 +1,6 @@
 # Project history
 
-How Planetary Analog Finder was built, in English, with the reasoning behind each decision. Every step points to the commits and Slurm jobs that back it up. Most commit messages up to 2026-11-13 are in Spanish; this file is their English record. The commits are not rewritten, because their hashes are cited in the docs and in the Slurm logs. Day-by-day detail (in Spanish until 2026-11-13) is in [logbook.md](logbook.md).
+How PROTOTERRA (first called Planetary Analog Finder) was built, in English, with the reasoning behind each decision. Every step points to the commits and Slurm jobs that back it up. Most commit messages up to 2026-11-13 are in Spanish; this file is their English record. The commits are not rewritten, because their hashes are cited in the docs and in the Slurm logs. Day-by-day detail (in Spanish until 2026-11-13) is in [logbook.md](logbook.md).
 
 **Who did what**
 

@@ -179,8 +179,8 @@ const share = (d: Dimension) =>
       <div class="control">
         <div class="control__row">
           <div class="control__label">
-            <label for="lambda" class="label">
-              Prefer sites near a road <span class="num control__hint">λ = {{ lambda.toFixed(2) }} (0 = off)</span>
+            <label for="lambda" class="label" title="Logistics penalty weight: reduces the score of sites far from roads">
+              Prefer sites near a road <span class="num control__hint">λ = {{ lambda.toFixed(2) }} ({{ lambda === 0 ? "0 = off" : "active penalty" }})</span>
             </label>
             <InfoButton id="road" title="Prefer sites near a road" :open="open.has('road')" @toggle="toggle('road')" />
           </div>
@@ -193,8 +193,12 @@ const share = (d: Dimension) =>
           max="30"
           step="5"
           :value="Math.round(lambda * 100)"
+          title="Adjust road distance penalty: λ in [0, 0.30]"
           @input="emit('lambda', Number(($event.target as HTMLInputElement).value) / 100)"
         />
+        <p class="footnote control__help">
+          λ (lambda) scales the road distance penalty: 0 evaluates pure terrain matching, while values up to 0.30 penalize remote sites further than 100 km from roads.
+        </p>
         <InfoPanel id="road" title="Prefer sites near a road" :open="open.has('road')" :explanation="CONTROL_EXPLANATION.road" />
       </div>
 

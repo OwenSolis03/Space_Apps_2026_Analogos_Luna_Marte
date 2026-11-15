@@ -2,6 +2,14 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Project renamed to PROTOTERRA
+
+**What was done:** the project name changed from "Planetary Analog Finder" to **PROTOTERRA**, with the slogan "Grounded in Earth. Built for beyond." In the app, `PROJECT_NAME` and a new `PROJECT_TAGLINE` live in `app/src/content/sections.ts`; the header and the home hero read them (the home subtitle is now the slogan), and `app/index.html` has the new page title. The README, `docs/master_plan.md`, `docs/value_proposition.md`, `docs/HISTORY.md`, `docs/gemini_prompt.md`, `docs/submission.md`, the dataset-exploration report header and the pipeline package docstring use the new name.
+
+**Not changed on purpose:** the repository and folder name (`Space_Apps_2026_Analogos_Luna_Marte`, its URL is cited everywhere), the generic term "planetary analog" in the science text, the six diagrams in `docs/diagrams/` (they are generated; the title still says the old name), and older logbook entries, which describe what was true when written.
+
+---
+
 ## 2026-11-14: Repository reorganized into data / models / scripts / docs
 
 **What was done** (branch `chore/reorganize-data-models-scripts`, on top of the tidy-up in PR #7): the layout suggested for the code and data was applied. `pipeline/data/*.json` moved to `data/`; `pipeline/`, `jobs/`, `tools/` and `legacy_v1/` moved under `scripts/`; `models/` was added with a README only, because there are no trained networks (the model is the similarity score and the k-means clusters); `docs/`, `tests/` and `app/` stay where they were.

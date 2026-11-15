@@ -1,4 +1,4 @@
-# Planetary Analog Finder (PAF): master plan
+# PROTOTERRA (formerly Planetary Analog Finder, PAF): master plan
 
 ## NASA Space Apps Challenge 2026: operational and methodological blueprint (v2.0)
 

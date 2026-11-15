@@ -12,7 +12,7 @@ export const NOT_TO_CLAIM: Claim[] = [
   },
   {
     lead: "Do not present the score as an absolute percentage.",
-    body: "It is a similarity relative to Earth's variability, and it depends on the weights. Lunar scores are low because Earth has very little arid terrain as rugged as the lunar south pole at this scale. That is a finding, not a bug.",
+    body: "It is a similarity relative to Earth's variability, and it depends on the weights. Lunar scores are systematically lower because terrestrial arid terrain rarely matches the extreme slope and relief of the lunar south pole at 32 km scale (see Algorithm for geomorphometry details).",
   },
   {
     lead: "Do not claim that a site is ice-free.",

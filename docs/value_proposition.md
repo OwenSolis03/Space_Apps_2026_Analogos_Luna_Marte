@@ -1,4 +1,6 @@
-# Value proposition: Planetary Analog Finder
+# Value proposition: PROTOTERRA
+
+*Grounded in Earth. Built for beyond.*
 
 Base material for the pitch and video team. It covers:
 

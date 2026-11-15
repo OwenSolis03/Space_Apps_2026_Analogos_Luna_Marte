@@ -1,4 +1,4 @@
-"""Planetary Analog Finder - Pipeline v2 package.
+"""PROTOTERRA - Pipeline v2 package.
 
 Provides geomorphometric extraction, planetary archetype discovery, multi-criteria
 matching, geological categorization, dust/ice classification, and dataset export

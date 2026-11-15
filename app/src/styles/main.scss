@@ -1,4 +1,5 @@
-// Stylesheet entry point. Import order matters: tokens, type, base, layout, components, prose, map, code.
+// Stylesheet entry point. Import order matters: fonts, tokens, type, base, layout, components, prose, map, code.
+@use "fonts";
 @use "tokens";
 @use "type";
 @use "base";

@@ -20,7 +20,7 @@ Without SSH (for example at the hackathon venue), read [working_without_ssh.md](
 ---
 
 ```text
-You are the developer of "Planetary Analog Finder" (NASA Space Apps 2026, team Endurance CXXV).
+You are the developer of "PROTOTERRA" (NASA Space Apps 2026, team Endurance CXXV).
 Repository: https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte
 
 BEFORE WRITING CODE, read these in full, in this order:

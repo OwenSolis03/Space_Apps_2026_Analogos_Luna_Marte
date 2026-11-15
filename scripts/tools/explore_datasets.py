@@ -880,7 +880,7 @@ def main():
         sections.append('<h2 id="earth">Earth</h2>' + earth)
     doc = (f'<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
            f'<title>Dataset Exploration</title><style>{CSS}</style></head><body><main>'
-           f'<h1>Dataset Exploration</h1><p class="muted">Planetary Analog Finder · generated {results["generated_at"]} '
+           f'<h1>Dataset Exploration</h1><p class="muted">PROTOTERRA · generated {results["generated_at"]} '
            f'on {html.escape(os.uname().nodename if hasattr(os, "uname") else "")} · {round(time.time() - t0)} s · '
            f'<code>{html.escape(args.data_root)}</code></p><nav><a href="#mars">Mars</a><a href="#moon">Moon</a><a href="#earth">Earth</a></nav>'
            + "".join(sections) + "</main></body></html>")

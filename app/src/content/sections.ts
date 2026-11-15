@@ -40,7 +40,8 @@ export interface SiteSection {
   orbit?: OrbitSpec;
 }
 
-export const PROJECT_NAME = "PLANETARY ANALOG FINDER";
+export const PROJECT_NAME = "PROTOTERRA";
+export const PROJECT_TAGLINE = "Grounded in Earth. Built for beyond.";
 export const REPOSITORY_URL = "https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte";
 
 export const SECTIONS: SiteSection[] = [
