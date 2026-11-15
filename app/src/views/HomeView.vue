@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // Home: the solar system is the navigation. Results is the sun; each planet opens one of the other sections.
-import RHeadline from "@/components/reticula/RHeadline.vue";
 import RDotGrid from "@/components/reticula/RDotGrid.vue";
 import SolarSystem from "@/components/home/SolarSystem.vue";
 import SectionRail from "@/components/home/SectionRail.vue";
 import { PROJECT_NAME } from "@/content/sections";
+import imagotipo from "@/assets/prototerra-logos/prototerra-imagotipo.svg";
 </script>
 
 <template>
@@ -17,13 +17,11 @@ import { PROJECT_NAME } from "@/content/sections";
 
     <div class="home__scene">
       <div class="home__intro">
-        <RHeadline
-          size="sm"
-          as="h1"
-          kicker="NASA SPACE APPS CHALLENGE 2026 · ENDURANCE CXXV"
-          :title="PROJECT_NAME"
-          subtitle="EARTH SITES THAT STAND IN FOR THE MOON AND MARS"
-        />
+        <p class="label home__kicker">NASA SPACE APPS CHALLENGE 2026 · ENDURANCE CXXV</p>
+        <h1 class="home__brand">
+          <img :src="imagotipo" :alt="PROJECT_NAME" width="240" />
+        </h1>
+        <p class="byline home__subtitle">EARTH SITES THAT STAND IN FOR THE MOON AND MARS</p>
       </div>
 
       <SolarSystem class="home__solar" />
@@ -45,7 +43,24 @@ import { PROJECT_NAME } from "@/content/sections";
 }
 
 .home__intro {
+  display: grid;
+  gap: var(--space-3);
   max-width: 320px;
+}
+
+.home__kicker {
+  color: var(--ink-muted);
+}
+
+.home__brand img {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+}
+
+.home__subtitle {
+  color: var(--signal-ink);
 }
 
 

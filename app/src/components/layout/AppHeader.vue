@@ -1,10 +1,11 @@
 <script setup lang="ts">
-// Sticky header: project placeholder logo and the six section links.
+// Sticky header: the PROTOTERRA mark and name, and the six section links.
 import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import RGlyph from "@/components/reticula/RGlyph.vue";
 import RIconButton from "@/components/reticula/RIconButton.vue";
 import { NAV_SECTIONS, PROJECT_NAME } from "@/content/sections";
+import logoMark from "@/assets/prototerra-logos/prototerra-unicolor.svg";
 
 const route = useRoute();
 const open = ref(false);
@@ -15,10 +16,7 @@ const current = computed(() => route.name);
   <header class="app-header">
     <div class="page app-header__inner">
       <RouterLink to="/" class="app-header__brand" :aria-label="`${PROJECT_NAME}, home`">
-        <!-- TODO: replace with project logo when available -->
-        <span class="app-header__mark" aria-hidden="true">
-          <RGlyph name="bracket" :size="24" />
-        </span>
+        <img class="app-header__logo" :src="logoMark" alt="" height="32" />
         <span class="label">{{ PROJECT_NAME }}</span>
       </RouterLink>
 
@@ -75,12 +73,10 @@ const current = computed(() => route.name);
   text-decoration: none;
 }
 
-.app-header__mark {
-  display: grid;
-  place-items: center;
-  width: 32px;
+.app-header__logo {
+  display: block;
   height: 32px;
-  border: var(--stroke-hairline) solid var(--line);
+  width: auto;
 }
 
 .app-header__nav {
