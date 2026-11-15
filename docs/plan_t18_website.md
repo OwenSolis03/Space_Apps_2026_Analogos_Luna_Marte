@@ -22,7 +22,7 @@ Opinión sobre fusionar secciones (pedida por el usuario): **no fusionar**. Las 
 ## 0. Reglas globales para Haiku (leer antes de cada fase)
 
 1. **Trabaja fase por fase, en orden.** Al terminar cada fase corre `npm --prefix app run build`. Si falla, arréglalo antes de seguir. No dejes fases a medias.
-2. **No inventes datos.** Todo número, nombre de dataset, fórmula o afirmación sale de este plan, de `docs/`, de `pipeline/` o de `app/public/data/analogs_universe.json`. Si falta un dato, usa el componente `RFrame` o un `RTag` con `[PENDING]`; nunca rellenes con texto inventado.
+2. **No inventes datos.** Todo número, nombre de dataset, fórmula o afirmación sale de este plan, de `docs/`, de `scripts/pipeline/` o de `app/public/data/analogs_universe.json`. Si falta un dato, usa el componente `RFrame` o un `RTag` con `[PENDING]`; nunca rellenes con texto inventado.
 3. **Todo el copy visible va en inglés.** Comentarios de código en inglés.
 4. **Solo tokens.** Ningún color, tamaño de fuente, espaciado o grosor escrito a mano en componentes: usa las variables CSS de `_tokens.scss`. Sin `border-radius` (salvo `50%` en `RIconButton` y círculos del sistema solar), sin `box-shadow`, sin `filter: blur`, sin degradados visuales (los `repeating-linear-gradient` de `RHazard` son el único permitido).
 5. **Sin emoji, sin fuentes de iconos, sin iconos rellenos.** Solo `RGlyph`.
@@ -31,7 +31,7 @@ Opinión sobre fusionar secciones (pedida por el usuario): **no fusionar**. Las 
 8. **anime.js es obligatorio** en el sistema solar y en How It Works. Si una llamada de este plan no compila, consulta los tipos en `app/node_modules/animejs/` y https://animejs.com/documentation antes de cambiarla. No la sustituyas por animaciones CSS.
 9. **Respeta `prefers-reduced-motion`**: sin bucles ni líneas de tiempo; se pinta el estado final.
 10. **GitNexus (obligatorio por `CLAUDE.md`)**: antes de editar o borrar un símbolo existente corre `node .gitnexus/run.cjs impact "<símbolo>" --direction upstream --repo .` y reporta el resultado; antes de cada commit corre `node .gitnexus/run.cjs detect-changes --scope all --repo .`.
-11. **No toques** `pipeline/`, `tests/`, `jobs/`, `tools/`, `frontend/`, `output/`, `logs/`, `guion.txt` ni `app/public/data/`.
+11. **No toques** `scripts/pipeline/`, `tests/`, `scripts/jobs/`, `scripts/tools/`, `frontend/`, `output/`, `logs/`, `guion.txt` ni `app/public/data/`.
 12. **Git**: rama nueva `feat/website-vue`, un commit local por fase. **No hagas push ni abras PR.**
 
 ---
@@ -63,7 +63,7 @@ export default defineConfig({
   base: "./", // relative base: deployable under any sub-path
   plugins: [vue()],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
-  server: { fs: { allow: [".."] } }, // lets the Algorithm page import ../pipeline/*.py?raw
+  server: { fs: { allow: [".."] } }, // lets the Algorithm page import ../scripts/pipeline/*.py?raw
 });
 ```
 
@@ -394,8 +394,8 @@ Las gráficas son SVG propios en `components/charts/` (sin librerías). Una sola
 
 ```ts
 // content/algorithm.ts
-import featuresPy from "../../../pipeline/features.py?raw";
-import matchPy from "../../../pipeline/match.py?raw";
+import featuresPy from "../../../scripts/pipeline/features.py?raw";
+import matchPy from "../../../scripts/pipeline/match.py?raw";
 // ... geo.py, planet_features.py, targets.py, earth_features.py, dust.py, ice.py, geology_rules.py
 import msiTs from "@/lib/msi.ts?raw";
 ```
@@ -439,7 +439,7 @@ Cada paso: `code`, `title`, `summary` (redáctalo en 2 a 4 frases en inglés a p
 ```latex
 \Delta\varphi=\frac{180}{\pi}\cdot\frac{L}{R},\qquad \Delta\lambda(\varphi)=\frac{\Delta\varphi}{\cos\varphi},\qquad L=32\ \text{km}
 ```
-Params: R Earth 6,371,000 m · R Moon 1,737,400 m · R Mars 3,396,190 m (`pipeline/config.py`). Snippet: `planet_features.py` → `def generate_grid`.
+Params: R Earth 6,371,000 m · R Moon 1,737,400 m · R Mars 3,396,190 m (`scripts/pipeline/config.py`). Snippet: `planet_features.py` → `def generate_grid`.
 
 **STEP.02 — THE SAME 32 KM PATCH EVERYWHERE.** Idea: cada parche se reproyecta a una proyección azimutal equidistante local centrada en sí mismo y se remuestrea a 500 m/px (64 × 64). Antes se limpian los datos: se enmascara `nodata`, luego se aplica escala y offset. Se descartan parches con menos del 90 % de píxeles válidos y los que cruzan ±180°. Así pendiente y rugosidad son comparables entre cuerpos y latitudes.
 ```latex
@@ -537,7 +537,7 @@ Snippets: `match.py` → `def mismatches`, `def layer_mismatches`. Muestra `limi
 ```
 Snippets: `lib/msi.ts` → `msi`, `msiLog` (con `extractBetween`). Termina con un `RButton arrow to="/results"` `TRY IT IN RESULTS`.
 
-### 7.4 Constantes para "PARAMETERS AT A GLANCE" (de `pipeline/match.py`, `dust.py`, `ice.py`, `config.py`)
+### 7.4 Constantes para "PARAMETERS AT A GLANCE" (de `scripts/pipeline/match.py`, `dust.py`, `ice.py`, `config.py`)
 
 Patch 32 km · 500 m/px · 64 × 64 · valid ≥ 0.90 · σ = 1 · NDVI free 0.10 · NDVI scale 0.10 · NDVI prefilter 0.25 · thermal unit 0.15 · dust rank σ 0.15 · dust phase σ 60° · tropical band 15° · cold rank σ 0.15 · ice level σ 0.50 · Earth-missing score 0.0 · min preset coverage 0.6 · top N 30 · min separation 150 km · max ice-surface sites 3 · mismatch z 1.5 · mismatch rank 0.30 · mismatch phase 90° · MAD→σ 1.4826.
 
@@ -685,7 +685,7 @@ Aviso sobre los logos: `Imagotipo.svg` e `Isotipo.svg` contienen un `<text>` "CX
 7. **Reglas de diseño**, con búsquedas en `app/src`: ningún `border-radius` fuera de `_reticula.scss` y el sistema solar; ningún `box-shadow`, `blur(`, `linear-gradient` (salvo `RHazard`); ningún color hexadecimal fuera de `_tokens.scss`; ningún emoji; ningún `color: var(--signal)` aplicado a texto.
 8. **Movimiento reducido**: con `resize_window`/emulación o forzando `matchMedia`, Home y How It Works quedan estáticos y completos.
 9. **GitNexus**: `node .gitnexus/run.cjs detect-changes --scope all --repo .` antes de cada commit (repetir si devuelve `partial` o `truncated`); al final, `node .gitnexus/run.cjs analyze --index-only`.
-10. **Pipeline intacto**: `git status` no muestra cambios en `pipeline/`, `tests/`, `jobs/`, `tools/` ni `app/public/data/`.
+10. **Pipeline intacto**: `git status` no muestra cambios en `scripts/pipeline/`, `tests/`, `scripts/jobs/`, `scripts/tools/` ni `app/public/data/`.
 
 ---
 

@@ -1,6 +1,6 @@
 # Detailed plan T7 + T8: matching, scoring and export
 
-Full specification of T7 (`pipeline/match.py`) and T8 (`pipeline/export.py`). It expands sections T7 and T8 of [implementation_plan.md](implementation_plan.md). Where they disagree, **this document wins**. Written by Claude on 2026-11-13 on `main` at `a2b2073`, using the real outputs of T3 (`runs/2242278`), T4 (`runs/2242423`) and the T5 smoke test (`runs/2242432`).
+Full specification of T7 (`scripts/pipeline/match.py`) and T8 (`scripts/pipeline/export.py`). It expands sections T7 and T8 of [implementation_plan.md](implementation_plan.md). Where they disagree, **this document wins**. Written by Claude on 2026-11-13 on `main` at `a2b2073`, using the real outputs of T3 (`runs/2242278`), T4 (`runs/2242423`) and the T5 smoke test (`runs/2242432`).
 
 This is the first plan written in English. Code comments, docstrings, log messages and commit messages for T7/T8 are in **English**, and so is the bitácora entry.
 
@@ -26,10 +26,10 @@ T5 full run: `runs/2242438` (jobs 2242438–2242440). The smoke-test output `run
 
 | What | Where |
 | --- | --- |
-| Normalisation, RBF scores, MSI, candidate search, diversity, mismatches | `pipeline/match.py` |
-| JSON for the app | `pipeline/export.py` |
-| Physical limits per body (T11 content; this plan only defines the format and a fallback) | `pipeline/data/limits.json` |
-| One job running match and export | `jobs/t7_match.slurm` |
+| Normalisation, RBF scores, MSI, candidate search, diversity, mismatches | `scripts/pipeline/match.py` |
+| JSON for the app | `scripts/pipeline/export.py` |
+| Physical limits per body (T11 content; this plan only defines the format and a fallback) | `data/limits.json` |
+| One job running match and export | `scripts/jobs/t7_match.slurm` |
 | Tests | `tests/test_match.py`, `tests/test_export.py` |
 
 Commit: `T7/T8: RBF matching, MSI presets and app export`. Commit and push **before** submitting the job, so the log records the right commit.
@@ -153,7 +153,7 @@ Fixed body limits (gravity, atmosphere, radiation, …) come from `limits.json` 
 
 ---
 
-## 3. `pipeline/match.py`
+## 3. `scripts/pipeline/match.py`
 
 ```python
 TOPO = ["mean_slope_deg", "p90_slope_deg", "relief_m", "hypsometric_integral"]
@@ -213,7 +213,7 @@ def main(argv=None): ...   # --t3-dir, --t4-dir, --t5-dir, --out-dir, --sigma-sc
 
 ---
 
-## 4. `pipeline/export.py` and limits
+## 4. `scripts/pipeline/export.py` and limits
 
 ### 4.1 `analogs_universe.json`
 
@@ -285,7 +285,7 @@ It follows `app/src/lib/types.ts`. Fields marked *new* are additions that the ap
 - **Size:** if the file is > 20 MB, write `analogs_moon.json` and `analogs_mars.json` instead, plus a small `analogs_universe.json` without `targets` that lists them, and log it. The estimate is 76 × ≤ 90 analogs × ~1 KB ≈ 7 MB, so one file is expected.
 - **Where it is written:** only to `runs/<JOBID>/`. Copying into `app/public/data/` is a separate, explicit step (§6), so a job never edits the git working tree.
 
-### 4.2 `pipeline/data/limits.json` (T11)
+### 4.2 `data/limits.json` (T11)
 
 ```json
 { "version": "...", "Moon": [ { "factor": "gravity", "earth": "1 g", "target": "0.166 g", "consequence": "...", "source": "https://..." } ], "Mars": [ ... ] }
@@ -327,7 +327,7 @@ It follows `app/src/lib/types.ts`. Fields marked *new* are additions that the ap
 
 ## 6. Job and commands
 
-`jobs/t7_match.slurm`, same shape as `jobs/t4_targets.slurm`, with:
+`scripts/jobs/t7_match.slurm`, same shape as `scripts/jobs/t4_targets.slurm`, with:
 
 ```bash
 #SBATCH -J p089-t7-match
@@ -359,13 +359,13 @@ sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/
 Smoke test against the T5 smoke run (445 Earth patches). Coverage check #1 may fail here because the pool is tiny. Everything else must pass.
 
 ```bash
-sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slurm
+sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 scripts/jobs/t7_match.slurm
 ```
 
 Real run, after the full T5 run:
 
 ```bash
-sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm
+sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 scripts/jobs/t7_match.slurm
 ```
 
 **Publishing to the app** is a separate step, after Claude or Owen review `t7_report.md`:

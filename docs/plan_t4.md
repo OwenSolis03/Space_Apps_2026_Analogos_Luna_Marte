@@ -4,7 +4,7 @@ Full specification of T4, written so it can be implemented without guessing. It 
 
 **Status:** implemented by Gemini and run on 2026-11-13 (commit `115e0c3`, run `2242423`): 16/16 curated targets and 60 clusters. See [HISTORY.md](HISTORY.md) §9.
 
-Read first: section 0 (rules) of `implementation_plan.md`, and all of `pipeline/planet_features.py`.
+Read first: section 0 (rules) of `implementation_plan.md`, and all of `scripts/pipeline/planet_features.py`.
 
 ---
 
@@ -12,12 +12,12 @@ Read first: section 0 (rules) of `implementation_plan.md`, and all of `pipeline/
 
 | What | Where |
 | --- | --- |
-| Curated target definitions (hand-written, committed) | `pipeline/data/targets.json` |
-| Extraction of patches that contain a pole (Shackleton only) | `pipeline/geo.py` (T4.0) |
-| Sampling a point with the same code as T3 | `pipeline/planet_features.py` (refactor, no behaviour change) |
-| Reusable IAU nomenclature | `pipeline/iau.py` (new) |
-| Curated features, clusters and outputs | `pipeline/targets.py` (new) |
-| Job | `jobs/t4_targets.slurm` (new) |
+| Curated target definitions (hand-written, committed) | `data/targets.json` |
+| Extraction of patches that contain a pole (Shackleton only) | `scripts/pipeline/geo.py` (T4.0) |
+| Sampling a point with the same code as T3 | `scripts/pipeline/planet_features.py` (refactor, no behaviour change) |
+| Reusable IAU nomenclature | `scripts/pipeline/iau.py` (new) |
+| Curated features, clusters and outputs | `scripts/pipeline/targets.py` (new) |
+| Job | `scripts/jobs/t4_targets.slurm` (new) |
 | Tests | `tests/test_targets.py` and `tests/test_iau.py` (new), plus 3 new tests in `tests/test_geo.py` |
 | Run outputs (not committed) | `runs/<JOBID>/targets.parquet`, `targets_patches.parquet`, `targets.json`, `clusters_{mars,moon}.parquet`, `map_targets_{mars,moon}.png` |
 
@@ -43,12 +43,12 @@ Read first: section 0 (rules) of `implementation_plan.md`, and all of `pipeline/
 6. **Clusters:** k-means with k = 30 per body on the 6 terrain features, without `mean_elev_m`.
    - Apply `log1p` to `relief_m`, `detrended_std_m` and `tri_m`, then standardise per body. T7 uses the same transform.
    - The representative is a **real T3 patch**: the member closest to the centroid.
-7. **Do not import `enrich_nomenclature.py`.** It has no `if __name__ == "__main__"` guard, so importing it runs it and rewrites `/lustre/proyectos/p089/output/planetary_baselines.json`. That happened once on 2026-11-13; the file came out identical, but it must not happen again. Its logic is **copied** into `pipeline/iau.py`.
+7. **Do not import `enrich_nomenclature.py`.** It has no `if __name__ == "__main__"` guard, so importing it runs it and rewrites `/lustre/proyectos/p089/output/planetary_baselines.json`. That happened once on 2026-11-13; the file came out identical, but it must not happen again. Its logic is **copied** into `scripts/pipeline/iau.py`.
 8. **Longitudes:** the gazetteer stores `center_lon` in 0–360 °E. Always convert to −180…180 with `((lon + 180) % 360) - 180`.
 
 ---
 
-## 2. T4.0: polar support in `pipeline/geo.py`
+## 2. T4.0: polar support in `scripts/pipeline/geo.py`
 
 **Problem.** Shackleton is at −89.67°, so its 32 km patch contains the south pole. Today `extract_patch` drops it in two ways:
 
@@ -106,7 +106,7 @@ The 17 existing tests must keep passing untouched.
 
 ---
 
-## 3. Refactor in `pipeline/planet_features.py` (no behaviour change)
+## 3. Refactor in `scripts/pipeline/planet_features.py` (no behaviour change)
 
 **Goal:** T4 computes a point's features with **the same** `_process_point` as T3, without copying code.
 
@@ -146,7 +146,7 @@ class PointSampler:
 
 ---
 
-## 4. `pipeline/iau.py` (new)
+## 4. `scripts/pipeline/iau.py` (new)
 
 A clean copy of the logic in `enrich_nomenclature.py`, as functions, with no side effects on import.
 
@@ -190,9 +190,9 @@ def find_feature(gaz: pd.DataFrame, name: str) -> pd.Series:
 
 ---
 
-## 5. `pipeline/data/targets.json` (new, hand-written)
+## 5. `data/targets.json` (new, hand-written)
 
-The committed file is [pipeline/data/targets.json](../pipeline/data/targets.json). Copy it **as is**:
+The committed file is [data/targets.json](../data/targets.json). Copy it **as is**:
 
 - **Moon:** the coordinates are IAU centres from the Yuca gazetteer, already converted to −180…180.
 - **Mars:** the coordinates are landing points, verified on 2026-11-13.
@@ -236,7 +236,7 @@ Do not change any number without a source.
 
 ---
 
-## 6. `pipeline/targets.py` (new)
+## 6. `scripts/pipeline/targets.py` (new)
 
 ### 6.1 Constants
 
@@ -365,9 +365,9 @@ The IAU name of each curated anchor **centre** must be its own feature. For exam
 
 ---
 
-## 8. `jobs/t4_targets.slurm` (new)
+## 8. `scripts/jobs/t4_targets.slurm` (new)
 
-Same shape as `jobs/t3_planet_features.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo of job, node and commit), with:
+Same shape as `scripts/jobs/t3_planet_features.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo of job, node and commit), with:
 
 ```bash
 #SBATCH -A p089
@@ -435,11 +435,11 @@ sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/
 ```
 
 ```bash
-sbatch jobs/t4_targets.slurm --k 5 --body Moon
+sbatch scripts/jobs/t4_targets.slurm --k 5 --body Moon
 ```
 
 ```bash
-sbatch jobs/t4_targets.slurm
+sbatch scripts/jobs/t4_targets.slurm
 ```
 
 ```bash

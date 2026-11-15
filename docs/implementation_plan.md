@@ -11,7 +11,7 @@ Read first: [pipeline.md](pipeline.md) (data, scales and Yuca resources) and [HI
 ## 0. Rules for whoever implements
 
 1. **One task, one commit.** The message says which task it is. Until 2026-11-13 messages were in Spanish (`T3: features globales de Marte y Luna`); **since then they are in English** (`T7: RBF matching and MSI presets`). Add an entry to [logbook.md](logbook.md) in the same commit. The English history is in [HISTORY.md](HISTORY.md).
-2. **Do not delete v1.** The root scripts (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) stay as reference, and they must not be imported. New code goes in `pipeline/`.
+2. **Do not delete v1.** The scripts in `scripts/legacy_v1/` (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`) stay as reference, and they must not be imported. New code goes in `scripts/pipeline/`.
 3. **Nothing heavy in the repo.** Rasters, parquet files and shards stay on Yuca (`/lustre/proyectos/p089/...`). Only the final app JSON (`app/public/data/`) is committed, and only if it is under 20 MB.
 4. **Yuca rules (mandatory):**
    - Anything that takes more than a minute runs with `sbatch`. Never `nohup`, `&` or long `python` on the login node.
@@ -21,7 +21,7 @@ Read first: [pipeline.md](pipeline.md) (data, scales and Yuca resources) and [HI
    - Never disable TLS verification (`curl -k`, `verify=False`, etc.).
    - Group limit: 500 CPUs and 4 GPUs in total. CPU nodes have 64 cores and ~1 TB RAM.
 5. **The code lives on Yuca** in `/lustre/proyectos/p089/code/`, a clone of the repository, updated with `git pull`.
-6. **Environment:** the conda environment `spaceapps_2026`. New dependencies go into `pipeline/requirements.txt`.
+6. **Environment:** the conda environment `spaceapps_2026`. New dependencies go into `scripts/pipeline/requirements.txt`.
 7. **If a fact or URL cannot be verified, do not invent it.** Leave `null` and a `TODO(verify)` with the suggested source.
 
 ---
@@ -66,13 +66,13 @@ Also used, outside the list: the USGS lunar ice favorability index and Natural E
 ```text
 Raw data (Yuca, /lustre/proyectos/p089/data/raw)
    │
-   ├── T3  pipeline/planet_features.py   (job array)  ─► runs/<id>/features_{mars,moon}.parquet
-   ├── T5  pipeline/earth_features.py    (job array)  ─► runs/<id>/features_earth.parquet
-   │        └── uses T6 pipeline/earth_layers.py (NDVI, LST, logistics, known regions)
-   ├── T4  pipeline/targets.py + pipeline/data/targets.json  ─► curated targets + clusters
+   ├── T3  scripts/pipeline/planet_features.py   (job array)  ─► runs/<id>/features_{mars,moon}.parquet
+   ├── T5  scripts/pipeline/earth_features.py    (job array)  ─► runs/<id>/features_earth.parquet
+   │        └── uses T6 scripts/pipeline/earth_layers.py (NDVI, LST, logistics, known regions)
+   ├── T4  scripts/pipeline/targets.py + data/targets.json  ─► curated targets + clusters
    │
-   ├── T7  pipeline/match.py   ─► runs/<id>/matches.parquet
-   └── T8  pipeline/export.py  ─► runs/<id>/analogs_universe.json  ─► app/public/data/
+   ├── T7  scripts/pipeline/match.py   ─► runs/<id>/matches.parquet
+   └── T8  scripts/pipeline/export.py  ─► runs/<id>/analogs_universe.json  ─► app/public/data/
                                                                          │
                                                T10 app/ (React + Vite) ◄─┘
 ```
@@ -82,7 +82,7 @@ All feature computation uses **one function** (T1 + T2) for the three bodies. Th
 ### Folder layout
 
 ```text
-pipeline/
+scripts/pipeline/
   __init__.py
   config.py            # constants: patch size, resolution, paths, radii
   geo.py               # T1: extract an AEQD patch from any raster
@@ -99,7 +99,7 @@ pipeline/
     known_analogs.json # T6: famous analog regions
     limits.json        # T11: physical limits per body (team content)
   requirements.txt
-jobs/
+scripts/jobs/
   t3_planet_features.slurm
   t4_targets.slurm
   t5_prepare.slurm, t5_earth_features.slurm, t5_merge.slurm, t5_submit.sh
@@ -121,12 +121,12 @@ Commands in section 7.
 
 | ID | What | Job | Status |
 | --- | --- | --- | --- |
-| T0.1 | THEMIS Night, LROC WAC, lunar ice, the rest of Copernicus | `run_download_missing.slurm` | Done (job 2242198): 26,475 tiles, 0 failures |
-| T0.2 | Natural Earth (roads, airports, countries) and MODIS NDVI and LST 2023 | `run_download_extra.slurm` | Done (job 2242203) |
-| T0.3 | Diviner Polar Resource Product (south): `dlre_prp_south.tab` (604,800,210 bytes) + `.lbl` + `.xml` | `jobs/download_diviner.slurm` | Done. Source: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
+| T0.1 | THEMIS Night, LROC WAC, lunar ice, the rest of Copernicus | `scripts/jobs/download_missing.slurm` | Done (job 2242198): 26,475 tiles, 0 failures |
+| T0.2 | Natural Earth (roads, airports, countries) and MODIS NDVI and LST 2023 | `scripts/jobs/download_extra.slurm` | Done (job 2242203) |
+| T0.3 | Diviner Polar Resource Product (south): `dlre_prp_south.tab` (604,800,210 bytes) + `.lbl` + `.xml` | `scripts/jobs/download_diviner.slurm` | Done. Source: `https://pds-geosciences.wustl.edu/lro/urn-nasa-pds-lro_diviner_derived1/data_derived_prp/` |
 | T0.4 | Copernicus virtual mosaic | Inside T5 | `data/derived/copernicus_90m.vrt`, with the sea masked ([plan_t5.md](plan_t5.md)) |
 
-### T1. `pipeline/geo.py`: extract a patch without distortion
+### T1. `scripts/pipeline/geo.py`: extract a patch without distortion
 
 **Goal:** given any raster (Earth, Moon or Mars) and a point (lat, lon), return a 64 × 64 array of elevations at 500 m/px in an azimuthal equidistant projection centred on that point.
 
@@ -157,7 +157,7 @@ def extract_patch(src, lat, lon, body, size_km=32.0, res_m=500.0, resampling=Res
 - An Earth patch that crosses the edge between two Copernicus tiles (through the VRT) has no holes.
 - A patch over the ocean returns `None`.
 
-### T2. `pipeline/features.py`: patch features
+### T2. `scripts/pipeline/features.py`: patch features
 
 **Input:** a 64 × 64 array `z` (metres), with `res_m = 500`.
 
@@ -181,7 +181,7 @@ Before computing, fill the remaining NaNs with the patch median.
 - Horizontal plane: everything ≈ 0, and `hypsometric_integral = 0.5`.
 - Synthetic cone: `hypsometric_integral ≈ 1/3` (±0.05).
 
-### T3. `pipeline/planet_features.py` + `jobs/t3_planet_features.slurm`
+### T3. `scripts/pipeline/planet_features.py` + `scripts/jobs/t3_planet_features.slurm`
 
 **Goal:** sweep Mars and the Moon with 32 km patches and store their features.
 
@@ -219,7 +219,7 @@ Before computing, fill the remaining NaNs with the patch median.
 
 **Done:** runs 2242278 and 2242279.
 
-### T4. `pipeline/targets.py` + `pipeline/data/targets.json`
+### T4. `scripts/pipeline/targets.py` + `data/targets.json`
 
 **Goal:** define which Moon and Mars sites the analogs are searched against.
 
@@ -243,7 +243,7 @@ Before computing, fill the remaining NaNs with the patch median.
 
 **Done:** run 2242423 (16/16 curated targets, 60 clusters).
 
-### T5. `pipeline/earth_features.py` + Slurm jobs
+### T5. `scripts/pipeline/earth_features.py` + Slurm jobs
 
 **Goal:** the same as T3, but for Earth, filtering out what is useless first.
 
@@ -269,7 +269,7 @@ Before computing, fill the remaining NaNs with the patch median.
 
 **Status:** smoke test passed (runs 2242432–2242434); the full run is pending.
 
-### T6. `pipeline/earth_layers.py`: Earth layers
+### T6. `scripts/pipeline/earth_layers.py`: Earth layers
 
 > **Detailed specification:** [plan_t6.md](plan_t6.md) (MODIS through pyhdf because GDAL has no HDF4, scale conventions, densified roads, `EarthLayers` for T5, known regions and checks). It wins over this section.
 
@@ -284,7 +284,7 @@ Functions that load once (in memory, per process) and answer queries by (lat, lo
   - annual mean by day, by night, and the amplitude `day − night`;
   - cache in `data/derived/lst_2023.tif` (3 bands).
 - **Logistics:** distance in km to the nearest road (Natural Earth, without ferries) and the nearest non-military airport, with `BallTree` (haversine) on the road vertices densified every ~2 km.
-- **Known regions:** `pipeline/data/known_analogs.json`, with approximate bounding boxes and a source for each of 12 regions:
+- **Known regions:** `data/known_analogs.json`, with approximate bounding boxes and a source for each of 12 regions:
   - Atacama Desert, McMurdo Dry Valleys, Iceland, Hawaii (Mauna Kea / Kilauea), Devon Island (Haughton crater), Utah (MDRS, Hanksville);
   - Rio Tinto (Spain), Svalbard, Pilbara (Australia), Meteor Crater (Arizona), Lanzarote, Mojave.
 
@@ -297,7 +297,7 @@ Functions that load once (in memory, per process) and answer queries by (lat, lo
 
 **Done:** runs 2242426 and 2242430.
 
-### T7. `pipeline/match.py`: scoring and selection
+### T7. `scripts/pipeline/match.py`: scoring and selection
 
 > **Detailed specification (English):** [plan_t7_t8.md](plan_t7_t8.md). It wins over this section for T7 and T8.
 
@@ -347,7 +347,7 @@ The app applies the logistics adjustment `MSI_log = MSI · (1 − λ + λ · exp
 - No two analogs of the same target are less than 150 km apart.
 - Sanity review: for a target on Olympus Mons, the top 30 should include some shield or large volcano (Hawaii, the Galápagos, Iceland). If not, check the scales before moving on.
 
-### T8. `pipeline/export.py`: JSON for the app
+### T8. `scripts/pipeline/export.py`: JSON for the app
 
 - **Output:** `runs/<id>/analogs_universe.json`. Copying it to `app/public/data/analogs_universe.json` is a separate, reviewed step.
 - **Schema:** section 5 below and [plan_t7_t8.md](plan_t7_t8.md) §4.
@@ -394,7 +394,7 @@ The Trek tiles are in geographic projection (EPSG:4326, 2 tiles in X at level 0)
 7. **Export:** the card as JSON and Markdown, and a print view with CSS.
 8. **Methodology:** a short page with the T7 formulas and the resource table of section 2.
 
-**Data:** until T8 exists, use a sample JSON that follows the section 5 schema (`app/public/data/sample.json`, converted from the v1 output by `tools/v1_to_sample.py`).
+**Data:** until T8 exists, use a sample JSON that follows the section 5 schema (`app/public/data/sample.json`, converted from the v1 output by `scripts/tools/v1_to_sample.py`).
 
 **Deployment:** GitHub Pages or Vercel from `main`. The venue requires a public link ([submission.md](submission.md)).
 
@@ -406,7 +406,7 @@ The Trek tiles are in geographic projection (EPSG:4326, 2 tiles in X at level 0)
 
 ### T11. Content (P1, P3, P4)
 
-- **`pipeline/data/limits.json`:** per body, a list of `{factor, earth, target, consequence, source}` (format in [plan_t7_t8.md](plan_t7_t8.md) §4.2). Minimum:
+- **`data/limits.json`:** per body, a list of `{factor, earth, target, consequence, source}` (format in [plan_t7_t8.md](plan_t7_t8.md) §4.2). Minimum:
   - Moon: gravity, vacuum, radiation, thermal cycle, polar illumination and regolith.
   - Mars: gravity, pressure, radiation, thermal cycle, dust and perchlorates.
 - **Test protocols:** one short text per preset, which the app shows depending on the dimension with the largest weight.
@@ -505,11 +505,11 @@ cd /lustre/proyectos/p089/code && git pull
 Test without queueing, then submit (always from `code/`):
 
 ```bash
-cd /lustre/proyectos/p089/code && sbatch --test-only run_download_missing.slurm && sbatch --test-only run_download_extra.slurm
+cd /lustre/proyectos/p089/code && sbatch --test-only scripts/jobs/download_missing.slurm && sbatch --test-only scripts/jobs/download_extra.slurm
 ```
 
 ```bash
-cd /lustre/proyectos/p089/code && sbatch run_download_missing.slurm && sbatch run_download_extra.slurm
+cd /lustre/proyectos/p089/code && sbatch scripts/jobs/download_missing.slurm && sbatch scripts/jobs/download_extra.slurm
 ```
 
 MODIS needs a free account at https://urs.earthdata.nasa.gov and a `~/.netrc` file on Yuca created **by hand** (the password must never go through an agent):

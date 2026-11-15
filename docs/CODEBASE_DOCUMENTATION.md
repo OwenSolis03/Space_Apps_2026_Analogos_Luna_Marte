@@ -10,21 +10,21 @@
 ## Table of Contents
 1. [Executive Summary & Scientific Mission](#1-executive-summary--scientific-mission)
 2. [Repository Architecture & Directory Structure](#2-repository-architecture--directory-structure)
-3. [Core Pipeline Engine (`pipeline/`)](#3-core-pipeline-engine-pipeline)
-   - [3.1 Configuration & Geodesy (`pipeline/config.py`, `pipeline/geo.py`)](#31-configuration--geodesy-pipelineconfigpy-pipelinegeopy)
-   - [3.2 Geomorphometric Feature Extraction (`pipeline/features.py`)](#32-geomorphometric-feature-extraction-pipelinefeaturespy)
-   - [3.3 Planetary Targets & IAU Nomenclature (`pipeline/targets.py`, `pipeline/iau.py`)](#33-planetary-targets--iau-nomenclature-pipelinetargetspy-pipelineiaupy)
-   - [3.4 Geological & Lithological Taxonomy (`pipeline/geology_rules.py`, `pipeline/geology.py`)](#34-geological--lithological-taxonomy-pipelinegeology_rulespy-pipelinegeologypy)
-   - [3.5 Environmental Dimensions: Cryosphere & Atmospheric Dust (`pipeline/ice.py`, `pipeline/dust.py`)](#35-environmental-dimensions-cryosphere--atmospheric-dust-pipelineicepy-pipelinedustpy)
-   - [3.6 Planetary & Terrestrial DEM Processors (`pipeline/planet_features.py`, `pipeline/earth_features.py`)](#36-planetary--terrestrial-dem-processors-pipelineplanet_featurespy-pipelineearth_featurespy)
-   - [3.7 Contextual Earth Layers & Logistics (`pipeline/earth_layers.py`)](#37-contextual-earth-layers--logistics-pipelineearth_layerspy)
-   - [3.8 Multidimensional Matching & Scoring Engine (`pipeline/match.py`)](#38-multidimensional-matching--scoring-engine-pipelinematchpy)
-   - [3.9 Validation, Serialization & Export (`pipeline/export.py`)](#39-validation-serialization--export-pipelineexportpy)
-   - [3.10 Package Aggregation (`pipeline/__init__.py`)](#310-package-aggregation-pipeline__init__py)
+3. [Core Pipeline Engine (`scripts/pipeline/`)](#3-core-pipeline-engine-pipeline)
+   - [3.1 Configuration & Geodesy (`scripts/pipeline/config.py`, `scripts/pipeline/geo.py`)](#31-configuration--geodesy-pipelineconfigpy-pipelinegeopy)
+   - [3.2 Geomorphometric Feature Extraction (`scripts/pipeline/features.py`)](#32-geomorphometric-feature-extraction-pipelinefeaturespy)
+   - [3.3 Planetary Targets & IAU Nomenclature (`scripts/pipeline/targets.py`, `scripts/pipeline/iau.py`)](#33-planetary-targets--iau-nomenclature-pipelinetargetspy-pipelineiaupy)
+   - [3.4 Geological & Lithological Taxonomy (`scripts/pipeline/geology_rules.py`, `scripts/pipeline/geology.py`)](#34-geological--lithological-taxonomy-pipelinegeology_rulespy-pipelinegeologypy)
+   - [3.5 Environmental Dimensions: Cryosphere & Atmospheric Dust (`scripts/pipeline/ice.py`, `scripts/pipeline/dust.py`)](#35-environmental-dimensions-cryosphere--atmospheric-dust-pipelineicepy-pipelinedustpy)
+   - [3.6 Planetary & Terrestrial DEM Processors (`scripts/pipeline/planet_features.py`, `scripts/pipeline/earth_features.py`)](#36-planetary--terrestrial-dem-processors-pipelineplanet_featurespy-pipelineearth_featurespy)
+   - [3.7 Contextual Earth Layers & Logistics (`scripts/pipeline/earth_layers.py`)](#37-contextual-earth-layers--logistics-pipelineearth_layerspy)
+   - [3.8 Multidimensional Matching & Scoring Engine (`scripts/pipeline/match.py`)](#38-multidimensional-matching--scoring-engine-pipelinematchpy)
+   - [3.9 Validation, Serialization & Export (`scripts/pipeline/export.py`)](#39-validation-serialization--export-pipelineexportpy)
+   - [3.10 Package Aggregation (`scripts/pipeline/__init__.py`)](#310-package-aggregation-pipeline__init__py)
 4. [Standalone Operational Scripts & Utilities](#4-standalone-operational-scripts--utilities)
    - [4.1 Data Acquisition Scripts (`download_earthdata.py`, `download_aod.py`)](#41-data-acquisition-scripts-download_earthdatapy-download_aodpy)
    - [4.2 Pipeline v1 Legacy & Transition Scripts (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`)](#42-pipeline-v1-legacy--transition-scripts-process_analogspy-match_earth_analogspy-enrich_nomenclaturepy)
-   - [4.3 Verification & Tooling (`tools/explore_datasets.py`, `tools/v1_to_sample.py`, `tools/verify_t16.py`)](#43-verification--tooling-toolsexplore_datasetspy-toolsv1_to_samplepy-toolsverify_t16py)
+   - [4.3 Verification & Tooling (`scripts/tools/explore_datasets.py`, `scripts/tools/v1_to_sample.py`, `scripts/tools/verify_t16.py`)](#43-verification--tooling-toolsexplore_datasetspy-toolsv1_to_samplepy-toolsverify_t16py)
 5. [Automated Test Suite (`tests/`)](#5-automated-test-suite-tests)
 6. [Interactive Web Application (`app/`)](#6-interactive-web-application-app)
    - [6.1 Frontend Architecture & Component Tree](#61-frontend-architecture--component-tree)
@@ -126,25 +126,28 @@ Space_Apps_2026_Analogos_Luna_Marte/
 │   ├── pipeline.md                  # HPC pipeline runbook and data flow
 │   ├── plan_t16_missing_data.md     # Mathematical treatment of missing environmental data
 │   └── plan_t17_plain_language.md   # Translation & nomenclature guidelines
-├── pipeline/                        # Core Python planetary analog processing engine
-│   ├── __init__.py                  # Package exports and module definitions
-│   ├── config.py                    # Physical planetary constants, paths, and grids
-│   ├── dust.py                      # Atmospheric dust & optical depth analog module (T13)
-│   ├── earth_features.py            # Earth DEM processing & vegetation masking
-│   ├── earth_layers.py              # MODIS NDVI, LST, logistics, and analog catalogs
-│   ├── export.py                    # Acceptance verification & JSON universe export
-│   ├── features.py                  # Geomorphometric feature calculation routines
-│   ├── geo.py                       # Geodesy, local AEQD projections, raster windows
-│   ├── geology.py                   # GLiM & USGS vector/raster spatial queries
-│   ├── geology_rules.py             # 8-class planetary geological classification
-│   ├── iau.py                       # IAU/USGS planetary nomenclature parser
-│   ├── ice.py                       # Cryosphere & thermal analog matching module (T12)
-│   ├── match.py                     # Multidimensional Similarity Index (MSI) engine
-│   ├── planet_features.py           # Global planetary quasi-equiareal grid processor
-│   └── targets.py                   # Curated exploration targets & K-Means clustering
-├── scripts/                         # HPC batch execution scripts (Slurm/PBS)
-│   ├── run_earth_stripes.sh         # Distributed Slurm stripe array for GLO-90
-│   └── run_mars_grid.sh             # Slurm script for planetary MOLA extraction
+├── data/                            # Hand-written definitions the pipeline reads (targets, known analogs, limits, overrides, ice hints)
+├── models/                          # Documentation of the similarity model; there are no trained networks
+├── scripts/                         # Everything that processes data
+│   ├── pipeline/                    # Core Python planetary analog processing engine (python -m pipeline.<module>)
+│   │   ├── __init__.py                  # Package exports and module definitions
+│   │   ├── config.py                    # Physical planetary constants, paths, and grids
+│   │   ├── dust.py                      # Atmospheric dust & optical depth analog module (T13)
+│   │   ├── earth_features.py            # Earth DEM processing & vegetation masking
+│   │   ├── earth_layers.py              # MODIS NDVI, LST, logistics, and analog catalogs
+│   │   ├── export.py                    # Acceptance verification & JSON universe export
+│   │   ├── features.py                  # Geomorphometric feature calculation routines
+│   │   ├── geo.py                       # Geodesy, local AEQD projections, raster windows
+│   │   ├── geology.py                   # GLiM & USGS vector/raster spatial queries
+│   │   ├── geology_rules.py             # 8-class planetary geological classification
+│   │   ├── iau.py                       # IAU/USGS planetary nomenclature parser
+│   │   ├── ice.py                       # Cryosphere & thermal analog matching module (T12)
+│   │   ├── match.py                     # Multidimensional Similarity Index (MSI) engine
+│   │   ├── planet_features.py           # Global planetary quasi-equiareal grid processor
+│   │   └── targets.py                   # Curated exploration targets & K-Means clustering
+│   ├── jobs/                        # Slurm jobs, one per task, plus the data downloads
+│   ├── tools/                       # Downloaders, dataset explorer, verification and sensitivity scripts, sample converter
+│   └── legacy_v1/                   # v1 prototype (scripts, jobs, outputs, logs), kept as reference and never imported
 ├── tests/                           # Complete pytest unit and integration test suite
 │   ├── __init__.py                  # Test package initialization
 │   ├── test_dust.py                 # Tests for optical depth and dust seasonality
@@ -159,26 +162,17 @@ Space_Apps_2026_Analogos_Luna_Marte/
 │   ├── test_match.py                # Tests for MSI, missing data cases, diversity
 │   ├── test_planet_features.py      # Tests for planetary grid generation and extraction
 │   └── test_targets.py              # Tests for curated target schemas & clustering
-├── tools/                           # Standalone data conversion and diagnostic utilities
-│   ├── explore_datasets.py          # Multimodal dataset inspector (HTML/JSON/MD)
-│   ├── v1_to_sample.py              # Converter from v1 pipeline outputs to sample data
-│   └── verify_t16.py                # Mathematical verifier for T16 missing data logic
-├── download_aod.py                  # NASA Earthdata downloader for MOD08_M3 Deep Blue
-├── download_earthdata.py            # Earthaccess downloader for MODIS NDVI & LST
-├── enrich_nomenclature.py           # Feature enrichment via IAU Gazetteer shapefiles
-├── match_earth_analogs.py           # v1 similarity matcher for Copernicus GLO-90
-└── process_analogs.py               # v1 MOLA/LOLA windowed extractor and clustering
 ```
 
 ---
 
-## 3. Core Pipeline Engine (`pipeline/`)
+## 3. Core Pipeline Engine (`scripts/pipeline/`)
 
 The `pipeline` directory constitutes the scientific core of the system. All modules are implemented in Python 3.10+ using `numpy`, `scipy`, `pandas`, `geopandas`, `shapely`, and `rasterio`.
 
-### 3.1 Configuration & Geodesy (`pipeline/config.py`, `pipeline/geo.py`)
+### 3.1 Configuration & Geodesy (`scripts/pipeline/config.py`, `scripts/pipeline/geo.py`)
 
-#### `pipeline/config.py`
+#### `scripts/pipeline/config.py`
 Defines physical constants, spatial resolutions, directory paths, and default hyperparameters.
 - **Planetary Radii**:
   - Mars mean volumetric radius: $R_{Mars} = 3{,}389{,}500\text{ m}$.
@@ -190,7 +184,7 @@ Defines physical constants, spatial resolutions, directory paths, and default hy
 - **Paths**:
   - Dynamically detects the local scratch environment (`/lustre/proyectos/p089` on the HPC cluster or local directory on Windows).
 
-#### `pipeline/geo.py`
+#### `scripts/pipeline/geo.py`
 Provides geodetic conversions, local Azimuthal Equidistant (AEQD) projections, and windowed raster extraction.
 - `local_aeqd_wkt(lat, lon, body)`: Generates an OGC Well-Known Text (WKT) string defining a custom sphere-centric AEQD projection centered on `(lat, lon)` using the planetary sphere radius.
 - `extract_patch(raster_path, lat, lon, size_km, res_m, body)`:
@@ -201,7 +195,7 @@ Provides geodetic conversions, local Azimuthal Equidistant (AEQD) projections, a
 
 ---
 
-### 3.2 Geomorphometric Feature Extraction (`pipeline/features.py`)
+### 3.2 Geomorphometric Feature Extraction (`scripts/pipeline/features.py`)
 
 Computes seven scale-invariant and physically interpretable geomorphometric properties from a $100 \times 100$ elevation patch ($100\text{ m}$ pixel resolution):
 
@@ -226,9 +220,9 @@ Key functions:
 
 ---
 
-### 3.3 Planetary Targets & IAU Nomenclature (`pipeline/targets.py`, `pipeline/iau.py`)
+### 3.3 Planetary Targets & IAU Nomenclature (`scripts/pipeline/targets.py`, `scripts/pipeline/iau.py`)
 
-#### `pipeline/targets.py`
+#### `scripts/pipeline/targets.py`
 Manages exploration targets on Mars and the Moon.
 - **Curated Mission Targets**:
   - **Mars**: Jezero Crater (Perseverance), Gale Crater (Curiosity), Olympus Mons, Valles Marineris (Coprates Chasma), Utopia Planitia (Zhurong), Planum Boreum.
@@ -237,7 +231,7 @@ Manages exploration targets on Mars and the Moon.
   - Uses `scikit-learn`'s `KMeans` algorithm to discover 30 representative morphological archetypes across the entire planetary surface from global grids.
   - Selects the true geographic observation closest to each centroid as the archetype's anchor point.
 
-#### `pipeline/iau.py`
+#### `scripts/pipeline/iau.py`
 Parses the official USGS/IAU Gazetteer of Planetary Nomenclature.
 - `load_iau_gazetteer(shapefile_path)`: Reads Gazetteer shapefiles, filtering for approved features and extracting feature type, diameter, and coordinate centroids.
 - `haversine_distance(lat1, lon1, lat2, lon2, radius)`: Calculates great-circle spherical distance over the target celestial body.
@@ -245,9 +239,9 @@ Parses the official USGS/IAU Gazetteer of Planetary Nomenclature.
 
 ---
 
-### 3.4 Geological & Lithological Taxonomy (`pipeline/geology_rules.py`, `pipeline/geology.py`)
+### 3.4 Geological & Lithological Taxonomy (`scripts/pipeline/geology_rules.py`, `scripts/pipeline/geology.py`)
 
-#### `pipeline/geology_rules.py`
+#### `scripts/pipeline/geology_rules.py`
 Defines an 8-class planetary geological classification scheme and cross-body similarity mapping:
 
 ```python
@@ -273,21 +267,21 @@ PLANETARY_CLASSES = [
   - `glim_to_planetary_class(glim_code)`: Translates Hartmann & Moosdorf (2012) Global Lithological Map (GLiM) codes (`vb` $\rightarrow$ `basaltic_plains`, `ev` $\rightarrow$ `evaporite_sulfate`, etc.).
   - `parse_usgs_geology(unit_description)`: Uses regular expressions to classify USGS Mars (Tanaka et al. 2014) and Moon (Fortezzo et al. 2020) stratigraphic units.
 
-#### `pipeline/geology.py`
+#### `scripts/pipeline/geology.py`
 Spatial querying interface for geological maps.
 - `sample_glim_point(glim_gdf, lat, lon)`: Performs point-in-polygon spatial lookups against GLiM.
 - **Coastal Fallback**: If an Earth candidate falls within shallow marine or coastal waters due to grid coarseness, the algorithm performs a nearest-neighbor KD-tree search within a $10\text{ km}$ buffer to locate the nearest terrestrial lithological unit.
 
 ---
 
-### 3.5 Environmental Dimensions: Cryosphere & Atmospheric Dust (`pipeline/ice.py`, `pipeline/dust.py`)
+### 3.5 Environmental Dimensions: Cryosphere & Atmospheric Dust (`scripts/pipeline/ice.py`, `scripts/pipeline/dust.py`)
 
-#### `pipeline/ice.py` (T12)
+#### `scripts/pipeline/ice.py` (T12)
 Models cryospheric, glaciovolcanic, and thermal analog dimensions.
 - Evaluates **Land Surface Temperature (LST)** extremes and annual temperature amplitude using MODIS MOD11C3 ($0.05^\circ$ climate modeling grid) for Earth and LRO Diviner South Polar thermal maps for the Moon.
 - Computes cold-temperature percentiles ($T_{min}$, $T_{max}$, $\Delta T$) and computes a cryospheric fidelity index $S_{ice} \in [0, 1]$.
 
-#### `pipeline/dust.py` (T13)
+#### `scripts/pipeline/dust.py` (T13)
 Quantifies atmospheric dust dynamics and aeolian hazard similarity for Mars.
 - **Mars Dataset**: Montabone et al. Martian Year 24–36 Column Dust Optical Depth (CDOD) climatology at 9.3 $\mu\text{m}$.
 - **Earth Dataset**: MODIS MOD08_M3 Deep Blue Aerosol Optical Depth (AOD) at 550 nm.
@@ -295,14 +289,14 @@ Quantifies atmospheric dust dynamics and aeolian hazard similarity for Mars.
 
 ---
 
-### 3.6 Planetary & Terrestrial DEM Processors (`pipeline/planet_features.py`, `pipeline/earth_features.py`)
+### 3.6 Planetary & Terrestrial DEM Processors (`scripts/pipeline/planet_features.py`, `scripts/pipeline/earth_features.py`)
 
-#### `pipeline/planet_features.py`
+#### `scripts/pipeline/planet_features.py`
 Generates global quasi-equiareal analysis grids and extracts planetary DEM patches.
 - `generate_planetary_grid(body, spacing_deg)`: Generates latitude-longitude points with longitude steps scaled as $\Delta \lambda = \frac{\Delta \phi}{\cos(\phi)}$, ensuring constant spatial density from the equator to the poles.
 - `extract_planetary_patch_worker(...)`: Multiprocessing worker function that extracts $10\text{ km} \times 10\text{ km}$ patches from global MOLA (Mars) and LOLA (Moon) raster mosaics.
 
-#### `pipeline/earth_features.py`
+#### `scripts/pipeline/earth_features.py`
 Processes the terrestrial digital elevation model (Copernicus GLO-90, 90m resolution).
 - `build_glo90_vrt(tiles_dir, output_vrt)`: Builds a virtual raster table (VRT) linking over 20,000 Copernicus elevation tiles.
 - `filter_by_vegetation(earth_candidates_df, ndvi_raster_path, max_ndvi=0.25)`: Rejects heavily vegetated sites using annual maximum MODIS NDVI, ensuring only bare-earth, desert, and polar terrains are matched.
@@ -310,7 +304,7 @@ Processes the terrestrial digital elevation model (Copernicus GLO-90, 90m resolu
 
 ---
 
-### 3.7 Contextual Earth Layers & Logistics (`pipeline/earth_layers.py`)
+### 3.7 Contextual Earth Layers & Logistics (`scripts/pipeline/earth_layers.py`)
 
 Enriches candidate sites with operational logistical constraints:
 - `build_infrastructure_tree(natural_earth_roads_path, airports_path)`: Builds `scipy.spatial.cKDTree` / `BallTree` spatial indexes over global road networks and international airport runways.
@@ -322,7 +316,7 @@ Enriches candidate sites with operational logistical constraints:
 
 ---
 
-### 3.8 Multidimensional Matching & Scoring Engine (`pipeline/match.py`)
+### 3.8 Multidimensional Matching & Scoring Engine (`scripts/pipeline/match.py`)
 
 Executes the scoring and candidate ranking workflows.
 - **Radial Basis Function (RBF) Geomorphometry Similarity**:
@@ -341,7 +335,7 @@ Executes the scoring and candidate ranking workflows.
 
 ---
 
-### 3.9 Validation, Serialization & Export (`pipeline/export.py`)
+### 3.9 Validation, Serialization & Export (`scripts/pipeline/export.py`)
 
 Produces the final unified data artifact consumed by the frontend application (`analogs_universe.json`).
 - `validate_universe_schema(data)`: Performs strict data validation:
@@ -352,7 +346,7 @@ Produces the final unified data artifact consumed by the frontend application (`
 
 ---
 
-### 3.10 Package Aggregation (`pipeline/__init__.py`)
+### 3.10 Package Aggregation (`scripts/pipeline/__init__.py`)
 
 Serves as the library interface, exposing top-level functions and configuration constants:
 ```python
@@ -370,27 +364,27 @@ from pipeline.export import export_to_json, validate_universe_schema
 
 ### 4.1 Data Acquisition Scripts (`download_earthdata.py`, `download_aod.py`)
 
-- **`download_earthdata.py`**:
+- **`scripts/tools/download_earthdata.py`**:
   Automates the search and concurrent download of MODIS Terra/Aqua Land Surface Temperature (`MOD11C3`) and Vegetation Indices (`MOD13C2`) via the NASA `earthaccess` Python library. Handles Earthdata Login authentication, spatial bounding box queries, and local cache validation.
-- **`download_aod.py`**:
+- **`scripts/tools/download_aod.py`**:
   Automates the download of MODIS Atmosphere Monthly Global Product (`MOD08_M3`) containing Deep Blue Aerosol Optical Depth (AOD) gridded rasters from the NASA LAADS DAAC archive.
 
 ### 4.2 Pipeline v1 Legacy & Transition Scripts
 
-- **`process_analogs.py`**:
+- **`scripts/legacy_v1/process_analogs.py`**:
   Initial v1 prototype for extracting windowed elevation patches from MOLA and LOLA global rasters and clustering planetary surfaces using `MiniBatchKMeans`.
-- **`match_earth_analogs.py`**:
+- **`scripts/legacy_v1/match_earth_analogs.py`**:
   v1 matching script that queries Copernicus GLO-90 DEM tiles and computes initial Euclidean distance rankings.
-- **`enrich_nomenclature.py`**:
+- **`scripts/legacy_v1/enrich_nomenclature.py`**:
   Extracts nomenclature attributes from ESRI Shapefile dBASE (`.dbf`) records and computes nearest IAU landmark proximities.
 
-### 4.3 Verification & Tooling (`tools/`)
+### 4.3 Verification & Tooling (`scripts/tools/`)
 
-- **`tools/explore_datasets.py`**:
+- **`scripts/tools/explore_datasets.py`**:
   Comprehensive diagnostic script that inspects raster and vector inputs (GLO-90 VRT, MOLA, LOLA, GLiM, MODIS, Shapefiles). Evaluates spatial extents, projections, pixel bit-depths, nodata flags, and generates self-contained diagnostic reports in HTML, Markdown, and JSON formats.
-- **`tools/v1_to_sample.py`**:
+- **`scripts/tools/v1_to_sample.py`**:
   Bridge script that parses v1 pipeline output CSV/Parquet files, calculates missing RBF and logistics sub-scores, and generates structured sample datasets for frontend interface testing.
-- **`tools/verify_t16.py`**:
+- **`scripts/tools/verify_t16.py`**:
   Mathematical and algorithmic validation suite that verifies the T16 missing-data policy. Evaluates weight renormalization, checks edge-case behavior, and guarantees that total weights always sum strictly to $1.0$.
 
 ---
@@ -401,18 +395,18 @@ The repository includes a comprehensive, modular test suite implemented in `pyte
 
 | Test File | Primary Modules Under Test | Key Test Cases & Coverage |
 | :--- | :--- | :--- |
-| `tests/test_geo.py` | `pipeline/geo.py` | Local AEQD projection validity, antimeridian coordinate unwrapping ($\pm 180^\circ$), polar singularity projection ($\pm 90^\circ$), nodata mask interpolation, int16 elevation scaling/offset. |
-| `tests/test_features.py` | `pipeline/features.py` | Flat plane zero-slope invariance, synthetic $45^\circ$ inclined ramp gradient verification, Horn filter edge padding, Riley TRI symmetry, OLS planar detrending roughness. |
-| `tests/test_planet_features.py` | `pipeline/planet_features.py` | Quasi-equiareal grid point density vs. latitude, meridian convergence scaling, stripe slice boundaries, patch extraction multiprocessing workers. |
-| `tests/test_targets.py` | `pipeline/targets.py` | Curated targets schema compliance, coordinate range checks ($-90 \le \phi \le 90$, $-180 \le \lambda \le 180$), K-Means cluster count verification, anchor selection. |
-| `tests/test_earth_features.py` | `pipeline/earth_features.py` | GLO-90 VRT creation, NDVI vegetation threshold rejection, parallel stripe worker execution, stripe merging. |
-| `tests/test_earth_layers.py` | `pipeline/earth_layers.py` | MODIS monthly compositing, BallTree nearest road/airport queries, logistics exponential distance attenuation, sovereign country lookups. |
-| `tests/test_iau.py` | `pipeline/iau.py` | IAU Gazetteer shapefile reading, Great-circle Haversine distance accuracy, closest named landmark queries. |
-| `tests/test_dust.py` | `pipeline/dust.py` | Montabone CDOD netCDF parsing, MODIS AOD scaling, seasonal $180^\circ$ $L_s$ phase shift for opposite hemispheres. |
-| `tests/test_geology.py` | `pipeline/geology.py`, `pipeline/geology_rules.py` | GLiM spatial sampling, coastal point KD-tree fallback, 8-class cross-body similarity matrix symmetry and diagonal identity ($S_{i,i} = 1.0$). |
-| `tests/test_ice.py` | `pipeline/ice.py` | MODIS LST extreme extraction, Diviner south polar thermal matching, cryospheric score bounds ($0 \le S_{ice} \le 1$). |
-| `tests/test_match.py` | `pipeline/match.py` | RBF kernel decay properties, multidimensional weighted scoring, T16 missing-data re-weighting (Cases A, B, C), 50 km spatial diversity suppression. |
-| `tests/test_export.py` | `pipeline/export.py` | JSON universe serialization, required fields validation, coordinate bounds, numerical score limits, file writing integrity. |
+| `tests/test_geo.py` | `scripts/pipeline/geo.py` | Local AEQD projection validity, antimeridian coordinate unwrapping ($\pm 180^\circ$), polar singularity projection ($\pm 90^\circ$), nodata mask interpolation, int16 elevation scaling/offset. |
+| `tests/test_features.py` | `scripts/pipeline/features.py` | Flat plane zero-slope invariance, synthetic $45^\circ$ inclined ramp gradient verification, Horn filter edge padding, Riley TRI symmetry, OLS planar detrending roughness. |
+| `tests/test_planet_features.py` | `scripts/pipeline/planet_features.py` | Quasi-equiareal grid point density vs. latitude, meridian convergence scaling, stripe slice boundaries, patch extraction multiprocessing workers. |
+| `tests/test_targets.py` | `scripts/pipeline/targets.py` | Curated targets schema compliance, coordinate range checks ($-90 \le \phi \le 90$, $-180 \le \lambda \le 180$), K-Means cluster count verification, anchor selection. |
+| `tests/test_earth_features.py` | `scripts/pipeline/earth_features.py` | GLO-90 VRT creation, NDVI vegetation threshold rejection, parallel stripe worker execution, stripe merging. |
+| `tests/test_earth_layers.py` | `scripts/pipeline/earth_layers.py` | MODIS monthly compositing, BallTree nearest road/airport queries, logistics exponential distance attenuation, sovereign country lookups. |
+| `tests/test_iau.py` | `scripts/pipeline/iau.py` | IAU Gazetteer shapefile reading, Great-circle Haversine distance accuracy, closest named landmark queries. |
+| `tests/test_dust.py` | `scripts/pipeline/dust.py` | Montabone CDOD netCDF parsing, MODIS AOD scaling, seasonal $180^\circ$ $L_s$ phase shift for opposite hemispheres. |
+| `tests/test_geology.py` | `scripts/pipeline/geology.py`, `scripts/pipeline/geology_rules.py` | GLiM spatial sampling, coastal point KD-tree fallback, 8-class cross-body similarity matrix symmetry and diagonal identity ($S_{i,i} = 1.0$). |
+| `tests/test_ice.py` | `scripts/pipeline/ice.py` | MODIS LST extreme extraction, Diviner south polar thermal matching, cryospheric score bounds ($0 \le S_{ice} \le 1$). |
+| `tests/test_match.py` | `scripts/pipeline/match.py` | RBF kernel decay properties, multidimensional weighted scoring, T16 missing-data re-weighting (Cases A, B, C), 50 km spatial diversity suppression. |
+| `tests/test_export.py` | `scripts/pipeline/export.py` | JSON universe serialization, required fields validation, coordinate bounds, numerical score limits, file writing integrity. |
 | `tests/__init__.py` | Test Suite Root | Test package initialization and shared test constants. |
 
 ---
@@ -644,5 +638,5 @@ The primary exchange contract between the Python computational pipeline and the 
 All components of this codebase have been standardized to professional scientific English. When contributing new features:
 1. Maintain type annotations across all Python modules (`typing.Tuple`, `typing.Dict`, `typing.Optional`, `typing.List`).
 2. Write unit tests in `tests/test_<feature>.py` verifying boundary conditions, nodata handling, and mathematical invariants.
-3. Verify that any new environmental sub-scores integrate cleanly with the T16 dynamic re-weighting logic in `pipeline/match.py` and `app/src/lib/msi.ts`.
+3. Verify that any new environmental sub-scores integrate cleanly with the T16 dynamic re-weighting logic in `scripts/pipeline/match.py` and `app/src/lib/msi.ts`.
 4. Keep all docstrings formatted according to NumPy/Google docstring standards in clear English.

@@ -15,10 +15,10 @@ T6 does not sweep the Earth (that is T5). It delivers:
 
 | What | Where |
 | --- | --- |
-| Reading MODIS and computing the NDVI maximum and annual LST | `pipeline/earth_layers.py` |
-| Known analog regions (hand-written, committed) | `pipeline/data/known_analogs.json` |
-| New paths | `pipeline/config.py` |
-| Job: build the cache and check it | `jobs/t6_earth_layers.slurm` |
+| Reading MODIS and computing the NDVI maximum and annual LST | `scripts/pipeline/earth_layers.py` |
+| Known analog regions (hand-written, committed) | `data/known_analogs.json` |
+| New paths | `scripts/pipeline/config.py` |
+| Job: build the cache and check it | `scripts/jobs/t6_earth_layers.slurm` |
 | Tests | `tests/test_earth_layers.py` |
 | Shared cache (not committed) | `data/derived/ndvi_max_2023.tif`, `data/derived/lst_2023.tif` |
 | Run outputs | `runs/<JOBID>/t6_checks.json`, `map_ndvi_max.png`, `map_lst_amplitude.png`, `map_known_analogs.png` |
@@ -70,7 +70,7 @@ Natural Earth has no roads in Antarctica, so `dist_road_km` will be very large t
 
 ---
 
-## 2. `pipeline/config.py`: additions
+## 2. `scripts/pipeline/config.py`: additions
 
 ```python
 EARTH_RAW_FILES: dict[str, str] = {
@@ -91,7 +91,7 @@ All paths are relative to `<project_dir>/data/raw` and `<project_dir>/data/deriv
 
 ---
 
-## 3. `pipeline/earth_layers.py`
+## 3. `scripts/pipeline/earth_layers.py`
 
 ### 3.1 Pure functions (no I/O; tested with synthetic arrays)
 
@@ -214,7 +214,7 @@ class EarthLayers:
         """Loads into memory ndvi_max (band 1) and the 3 LST bands as float32 arrays, plus
         Logistics, Countries and KnownRegions. `need` can load only a part (e.g. {'ndvi'} for the
         prefilter). Fails with a clear message if the cache is missing:
-        'Run jobs/t6_earth_layers.slurm first'."""
+        'Run scripts/jobs/t6_earth_layers.slurm first'."""
 
     def ndvi_prefilter(self, lat, lon, half_km: float = 16.0) -> np.ndarray:
         """Patch ndvi_max (window median), for the T5 prefilter (> 0.25 is dropped)."""
@@ -238,9 +238,9 @@ python -m pipeline.earth_layers --project-dir P --out-dir RUN_DIR [--build] [--c
 
 ---
 
-## 4. `pipeline/data/known_analogs.json` (hand-written)
+## 4. `data/known_analogs.json` (hand-written)
 
-The committed file is [pipeline/data/known_analogs.json](../pipeline/data/known_analogs.json). Its bounding boxes are **approximate**: Claude drew them to contain the cited study areas, and they do not come from an official source. Each one therefore carries a `bbox_note`, and the §6 checks review them on a map. The bbox format is `[lon_min, lat_min, lon_max, lat_max]`.
+The committed file is [data/known_analogs.json](../data/known_analogs.json). Its bounding boxes are **approximate**: Claude drew them to contain the cited study areas, and they do not come from an official source. Each one therefore carries a `bbox_note`, and the §6 checks review them on a map. The bbox format is `[lon_min, lat_min, lon_max, lat_max]`.
 
 **Validation** in `KnownRegions.__init__`: unique `id`, `lon_min < lon_max` and `lat_min < lat_max`, valid ranges, and a non-empty `source_url`.
 
@@ -279,7 +279,7 @@ The file also has `analog_for`, `why` and `bbox_note` for every region. If this 
    - `(0.5, 0.5)` gives "Testland";
    - `(0.5, 1.1)`, ~11 km outside, also gives "Testland" (coast rule);
    - `(0.5, 3)` gives None.
-10. **`test_known_regions_real_file`:** loads the real `pipeline/data/known_analogs.json`.
+10. **`test_known_regions_real_file`:** loads the real `data/known_analogs.json`.
     - It has 12 regions, unique ids and valid bboxes.
     - `lookup(38.4064, -110.7919)` (MDRS) gives `utah-mdrs`.
     - `lookup(29.07, -110.96)` (Hermosillo) gives None.
@@ -289,9 +289,9 @@ The file also has `analog_for`, `why` and `bbox_note` for every region. If this 
 
 ## 6. Job and checks
 
-### 6.1 `jobs/t6_earth_layers.slurm`
+### 6.1 `scripts/jobs/t6_earth_layers.slurm`
 
-Same shape as `jobs/t4_targets.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit), with:
+Same shape as `scripts/jobs/t4_targets.slurm` (`#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit), with:
 
 ```bash
 #SBATCH -J p089-t6-earth-layers
@@ -305,7 +305,7 @@ python -c "import pyhdf" || { echo "pyhdf missing in spaceapps_2026"; exit 2; }
 python -m pipeline.earth_layers --project-dir "$PROJECT_DIR" --out-dir "$OUT_DIR" --build --check "$@"
 ```
 
-- **No installs.** `pyhdf` is already in the environment, so the job must not install anything; if it is missing, the job fails. Add `pyhdf>=0.10` to `pipeline/requirements.txt` with the comment `# only to build the T6 cache (Yuca)`.
+- **No installs.** `pyhdf` is already in the environment, so the job must not install anything; if it is missing, the job fails. Add `pyhdf>=0.10` to `scripts/pipeline/requirements.txt` with the comment `# only to build the T6 cache (Yuca)`.
 - **No separate test run.** The full job takes minutes, and its checks are the test. If it fails, diagnose before resubmitting.
 - **No half-built cache.** It is written to `.tmp.tif` and then `os.replace`d.
 
@@ -367,7 +367,7 @@ sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/
 ```
 
 ```bash
-sbatch jobs/t6_earth_layers.slurm
+sbatch scripts/jobs/t6_earth_layers.slurm
 ```
 
 ```bash

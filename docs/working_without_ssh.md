@@ -53,7 +53,7 @@ Gemini (laptop)  ──commit + push──►  GitHub  ──git pull──►  
 3. **Local environment on the laptop**, so Gemini can run the tests:
 
    ```bash
-   cd <local-clone> && python -m venv .venv && source .venv/bin/activate && pip install -r pipeline/requirements.txt
+   cd <local-clone> && python -m venv .venv && source .venv/bin/activate && pip install -r scripts/pipeline/requirements.txt
    ```
 
    ```bash
