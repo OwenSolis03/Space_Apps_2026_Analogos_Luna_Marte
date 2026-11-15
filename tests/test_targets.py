@@ -1,4 +1,4 @@
-"""Pruebas unitarias sintéticas para pipeline/targets.py (T4)."""
+"""Synthetic unit tests for pipeline/targets.py (T4 target curation, anchors, and clustering)."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from pipeline.targets import (
 
 
 def test_load_curated_real_file() -> None:
-    """Valida pipeline/data/targets.json real sin tocar rasters."""
+    """Validates real pipeline/data/targets.json without reading large raster files."""
     targets = load_curated(TARGETS_JSON)
     moon = [t for t in targets if t["body"] == "Moon"]
     mars = [t for t in targets if t["body"] == "Mars"]
@@ -43,7 +43,7 @@ def test_load_curated_real_file() -> None:
 
 
 def test_load_curated_rejects_bad(tmp_path: Path) -> None:
-    """Un targets.json con lat fuera de rango lanza ValueError mencionando el id."""
+    """A targets.json entry with latitude out of range raises ValueError citing the target id."""
     bad_file = tmp_path / "bad_targets.json"
     bad_file.write_text(
         json.dumps(
@@ -71,7 +71,7 @@ def test_load_curated_rejects_bad(tmp_path: Path) -> None:
 
 
 def test_anchor_points_point() -> None:
-    """Ancla point genera 5 puntos; los 4 vecinos quedan a 16.0 km (±0.01) del centro."""
+    """Point anchor generates 5 sample points; the 4 neighbors sit at 16.0 km (±0.01) from center."""
     target = {
         "id": "mars-test-point",
         "body": "Mars",
@@ -89,7 +89,7 @@ def test_anchor_points_point() -> None:
 
 
 def test_anchor_points_rim_near_pole() -> None:
-    """Ancla rim de Haworth devuelve 8 puntos a 25.71 km (±0.01) con lon en [-180, 180]."""
+    """Rim anchor for Haworth yields 8 rim points at 25.71 km (±0.01) with longitude in [-180, 180]."""
     target = {
         "id": "moon-a3-haworth",
         "body": "Moon",
@@ -107,7 +107,7 @@ def test_anchor_points_rim_near_pole() -> None:
 
 
 def test_aggregate_min_ok() -> None:
-    """Rim con 4/8 válidos -> insufficient_coverage y NaN; con 5/8 -> ok y media correcta."""
+    """Rim with 4/8 valid -> insufficient_coverage and NaN; with 5/8 -> ok and valid mean slope."""
     def _row(slope: float) -> dict[str, object]:
         return {
             "mean_slope_deg": np.float32(slope),
@@ -137,7 +137,7 @@ def test_aggregate_min_ok() -> None:
 
 
 def test_aggregate_ice_stable_frac() -> None:
-    """4 parches con Diviner y 1 con ice_depth_m finito producen ice_stable_frac == 0.25."""
+    """4 patches with Diviner coverage and 1 with finite ice_depth_m yield ice_stable_frac == 0.25."""
     def _moon_row(depth: float) -> dict[str, object]:
         return {
             "mean_slope_deg": np.float32(5.0),
@@ -163,7 +163,7 @@ def test_aggregate_ice_stable_frac() -> None:
 
 
 def test_build_clusters_blobs() -> None:
-    """3 nubes gaussianas separadas producen 3 representantes reales distintos y deterministas."""
+    """3 separate Gaussian blobs yield 3 distinct, deterministic real patch representatives."""
     rng = np.random.default_rng(123)
     centers = [
         (1.0, 2.0, 20.0, 0.2, 2.0, 4.0),
@@ -197,21 +197,21 @@ def test_build_clusters_blobs() -> None:
     assert list(reps1["cluster_rank"]) == [1, 2, 3]
     assert list(reps1["cluster_size"]) == sorted(list(reps1["cluster_size"]), reverse=True)
 
-    # Cada representante existe exactamente en df y cubre una nube distinta.
+    # Each medoid representative exists exactly in the input DataFrame and covers a different cluster.
     input_coords = set(zip(df["lat"], df["lon"]))
     rep_coords = list(zip(reps1["lat"], reps1["lon"]))
     for coord in rep_coords:
         assert coord in input_coords
     assert len(set(reps1["blob_id"])) == 3
 
-    # Determinismo con la misma semilla.
+    # Deterministic reproducibility under identical seed.
     assert list(reps1["lat"]) == list(reps2["lat"])
     assert list(reps1["lon"]) == list(reps2["lon"])
     assert np.allclose(sum1["size"].to_numpy(), sum2["size"].to_numpy())
 
 
 def test_cluster_targets_schema() -> None:
-    """cluster_targets produce id mars-cluster-01, type CLUSTER y why con el porcentaje."""
+    """cluster_targets produces formatted id mars-cluster-01, type CLUSTER, and why citing percentage."""
     df = pd.DataFrame(
         [
             {
@@ -254,3 +254,4 @@ def test_cluster_targets_schema() -> None:
     assert "100.0%" in str(row["why"])
     assert row["name"] == "Jezero (Crater)"
     assert row["status"] == "ok"
+

@@ -1,4 +1,22 @@
-"""Barrido global de la Tierra sobre Copernicus GLO-90 y capas terrestres de T6 (T5)."""
+"""Global Earth sweep over Copernicus GLO-90 DEM and environmental layers (T5).
+
+This module manages the candidate grid preparation, vegetation pre-filtering,
+Copernicus GLO-90 VRT creation, parallel morphometric feature extraction, and
+integration with environmental/logistics layers for Earth planetary analog sites:
+1. Copernicus GLO-90 Tile Index:
+   - Evaluates coverage across 26,475 GeoTIFF tiles and constructs a unified global VRT.
+2. Vegetation Pre-filtering (MODIS NDVI):
+   - Discards heavily vegetated surfaces (NDVI max > 0.25) to isolate arid, barren,
+     hyper-arid, volcanic, and polar terrain suitable as Moon/Mars analogs.
+   - Preserves polar ice sheets and cold zones where NDVI is unmeasured (NaN) but valid
+     LST land data exists.
+3. Parallel AEQD Feature Extraction:
+   - Extracts 32x32 km patches at 500 m/pixel via `pipeline.geo` and calculates the 7 canonical
+     morphometric features via `pipeline.features`.
+4. Multi-Layer Merge:
+   - Merges elevation features with MODIS LST, aridity indices, logistics (roads, airports),
+     and known analog station boundaries into `features_earth.parquet`.
+"""
 
 from __future__ import annotations
 
@@ -71,11 +89,11 @@ _EARTH_WORKER: dict[str, object] = {}
 
 
 def parse_tile_cell(name: str) -> tuple[int, int]:
-    """Extrae la celda entera (lat_floor, lon_floor) de un nombre de tile Copernicus."""
+    """Extract integer cell bounds (lat_floor, lon_floor) from Copernicus tile filename."""
     base = Path(name).name
     m = TILE_RE.search(base)
     if m is None:
-        raise ValueError(f"Nombre de tile Copernicus inválido: {name!r}")
+        raise ValueError(f"Invalid Copernicus tile name: {name!r}")
     lat_v = int(m.group("lat"))
     lon_v = int(m.group("lon"))
     if m.group("ns") == "S":
@@ -83,12 +101,12 @@ def parse_tile_cell(name: str) -> tuple[int, int]:
     if m.group("ew") == "W":
         lon_v = -lon_v
     if not (-90 <= lat_v <= 89 and -180 <= lon_v <= 179):
-        raise ValueError(f"Celda fuera de rango en nombre de tile {name!r}: ({lat_v}, {lon_v})")
+        raise ValueError(f"Tile cell out of valid geographic range ({lat_v}, {lon_v}) in {name!r}")
     return lat_v, lon_v
 
 
 def load_tile_cells(copernicus_dir: Path) -> set[tuple[int, int]]:
-    """Devuelve el conjunto de celdas (lat_floor, lon_floor) disponibles sin abrir los .tif."""
+    """Return set of available (lat_floor, lon_floor) 1x1 deg cells without opening GeoTIFF headers."""
     cells: set[tuple[int, int]] = set()
     with os.scandir(copernicus_dir) as it:
         for entry in it:
@@ -102,11 +120,11 @@ def has_tile(
     lon: np.ndarray | float,
     cells: set[tuple[int, int]],
 ) -> np.ndarray:
-    """Devuelve máscara booleana de puntos cuya celda (floor(lat), floor(lon)) está en `cells`."""
+    """Return boolean mask for coordinates whose containing 1x1 deg cell is present in `cells`."""
     lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
     lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
     if lat_arr.shape != lon_arr.shape:
-        raise ValueError("lat y lon deben tener la misma forma")
+        raise ValueError("lat and lon arrays must have identical shape")
     valid = np.isfinite(lat_arr) & np.isfinite(lon_arr)
     lat_floor = np.floor(lat_arr).astype(np.int64)
     lon_floor = np.floor(lon_arr).astype(np.int64)
@@ -121,25 +139,25 @@ def has_tile(
 
 
 def build_vrt(copernicus_dir: Path, vrt_path: Path) -> Path:
-    """Construye de forma atómica el VRT global (-srcnodata 0 -vrtnodata -9999) si no existe."""
+    """Construct global Copernicus VRT atomically (-srcnodata 0 -vrtnodata -9999) if absent."""
     vrt_out = Path(vrt_path)
     if vrt_out.exists():
-        print(f"[T5] VRT ya existe, reutilizando sin modificar: {vrt_out}", flush=True)
+        print(f"[T5] VRT already exists, reusing: {vrt_out}", flush=True)
         return vrt_out
 
     gdalbuildvrt = shutil.which("gdalbuildvrt")
     if gdalbuildvrt is None:
-        raise RuntimeError("No se encontró gdalbuildvrt: activa spaceapps_2026")
+        raise RuntimeError("gdalbuildvrt not found in environment")
 
     cop_dir = Path(copernicus_dir)
     if not cop_dir.is_dir():
-        raise FileNotFoundError(f"Directorio Copernicus no encontrado: {cop_dir}")
+        raise FileNotFoundError(f"Copernicus directory not found: {cop_dir}")
 
     tiles = sorted(
         str(p) for p in cop_dir.iterdir() if p.is_file() and p.suffix.lower() == ".tif"
     )
     if not tiles:
-        raise FileNotFoundError(f"No hay archivos .tif en {cop_dir}")
+        raise FileNotFoundError(f"No .tif tiles found in {cop_dir}")
 
     vrt_out.parent.mkdir(parents=True, exist_ok=True)
     list_path = vrt_out.with_suffix(".list.txt")
@@ -172,14 +190,14 @@ def build_vrt(copernicus_dir: Path, vrt_path: Path) -> Path:
 
     with rasterio.open(vrt_out) as src:
         if src.crs is None or src.crs.to_epsg() != 4326:
-            raise ValueError(f"CRS inesperado en VRT {vrt_out}: {src.crs}")
+            raise ValueError(f"Unexpected CRS in VRT {vrt_out}: {src.crs}")
         if src.nodata is None or not math.isclose(float(src.nodata), VRT_NODATA, rel_tol=0.0, abs_tol=1e-6):
-            raise ValueError(f"nodata inesperado en VRT {vrt_out}: {src.nodata} != {VRT_NODATA}")
+            raise ValueError(f"Unexpected nodata value in VRT {vrt_out}: {src.nodata} != {VRT_NODATA}")
         if not (
             math.isclose(src.res[0], EXPECTED_VRT_RES_DEG, rel_tol=0.0, abs_tol=1e-9)
             and math.isclose(src.res[1], EXPECTED_VRT_RES_DEG, rel_tol=0.0, abs_tol=1e-9)
         ):
-            raise ValueError(f"Resolución inesperada en VRT {vrt_out}: {src.res}")
+            raise ValueError(f"Unexpected resolution in VRT {vrt_out}: {src.res}")
         print(
             f"[VRT] {vrt_out}: {src.width}x{src.height}, bounds={src.bounds}, "
             f"res={src.res}, tiles={len(tiles):,}",
@@ -195,7 +213,7 @@ def _compute_prefilter_masks(
     cells: set[tuple[int, int]],
     layers: EarthLayers,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict[str, int]]:
-    """Aplica las reglas de prefiltro de §2.5 y devuelve máscaras + conteos."""
+    """Apply vegetation pre-filter rules and compute diagnostic count statistics."""
     lat_arr = np.atleast_1d(np.asarray(lat, dtype=np.float64))
     lon_arr = np.atleast_1d(np.asarray(lon, dtype=np.float64))
     n = lat_arr.shape[0]
@@ -222,7 +240,7 @@ def _compute_prefilter_masks(
         nan_idx = tile_idx[~finite_ndvi]
         if nan_idx.size > 0:
             if layers.lst_day_c is None:
-                raise RuntimeError("lst_day_c es necesario para evaluar puntos con NDVI NaN")
+                raise RuntimeError("lst_day_c is required to evaluate coordinates with NaN NDVI")
             lst_vals = patch_window_stat(
                 layers.lst_day_c,
                 lat_arr[nan_idx],
@@ -253,7 +271,7 @@ def prefilter(
     cells: set[tuple[int, int]],
     layers: EarthLayers,
 ) -> tuple[np.ndarray, dict[str, int]]:
-    """Máscara booleana de candidatos terrestres y diccionario de conteos."""
+    """Return boolean candidate mask and pre-filter summary statistics."""
     keep_mask, _, _, counts = _compute_prefilter_masks(lat, lon, cells, layers)
     return keep_mask, counts
 
@@ -272,7 +290,7 @@ def prepare_candidates(
     out_dir: Path,
     limit: int | None = None,
 ) -> Path:
-    """Construye VRT si falta, prefiltra la grilla Earth y guarda candidates.parquet."""
+    """Build VRT if missing, pre-filter Earth grid, and write candidates.parquet."""
     proj = Path(project_dir)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -300,12 +318,12 @@ def prepare_candidates(
 
     print(
         f"[PREPARE] grid={counts['grid']:,} no_tile={counts['no_tile']:,} "
-        f"(con_tile={counts['grid'] - counts['no_tile']:,}) "
+        f"(with_tile={counts['grid'] - counts['no_tile']:,}) "
         f"vegetated={counts['vegetated']:,} no_land_data={counts['no_land_data']:,} "
         f"ndvi_missing={counts['ndvi_missing']:,} kept={counts['kept']:,}",
         flush=True,
     )
-    print(f"[PREPARE] desglose por latitud: {lat_breakdown}", flush=True)
+    print(f"[PREPARE] latitudinal breakdown: {lat_breakdown}", flush=True)
 
     kept_points = [pt for pt, k in zip(full_grid, keep_mask.tolist()) if k]
     if limit is not None and limit > 0:
@@ -359,7 +377,7 @@ def prepare_candidates(
         json.dumps(stats_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     print(
-        f"[PREPARE] escritos {len(cand_df):,} candidatos en {cand_path} | "
+        f"[PREPARE] written {len(cand_df):,} candidates to {cand_path} | "
         f"classification={cls_counts}",
         flush=True,
     )
@@ -377,7 +395,7 @@ atexit.register(_close_earth_worker)
 
 
 def _init_earth_worker(vrt_path: str, size_km: float, res_m: float) -> None:
-    """Abre el VRT global una sola vez por proceso worker."""
+    """Open global Copernicus VRT once per worker process."""
     _close_earth_worker()
     _EARTH_WORKER["src"] = rasterio.open(vrt_path)
     _EARTH_WORKER["size_km"] = float(size_km)
@@ -385,7 +403,7 @@ def _init_earth_worker(vrt_path: str, size_km: float, res_m: float) -> None:
 
 
 def _process_earth_point(point: tuple[float, float]) -> dict[str, object] | None:
-    """Extrae el parche AEQD y los 7 rasgos topográficos de un candidato terrestre."""
+    """Extract AEQD patch and compute 7 terrain morphometric features for an Earth candidate."""
     lat, lon = point
     src = _EARTH_WORKER["src"]
     size_km = float(_EARTH_WORKER["size_km"])
@@ -438,7 +456,7 @@ def extract_stripe(
     size_km: float = PATCH_SIZE_KM,
     res_m: float = PATCH_RES_M,
 ) -> Path:
-    """Extrae rasgos topográficos para la franja `stripe_idx` de `candidates.parquet`."""
+    """Extract morphometric features for stripe partition `stripe_idx` of candidates.parquet."""
     t0 = time.perf_counter()
     run = Path(run_dir)
     cand_df = pd.read_parquet(run / "candidates.parquet", columns=["lat", "lon"])
@@ -479,12 +497,12 @@ def extract_stripe(
 
     elapsed = time.perf_counter() - t0
     skipped_antimeridian = (
-        get_antimeridian_skipped_count() if n_workers == 1 else "N/A (multiproceso)"
+        get_antimeridian_skipped_count() if n_workers == 1 else "N/A (multiprocessing)"
     )
     print(
-        f"[OK] Earth franja {stripe_idx}/{num_stripes}: "
-        f"{len(df):,}/{len(stripe_points):,} parches válidos en {elapsed:.1f}s "
-        f"(antimeridiano={skipped_antimeridian}) -> {out_path}",
+        f"[OK] Earth stripe {stripe_idx}/{num_stripes}: "
+        f"{len(df):,}/{len(stripe_points):,} valid patches in {elapsed:.1f}s "
+        f"(antimeridian={skipped_antimeridian}) -> {out_path}",
         flush=True,
     )
     if len(df) > 0:
@@ -495,7 +513,7 @@ def extract_stripe(
         ):
             print(
                 f"     {col}: min={df[col].min():.2f}{unit}, "
-                f"mediana={df[col].median():.2f}{unit}, "
+                f"median={df[col].median():.2f}{unit}, "
                 f"p95={df[col].quantile(0.95):.2f}{unit}, "
                 f"max={df[col].max():.2f}{unit}",
                 flush=True,
@@ -508,7 +526,7 @@ def merge_earth(
     num_stripes: int,
     allow_missing: bool = False,
 ) -> Path:
-    """Concatena franjas `features_earth_<i>.parquet` y las une con `candidates.parquet`."""
+    """Concatenate stripe parquets `features_earth_<i>.parquet` and perform inner join with candidates.parquet."""
     run = Path(run_dir)
     expected = [(i, run / f"features_earth_{i}.parquet") for i in range(num_stripes)]
     existing = [p for _, p in expected if p.exists()]
@@ -517,29 +535,29 @@ def merge_earth(
     if missing:
         if not allow_missing:
             raise FileNotFoundError(
-                f"Faltan {len(missing)}/{num_stripes} franjas en {run}: {missing}"
+                f"Missing {len(missing)}/{num_stripes} stripes in {run}: {missing}"
             )
         covered_frac = 100.0 * len(existing) / max(num_stripes, 1)
         print(
-            f"[WARN] Faltan {len(missing)}/{num_stripes} franjas: {missing} "
-            f"(cobertura parcial aproximada: {covered_frac:.1f} % de franjas)",
+            f"[WARN] Missing {len(missing)}/{num_stripes} stripes: {missing} "
+            f"(partial stripe coverage: {covered_frac:.1f}%)",
             flush=True,
         )
     if not existing:
-        raise FileNotFoundError(f"No existe ninguna franja features_earth_*.parquet en {run}")
+        raise FileNotFoundError(f"No features_earth_*.parquet stripes exist in {run}")
 
     feat_dfs = [pd.read_parquet(p) for p in existing]
     features_df = pd.concat(feat_dfs, ignore_index=True) if len(feat_dfs) > 1 else feat_dfs[0]
     cand_df = pd.read_parquet(run / "candidates.parquet")
 
     if len(features_df) == 0:
-        raise RuntimeError("No hay filas válidas en las franjas para combinar")
+        raise RuntimeError("No valid rows across stripes to merge")
 
     merged = features_df.merge(cand_df, on=["lat", "lon"], how="inner", validate="one_to_one")
     if len(merged) != len(features_df):
         orphan = len(features_df) - len(merged)
         raise RuntimeError(
-            f"Unión con candidates.parquet dejó {orphan} filas huérfanas "
+            f"Inner join with candidates.parquet left {orphan} orphan rows "
             f"({len(merged)} != {len(features_df)})"
         )
 
@@ -559,23 +577,23 @@ def merge_earth(
     if allow_missing and missing:
         pct_cands = 100.0 * (num_stripes - len(missing)) / num_stripes
         print(
-            f"[MERGE] cobertura parcial: {len(merged):,} válidos "
-            f"(~{pct_cands:.1f}% de franjas respecto a {len(cand_df):,} candidatos)",
+            f"[MERGE] Partial coverage: {len(merged):,} valid "
+            f"(~{pct_cands:.1f}% stripes compared to {len(cand_df):,} candidates)",
             flush=True,
         )
 
     out_path = run / "features_earth.parquet"
     merged.to_parquet(out_path, index=False)
     print(
-        f"[MERGE] Earth: {len(existing)}/{num_stripes} franjas -> {len(merged):,} parches "
-        f"en {out_path}",
+        f"[MERGE] Earth: {len(existing)}/{num_stripes} stripes -> {len(merged):,} patches "
+        f"in {out_path}",
         flush=True,
     )
     return out_path
 
 
 def plot_earth_maps(df: pd.DataFrame, run_dir: Path) -> list[Path]:
-    """Genera `map_earth_mean_slope_deg.png` y `map_earth_classification.png`."""
+    """Generate map_earth_mean_slope_deg.png and map_earth_classification.png."""
     run = Path(run_dir)
     run.mkdir(parents=True, exist_ok=True)
     p1 = plot_slope_map(df, body="Earth", png_path=run / "map_earth_mean_slope_deg.png")
@@ -606,7 +624,7 @@ def plot_earth_maps(df: pd.DataFrame, run_dir: Path) -> list[Path]:
             s=s_size,
             linewidths=0,
             alpha=0.85,
-            label=f"ndvi_missing / hielo ({int(is_missing.sum()):,})",
+            label=f"ndvi_missing / ice ({int(is_missing.sum()):,})",
         )
     if is_known.any():
         sub = df[is_known]
@@ -622,9 +640,9 @@ def plot_earth_maps(df: pd.DataFrame, run_dir: Path) -> list[Path]:
 
     ax.set_xlim(-180.0, 180.0)
     ax.set_ylim(-90.0, 90.0)
-    ax.set_xlabel("Longitud (°)")
-    ax.set_ylabel("Latitud (°)")
-    ax.set_title(f"Earth — clasificación de candidatos T5 ({len(df):,} parches válidos)")
+    ax.set_xlabel("Longitude (°)")
+    ax.set_ylabel("Latitude (°)")
+    ax.set_title(f"Earth — Candidate Classification ({len(df):,} valid patches)")
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
     ax.legend(loc="lower left", markerscale=4.0 if len(df) >= 3000 else 1.5, frameon=True)
     p2 = run / "map_earth_classification.png"
@@ -635,7 +653,7 @@ def plot_earth_maps(df: pd.DataFrame, run_dir: Path) -> list[Path]:
 
 
 def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
-    """Evalúa los criterios de aceptación de la sección 6 y escribe `t5_checks.json`."""
+    """Evaluate pipeline acceptance criteria and write t5_checks.json."""
     run = Path(run_dir)
     stats_path = run / "prefilter_stats.json"
     stats = json.loads(stats_path.read_text(encoding="utf-8")) if stats_path.exists() else {}
@@ -706,7 +724,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                     "kind": "hard",
                     "passed": bool(valid_ratio >= 0.70),
                     "observed": {"valid": int(len(df)), "candidates": cand_total, "frac": round(valid_ratio, 4)},
-                    "expected": ">= 0.70 de candidatos",
+                    "expected": ">= 0.70 of candidates",
                 },
                 {
                     "id": 2,
@@ -792,7 +810,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                     "kind": "hard",
                     "passed": bool(all(v >= 1 for v in presence.values())),
                     "observed": presence,
-                    "expected": ">= 1 en todas las regiones",
+                    "expected": ">= 1 in all benchmark regions",
                 },
                 {
                     "id": 6,
@@ -800,12 +818,12 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                     "kind": "hard",
                     "passed": bool(orphan_rows == 0 and len(all_nan_env_cols) == 0),
                     "observed": {"orphan_rows": orphan_rows, "all_nan_t6_cols": all_nan_env_cols},
-                    "expected": "orphan_rows=0 y ninguna columna T6 totalmente NaN",
+                    "expected": "orphan_rows=0 and no T6 environmental column entirely NaN",
                 },
             ]
         )
 
-    # Blandos comunes (§6.3 #7-#11)
+    # Soft checks (§6.3 #7-#11)
     checks.extend(
         [
             {
@@ -814,7 +832,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                 "kind": "soft",
                 "passed": True,
                 "observed": kr_counts,
-                "expected": "conteo informativo de las 12 regiones",
+                "expected": "informative counts across 12 known regions",
             },
             {
                 "id": 8,
@@ -833,7 +851,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                 "kind": "soft",
                 "passed": bool("Mexico" in top_countries),
                 "observed": top_countries,
-                "expected": "Mexico en el top 15",
+                "expected": "Mexico in top 15",
             },
             {
                 "id": 10,
@@ -841,7 +859,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
                 "kind": "soft",
                 "passed": bool(ndvi_missing_valid > 0 or is_smoke),
                 "observed": ndvi_missing_valid,
-                "expected": "conteo de válidos con ndvi_missing",
+                "expected": "count of valid patches with ndvi_missing flag",
             },
             {
                 "id": 11,
@@ -895,7 +913,7 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
     checks_path = run / "t5_checks.json"
     checks_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
-    print("\n=== T5 Verificaciones ===", flush=True)
+    print("\n=== T5 Verification Checks ===", flush=True)
     for c in checks:
         status = "PASS" if c["passed"] else "FAIL"
         print(
@@ -904,30 +922,30 @@ def run_checks(df: pd.DataFrame, run_dir: Path) -> bool:
             flush=True,
         )
     print(
-        f"Resumen ({report['mode']}): duros {hard_passed}/{len(hard_checks)}, "
-        f"blandos {soft_passed}/{len(soft_checks)} -> {checks_path}",
+        f"Summary ({report['mode']}): hard {hard_passed}/{len(hard_checks)}, "
+        f"soft {soft_passed}/{len(soft_checks)} -> {checks_path}",
         flush=True,
     )
     return hard_passed == len(hard_checks)
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Pipeline T5: barrido global de la Tierra.")
+    parser = argparse.ArgumentParser(description="Pipeline T5: Global Earth candidate extraction.")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_prep = sub.add_parser("prepare", help="Construye VRT, prefiltra grilla y muestrea T6.")
+    p_prep = sub.add_parser("prepare", help="Build VRT, prefilter global grid, and sample environmental layers.")
     p_prep.add_argument("--project-dir", type=Path, default=YUCA_PROJECT_DIR)
     p_prep.add_argument("--run-dir", type=Path, required=True)
     p_prep.add_argument("--limit", type=int, default=None)
 
-    p_ext = sub.add_parser("extract", help="Extrae una franja de candidatos del VRT.")
+    p_ext = sub.add_parser("extract", help="Extract candidate stripe from Copernicus VRT.")
     p_ext.add_argument("--project-dir", type=Path, default=YUCA_PROJECT_DIR)
     p_ext.add_argument("--run-dir", type=Path, required=True)
     p_ext.add_argument("--stripe-idx", type=int, required=True)
     p_ext.add_argument("--num-stripes", type=int, default=32)
     p_ext.add_argument("--workers", type=int, default=16)
 
-    p_mrg = sub.add_parser("merge", help="Combina franjas, grafica y corre checks T5.")
+    p_mrg = sub.add_parser("merge", help="Merge stripes, generate maps, and run T5 verification checks.")
     p_mrg.add_argument("--run-dir", type=Path, required=True)
     p_mrg.add_argument("--num-stripes", type=int, default=32)
     p_mrg.add_argument("--allow-missing", action="store_true")

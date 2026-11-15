@@ -7,7 +7,7 @@ export interface MapPoint {
   lon: number;
   label: string;
   selected: boolean;
-  weight: number; // 0-1, controla el radio
+  weight: number; // 0-1, controls marker radius
 }
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
   note?: string;
 }
 
-/** Mapa Leaflet con marcadores circulares. Se recrea solo si cambia la proyeccion o la capa base. */
+/** Leaflet map with circular markers. Recreated only if projection or base layer changes. */
 export function SiteMap({ title, kind, tiles, geographic, points, onSelect, note }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -62,7 +62,7 @@ export function SiteMap({ title, kind, tiles, geographic, points, onSelect, note
     if (!g || !m) return;
     g.clearLayers();
     let sel: MapPoint | undefined;
-    // los seleccionados se dibujan al final para quedar encima
+    // Selected markers are rendered last so they appear on top
     const ordered = [...points].sort((a, b) => Number(a.selected) - Number(b.selected));
     for (const p of ordered) {
       if (p.selected) sel = p;
@@ -80,7 +80,7 @@ export function SiteMap({ title, kind, tiles, geographic, points, onSelect, note
   }, [points, kind]);
 
   return (
-    <figure className="m-0 overflow-hidden rounded-panel border border-line bg-surface">
+    <figure className="panel m-0 overflow-hidden">
       <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-3 py-2">
         <span className="eyebrow">{title}</span>
         {note && <span className="text-xs text-muted">{note}</span>}

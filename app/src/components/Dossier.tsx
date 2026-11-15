@@ -1,7 +1,8 @@
-import type { Analog, Dimension, Limit, Mismatch, Target } from "../lib/types";
+import type { Analog, Dimension, Limit, Mismatch, Target, MineralogyMeta } from "../lib/types";
 import type { RankedTarget } from "../lib/msi";
 import { fmtLat, fmtLon, fmtNum, pct } from "../lib/msi";
 import { BODY_LABEL, DIM_LABEL, FEATURE_LABEL, GEO_CLASS_LABEL, fmtValue, limitLabel, suggestedUses } from "../lib/content";
+import { MineralogyPanel } from "./MineralogyPanel";
 import { Radar } from "./Radar";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
   analogIndex: number;
   onAnalog: (i: number) => void;
   limits: Limit[];
+  mineralogyMeta?: MineralogyMeta;
 }
 
 type Row = { key: string; label: string; unit: string; target: number | string | null | undefined; earth: number | string | null | undefined };
@@ -30,13 +32,13 @@ function processRows(t: Target, a: Analog): Row[] {
 function MatchCell({ mm }: { mm: Mismatch | undefined }) {
   if (!mm)
     return (
-      <span className="inline-flex items-center gap-1 text-earth">
+      <span className="inline-flex items-center gap-1 text-fg">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
         match
       </span>
     );
   return (
-    <span className="inline-flex items-center gap-1 text-bad">
+    <span className="inline-flex items-center gap-1 text-accent-ink">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></svg>
       {mm.z_diff == null ? "differs" : <>mismatch <span className="num text-xs">(z {mm.z_diff > 0 ? "+" : ""}{mm.z_diff})</span></>}
     </span>
@@ -45,7 +47,7 @@ function MatchCell({ mm }: { mm: Mismatch | undefined }) {
 
 const km = (v: number | null | undefined) => (v == null ? "n/a" : `${Math.round(v).toLocaleString("en-US")} km`);
 
-export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
+export function Dossier({ ranked, analogIndex, onAnalog, limits, mineralogyMeta }: Props) {
   const t = ranked.target;
   const { analog: a, score } = ranked.analogs[analogIndex];
   const body = BODY_LABEL[t.body].name;
@@ -75,11 +77,12 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <div className="grid min-w-0 content-start gap-4">
         <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-stretch">
-          <div className="min-w-0 rounded-panel border border-accent bg-surface p-4">
+          <div className="panel min-w-0 p-4">
+            <span className="rule mb-3" aria-hidden="true" />
             <div className="eyebrow">
               {body} · {t.type === "CURATED" ? (t.category ?? "mission site") : "terrain archetype"}
             </div>
-            <div className="mt-1 font-display text-lg font-semibold">{t.name}</div>
+            <div className="mt-1 font-display text-base font-medium tracking-[0.06em] uppercase">{t.name}</div>
             <div className="num mt-1 text-xs break-words text-muted">
               {fmtLat(t.lat)}, {fmtLon(t.lon)} · {t.id}
             </div>
@@ -90,6 +93,11 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
                 {t.geology.unit ? ` (unit ${t.geology.unit})` : ""}
               </p>
             )}
+            {t.mineralogy?.summary && (
+              <p className="mt-1 text-xs text-muted">
+                <span className="font-semibold text-fg">Mineralogy:</span> {t.mineralogy.summary}
+              </p>
+            )}
             {t.source_url && (
               <a className="mt-2 inline-block text-xs underline hover:text-fg" href={t.source_url} target="_blank" rel="noreferrer">
                 Source
@@ -97,12 +105,13 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
             )}
           </div>
           <span className="self-center justify-self-center num text-xs text-faint">versus</span>
-          <div className="min-w-0 rounded-panel border border-earth bg-surface p-4">
+          <div className="panel min-w-0 p-4">
+            <span className="rule rule-graphite mb-3" aria-hidden="true" />
             <div className="eyebrow">
               Earth · analog #{analogIndex + 1} ·{" "}
-              {a.classification === "KNOWN_ANALOG" ? <span className="text-warn">known analog region</span> : <span className="text-earth">new candidate</span>}
+              {a.classification === "KNOWN_ANALOG" ? <span className="tag tag-outline">known analog region</span> : <span className="tag tag-signal">new candidate</span>}
             </div>
-            <div className="mt-1 font-display text-lg font-semibold">
+            <div className="mt-1 font-display text-base font-medium tracking-[0.06em] uppercase">
               {a.known_region ? `${a.known_region}${a.country ? `, ${a.country}` : ""}` : (a.country ?? "Copernicus DEM cell")}
             </div>
             <div className="num mt-1 text-xs break-words text-muted">
@@ -128,6 +137,12 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
                   <dd className="num">{a.earth_env.lst_amplitude_c.toFixed(1)} °C</dd>
                 </>
               )}
+              {a.mineralogy?.summary && (
+                <>
+                  <dt className="text-muted">EMIT minerals</dt>
+                  <dd className="text-xs break-words">{a.mineralogy.summary}</dd>
+                </>
+              )}
             </dl>
           </div>
         </div>
@@ -151,10 +166,10 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
             <caption className="sr-only">Target features versus the Earth analog</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs text-muted">
-                <th className="px-2 py-2 font-semibold">Feature</th>
-                <th className="px-2 py-2 text-right font-semibold">{body}</th>
-                <th className="px-2 py-2 text-right font-semibold">Earth</th>
-                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2">Feature</th>
+                <th className="px-2 py-2 text-right">{body}</th>
+                <th className="px-2 py-2 text-right">Earth</th>
+                <th className="px-2 py-2">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -200,7 +215,7 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
           <p className="mt-1 text-xs text-muted">Ranks are percentiles within each planet (0 = lowest, 1 = highest), so they compare how extreme a site is at home, not absolute values.</p>
         </div>
 
-        <div className="rounded-panel bg-surface-2 p-4">
+        <div className="bg-surface-2 p-4">
           <div className="eyebrow">Suggested field use</div>
           <ul className="mt-2 grid list-disc gap-1 pl-5 text-sm">
             {[...suggestedUses(t.features, t.body, t.lat), ...notes].map((u) => (
@@ -209,12 +224,14 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
           </ul>
           <p className="mt-2 text-xs text-muted">Rule of thumb from slope and roughness, plus the site notes from the pipeline.</p>
         </div>
+
+        <MineralogyPanel target={t} analog={a} meta={mineralogyMeta} bodyName={body} />
       </div>
 
       <div className="grid min-w-0 content-start gap-4">
-        <div className="rounded-panel border border-line bg-surface p-4">
+        <div className="panel p-4">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="text-base font-semibold">Similarity profile</h3>
+            <h3>Similarity profile</h3>
             <span className="eyebrow">
               MSI <span className="num text-fg">{pct(score)}</span>
             </span>
@@ -222,9 +239,9 @@ export function Dossier({ ranked, analogIndex, onAnalog, limits }: Props) {
           <Radar values={a.sub_scores} availableDims={t.available_dims} earthMissingDims={a.earth_missing_dims} />
         </div>
 
-        <div className="rounded-panel border border-line bg-surface p-4">
-          <h3 className="flex items-center gap-2 text-base font-semibold">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-bad" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>
+        <div className="panel p-4">
+          <h3 className="flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent-ink" aria-hidden="true"><circle cx="12" cy="12" r="10" /><path d="m4.9 4.9 14.2 14.2" /></svg>
             Where the analogy breaks
           </h3>
           {breaks.length > 0 ? (

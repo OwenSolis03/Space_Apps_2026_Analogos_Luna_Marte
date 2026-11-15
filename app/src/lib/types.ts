@@ -56,8 +56,37 @@ export interface Analog {
   ice?: { cold_rank?: number; ice_E?: number } | null;
   polar_cold?: boolean;
   subsurface_note?: string | null;
+  mineralogy?: MineralogyBlock | null;
   mismatches: Mismatch[];
   earth_missing_dims?: Dimension[];
+}
+
+export interface MineralogyVariable {
+  key: string;
+  label: string;
+  unit: string;
+}
+
+export interface MineralogySourceMeta {
+  body: Body | "Earth";
+  name: string;
+  lat_range: [number, number];
+  caveats: string[];
+  variables: MineralogyVariable[];
+}
+
+export interface MineralogyMeta {
+  scored: boolean;
+  note: string;
+  sources: Record<string, MineralogySourceMeta>;
+}
+
+export interface MineralogyBlock {
+  source: string;
+  status: "ok" | "outside_coverage" | "no_data";
+  note?: string;
+  summary?: string;
+  values?: Record<string, number | null>;
 }
 
 export interface Target {
@@ -87,6 +116,7 @@ export interface Target {
   geology?: { unit?: string; geo_class?: string; geo_class_share?: number } | null;
   dust?: { level_rank?: number; seasonality_rank?: number; peak_phase_deg?: number } | null;
   ice?: { cold_rank?: number; ice_T?: number; ice_source?: string } | null;
+  mineralogy?: MineralogyBlock | null;
   analogs: Analog[];
 }
 
@@ -110,6 +140,7 @@ export interface Universe {
     not_modelled?: { item: string; note: string }[];
     citations?: string[];
     datasets?: { name: string; source: string; url: string | null }[];
+    mineralogy?: MineralogyMeta;
     scoring_policy?: {
       earth_missing_score: number;
       min_preset_coverage: number;

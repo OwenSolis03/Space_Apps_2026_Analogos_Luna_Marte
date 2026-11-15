@@ -1,1 +1,1 @@
-"""Suite de pruebas unitarias para el pipeline v2."""
+"""Unit test suite for the planetary analog detection pipeline (v2)."""

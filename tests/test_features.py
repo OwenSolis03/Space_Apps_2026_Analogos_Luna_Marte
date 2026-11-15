@@ -1,4 +1,4 @@
-"""Pruebas unitarias para pipeline/features.py (T2)."""
+"""Unit tests for pipeline/features.py (T2 geomorphometric features)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pipeline.features import compute_features
 
 
 def test_inclined_plane_10_deg() -> None:
-    """Plano inclinado 10°: pendiente ≈ 10°, residuo ≈ 0 y TRI de Riley exacto."""
+    """10° inclined plane: mean slope ≈ 10°, residual roughness ≈ 0, and exact Riley's TRI."""
     res_m = 500.0
     n = 64
     x = np.arange(n, dtype=np.float64) * res_m
@@ -30,7 +30,7 @@ def test_inclined_plane_10_deg() -> None:
 
 
 def test_horizontal_plane() -> None:
-    """Plano horizontal: pendientes y rugosidad ≈ 0, integral hipsométrica = 0.5."""
+    """Horizontal plane: slopes and roughness ≈ 0, hypsometric integral = 0.5."""
     z = np.full((64, 64), 1200.0, dtype=np.float32)
     feats = compute_features(z, res_m=500.0)
 
@@ -44,15 +44,15 @@ def test_horizontal_plane() -> None:
 
 
 def test_synthetic_cone_hypsometric_integral() -> None:
-    """Cono sintético inscrito: integral hipsométrica ≈ 1/3 (±0.05)."""
+    """Inscribed synthetic cone: hypsometric integral ≈ 1/3 (±0.05)."""
     res_m = 500.0
     n = 64
     coords = (np.arange(n, dtype=np.float64) - (n - 1) / 2.0) * res_m
     xx, yy = np.meshgrid(coords, coords)
     r = np.hypot(xx, yy)
 
-    # Radio igual a la mitad del lado del parche -> en un círculo inscrito la integral es ~1/3,
-    # con ajuste por las esquinas cuadradas usando r_base = half_size * (2 / sqrt(pi)).
+    # Base radius equal to half patch dimension -> in an inscribed cone hypsometric integral is ~1/3,
+    # with corner adjustment using r_base = half_size * (2 / sqrt(pi)).
     half_size = (n - 1) * 0.5 * res_m
     r_base = half_size * (2.0 / math.sqrt(math.pi))
     z = np.maximum(0.0, 1000.0 * (1.0 - r / r_base)).astype(np.float32)
@@ -63,7 +63,7 @@ def test_synthetic_cone_hypsometric_integral() -> None:
 
 
 def test_nan_filling_and_dtypes() -> None:
-    """Los NaN restantes se rellenan con la mediana y todas las salidas son float32."""
+    """Isolated NaNs are median-filled and all feature values return as float32."""
     n = 64
     res_m = 500.0
     x = np.arange(n, dtype=np.float64) * res_m

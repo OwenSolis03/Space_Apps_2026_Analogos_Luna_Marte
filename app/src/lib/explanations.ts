@@ -102,12 +102,24 @@ export const CONTROL_EXPLANATION: {
   },
 };
 
+/** Plain-language explanation of the Mineralogy card on the site sheet (T18, display only, not scored). */
+export const MINERALOGY_EXPLANATION: Explanation = {
+  what: "Which minerals the rocks and soil are made of, as estimated from orbit.",
+  measure:
+    "Each world is mapped by a different space instrument: Kaguya on the Moon, MGS TES on Mars and NASA's EMIT on Earth. They look at the light the surface reflects or the heat it gives off and match it to the fingerprints of known minerals. The Moon and Mars maps cover the minerals that make up fresh rock (olivine, pyroxenes, plagioclase, hematite). EMIT, on Earth, maps the minerals that form when rock weathers (clays, carbonates, gypsum and iron oxides).",
+  slider:
+    "Read each side on its own. The two lists are different minerals on purpose, so a mineral that appears on one side and not on the other is not a mismatch. Where a map does not reach (the lunar poles, ice sheets, dust covered ground) the card says so.",
+  why: "Minerals tell what a place is made of and what happened to it: iron-rich volcanic rock, clays that formed in water, or hematite left by water on Mars. They help choose sites, decide what instruments should look for and judge which local material could be used.",
+  note: "Shown as context only. It does not change the score, because the instruments on each body see different minerals and comparing them row by row would be misleading.",
+};
+
 /** Headings of the four blocks, always in this order. The third one changes for the switch. */
 export const EXPLANATION_HEADINGS = {
   what: "What it is",
   measure: "How we measure it",
   slider: "What the slider does",
   switch: "What the switch does",
+  read: "How to read it",
   why: "Why it matters",
 } as const;
 

@@ -1,4 +1,9 @@
-"""Utilidades de nomenclatura IAU/USGS reutilizables para el pipeline v2."""
+"""Reusable IAU/USGS planetary nomenclature utilities for the v2 pipeline.
+
+Provides parsing, spatial querying, and labeling of planetary features using the
+official International Astronomical Union (IAU) Gazetteer of Planetary Nomenclature
+shapefiles distributed via USGS Astrogeology.
+"""
 
 from __future__ import annotations
 
@@ -8,6 +13,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 
+# Relative paths to IAU nomenclature center points shapefiles within RAW_DATA_DIR
 IAU_SHP: dict[str, str] = {
     "Mars": "nomenclature/MARS_nomenclature_center_pts.shp",
     "Moon": "nomenclature/MOON_nomenclature_center_pts.shp",
@@ -15,6 +21,7 @@ IAU_SHP: dict[str, str] = {
 
 
 def _normalize_https_link(value: object) -> str | None:
+    """Normalize HTTP gazetteer URLs to secure HTTPS protocol."""
     if value is None or (isinstance(value, float) and not np.isfinite(value)):
         return None
     text = str(value).strip()
@@ -26,7 +33,14 @@ def _normalize_https_link(value: object) -> str | None:
 
 
 def _normalize_gazetteer_df(raw_df: pd.DataFrame) -> pd.DataFrame:
-    """Normaliza columnas, longitudes [-180, 180] y enlaces HTTPS del gacetero IAU."""
+    """Normalize columns, standardize longitudes to [-180, 180], and sanitize HTTPS links.
+
+    Parameters:
+        raw_df: Raw DataFrame read from the IAU shapefile attribute table.
+
+    Returns:
+        Clean DataFrame containing columns: ['name', 'type', 'diameter_km', 'lat', 'lon', 'link'].
+    """
     if raw_df.empty:
         return pd.DataFrame(columns=["name", "type", "diameter_km", "lat", "lon", "link"])
 
@@ -67,14 +81,26 @@ def _normalize_gazetteer_df(raw_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_gazetteer(body: str, raw_dir: Path) -> pd.DataFrame:
-    """Lee el gacetero IAU con geopandas y devuelve un DataFrame limpio."""
+    """Load and sanitize the official IAU planetary gazetteer shapefile.
+
+    Parameters:
+        body: Celestial body ('Moon' or 'Mars').
+        raw_dir: Path to directory containing raw planetary datasets.
+
+    Returns:
+        pd.DataFrame containing standardized named features and coordinates.
+
+    Raises:
+        ValueError: If body is not Moon or Mars.
+        FileNotFoundError: If the shapefile does not exist on disk.
+    """
     body_norm = body.strip().capitalize()
     if body_norm not in IAU_SHP:
-        raise ValueError(f"Cuerpo no soportado para gacetero IAU: {body!r}")
+        raise ValueError(f"Unsupported celestial body for IAU gazetteer: {body!r}")
 
     shp_path = raw_dir / IAU_SHP[body_norm]
     if not shp_path.exists():
-        raise FileNotFoundError(f"No se encontró el gacetero IAU de {body_norm}: {shp_path}")
+        raise FileNotFoundError(f"IAU gazetteer shapefile not found for {body_norm}: {shp_path}")
 
     gdf = gpd.read_file(shp_path)
     return _normalize_gazetteer_df(pd.DataFrame(gdf.drop(columns=["geometry"], errors="ignore")))
@@ -87,7 +113,16 @@ def haversine_km(
     lon2: float | np.ndarray,
     radius_km: float,
 ) -> np.ndarray:
-    """Calcula distancia haversine en kilómetros sobre una esfera de radio `radius_km`."""
+    """Compute spherical Haversine geodesic distance in kilometers on a sphere of radius_km.
+
+    Parameters:
+        lat1, lon1: First coordinate (degrees), scalar or array.
+        lat2, lon2: Second coordinate (degrees), scalar or array.
+        radius_km: Mean radius of celestial body in kilometers.
+
+    Returns:
+        Geodesic distance(s) in kilometers.
+    """
     lat1_arr = np.asarray(lat1, dtype=np.float64)
     lon1_arr = np.asarray(lon1, dtype=np.float64)
     lat2_arr = np.asarray(lat2, dtype=np.float64)
@@ -110,9 +145,22 @@ def iau_label(
     near_km: float = 80.0,
     major_diam_km: float = 30.0,
 ) -> dict[str, object]:
-    """Asigna etiqueta IAU más cercana y punto regional mayor (>= 30 km) para (lat, lon)."""
+    """Find nearest named IAU feature and nearest major regional landmark (>= 30 km diameter).
+
+    Parameters:
+        lat: Target latitude in degrees.
+        lon: Target longitude in degrees.
+        gaz: Sanitized gazetteer DataFrame from load_gazetteer.
+        radius_km: Celestial body radius in km.
+        near_km: Maximum distance in km to consider the target 'at' the feature.
+        major_diam_km: Minimum diameter threshold for major regional landmarks.
+
+    Returns:
+        dict containing nearest_feature, feature_type, distance_km, regional_landmark,
+        regional_type, regional_distance_km, display_label, and official link.
+    """
     if gaz.empty:
-        raise ValueError("El gacetero IAU está vacío.")
+        raise ValueError("IAU gazetteer DataFrame is empty.")
 
     dists = haversine_km(
         float(lat),
@@ -158,9 +206,20 @@ def iau_label(
 
 
 def find_feature(gaz: pd.DataFrame, name: str) -> pd.Series:
-    """Busca un rasgo por nombre exacto (sin distinguir mayúsculas)."""
+    """Find a gazetteer feature by exact case-insensitive name match.
+
+    Parameters:
+        gaz: Sanitized gazetteer DataFrame.
+        name: Name of planetary feature.
+
+    Returns:
+        pd.Series containing feature attributes.
+
+    Raises:
+        KeyError: If no matching feature is found.
+    """
     target = name.strip().casefold()
     matches = gaz[gaz["name"].astype(str).str.strip().str.casefold() == target]
     if matches.empty:
-        raise KeyError(f"Rasgo IAU no encontrado: {name!r}")
+        raise KeyError(f"IAU feature not found: {name!r}")
     return matches.iloc[0]

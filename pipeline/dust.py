@@ -1,4 +1,16 @@
-"""Dust process and seasonal phase (T13): Mars Montabone CDOD (610 Pa) & Earth MOD08_M3 AOD."""
+"""Atmospheric dust processes, optical depth, and seasonal phase matching (T13).
+
+This module analyzes planetary aeolian dust cycles for Earth and Mars:
+- Mars: Montabone et al. Climatological Column Dust Optical Depth (CDOD normalized to 610 Pa),
+  binned into 12 solar longitude (Ls) bins of 30 deg each. Global planet-encircling dust
+  storm years (Mars Years 25, 28, 34) are optionally excluded to characterize typical seasonality.
+- Earth: NASA MODIS Aqua/Terra monthly gridded Aerosol Optical Depth (MOD08_M3 Deep Blue
+  AOD at 550 nm), interpolated to solar longitude (Ls) equivalents based on orbital day of year.
+- Features: Mean optical depth (dust level), seasonal modulation amplitude (p90 - p10 / median),
+  and peak dust activity phase (in local insolation-adjusted solar longitude degrees).
+- Similarity score (S_dust): Three-component Gaussian RBF kernel comparing dust level percentile rank,
+  seasonality percentile rank, and circular angular phase difference.
+"""
 
 from __future__ import annotations
 

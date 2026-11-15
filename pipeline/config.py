@@ -1,7 +1,16 @@
-"""Constantes y rutas compartidas para el pipeline v2."""
+"""Shared constants, planetary parameters, and filesystem paths for the v2 pipeline.
+
+This module defines planetary volumetric mean radii, geomorphometric patch extraction
+parameters (32 km at 500 m/pixel), feature names, directories on the HPC cluster
+(Yuca / Lustre), and canonical relative paths for raw and derived planetary rasters
+(MOLA, THEMIS, LOLA, LROC-WAC, USGS Lunar Ice Favorability, Diviner PRP, Copernicus
+GLO-90, MODIS NDVI/LST, and Natural Earth vectors).
+"""
 
 from pathlib import Path
 
+# --- Geomorphometric patch configuration ---
+# Standard patch size across all planetary bodies to enable scale-consistent comparisons.
 PATCH_SIZE_KM: float = 32.0
 PATCH_RES_M: float = 500.0
 PATCH_PIXELS: int = 64
@@ -9,14 +18,17 @@ MIN_VALID_FRAC: float = 0.90
 MAX_ABS_ELEV_M: float = 1e5
 WINDOW_MARGIN_PX: int = 2
 
+# --- Geodetic and planetary parameters ---
 WGS84_SEMI_MAJOR_M: float = 6378137.0
 
+# Volumetric mean radius per celestial body (in meters) for sphere approximation in AEQD.
 BODY_RADII_M: dict[str, float] = {
     "Earth": 6371000.0,
     "Moon": 1737400.0,
     "Mars": 3396190.0,
 }
 
+# The 7 canonical geomorphometric features computed for each 64x64 patch.
 FEATURE_NAMES: list[str] = [
     "mean_slope_deg",
     "p90_slope_deg",
@@ -27,11 +39,13 @@ FEATURE_NAMES: list[str] = [
     "mean_elev_m",
 ]
 
+# --- Filesystem paths for the HPC environment (Yuca cluster, UniSon) ---
 YUCA_PROJECT_DIR: Path = Path("/lustre/proyectos/p089")
 RAW_DATA_DIR: Path = YUCA_PROJECT_DIR / "data" / "raw"
 DERIVED_DATA_DIR: Path = YUCA_PROJECT_DIR / "data" / "derived"
 RUNS_DIR: Path = YUCA_PROJECT_DIR / "runs"
 
+# --- Raw planetary dataset paths relative to RAW_DATA_DIR ---
 MARS_RAW_FILES: dict[str, str] = {
     "dem": "mars/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
     "themis_day": "mars/Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif",
@@ -48,6 +62,7 @@ MOON_RAW_FILES: dict[str, str] = {
 
 DIVINER_PARQUET_REL: str = "diviner_prp_south.parquet"
 
+# --- Raw and derived Earth datasets relative to RAW_DATA_DIR / DERIVED_DATA_DIR ---
 EARTH_RAW_FILES: dict[str, str] = {
     "ndvi_dir": "earth/modis/ndvi",
     "lst_dir": "earth/modis/lst",
@@ -63,4 +78,5 @@ EARTH_DERIVED_FILES: dict[str, str] = {
     "copernicus_vrt": "copernicus_90m.vrt",
 }
 
+# Climate Modeling Grid (CMG) spatial resolution for MODIS products (degrees)
 MODIS_CMG_RES_DEG: float = 0.05

@@ -62,26 +62,27 @@ export function ScenarioPanel(p: Props) {
   const presetText = p.presetId ? PRESET_EXPLANATION[p.presetId] : undefined;
 
   return (
-    <aside aria-label="Scenario" className="grid content-start gap-5 self-start rounded-panel border border-line bg-surface p-4 md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:overflow-y-auto">
+    <aside aria-label="Scenario" className="panel flex min-h-0 flex-col self-start md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)]">
+      <div className="grid content-start gap-5 overflow-y-auto p-4">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h3 className="text-base font-semibold">Scenario</h3>
+        <h3>Scenario</h3>
         <button
           type="button"
           role="switch"
           aria-checked={allOpen}
           aria-label="Show all explanations in this panel"
           onClick={toggleAll}
-          className="inline-flex min-h-8 cursor-pointer items-center gap-2 rounded-full text-sm whitespace-nowrap text-muted transition-colors hover:text-fg"
+          className="inline-flex min-h-8 cursor-pointer items-center gap-2 whitespace-nowrap text-muted transition-colors hover:text-fg"
         >
-          <span aria-hidden="true" className={`relative h-5 w-9 rounded-full border border-line transition-colors ${allOpen ? "bg-accent" : "bg-surface-2"}`}>
-            <span className={`absolute top-0.5 left-0.5 size-3.5 rounded-full bg-fg transition-transform ${allOpen ? "translate-x-4" : ""}`} />
+          <span aria-hidden="true" className={`relative h-5 w-9 border-2 transition-colors ${allOpen ? "border-fg bg-accent" : "border-frame bg-surface-2"}`}>
+            <span className={`absolute top-px left-px size-3 bg-fg transition-transform ${allOpen ? "translate-x-4" : ""}`} />
           </span>
           <span aria-hidden="true">Show explanations</span>
         </button>
       </div>
 
       <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-semibold text-muted">Mission case</legend>
+        <legend className="mb-2 text-muted">Mission case</legend>
         <p className="mb-1 text-sm">{INTRO}</p>
         <div className="flex flex-wrap gap-2">
           {Object.entries(p.presets)
@@ -96,7 +97,7 @@ export function ScenarioPanel(p: Props) {
       </fieldset>
 
       <fieldset className="grid gap-3">
-        <legend className="mb-2 text-sm font-semibold text-muted">Weights by dimension</legend>
+        <legend className="mb-2 text-muted">Weights by dimension</legend>
         <p className="text-sm text-muted">{CONTROL_EXPLANATION.weightsShare}</p>
         {DIMENSIONS.map((d) => {
           const on = p.available.has(d);
@@ -136,7 +137,7 @@ export function ScenarioPanel(p: Props) {
 
       <div className="grid gap-1 text-sm">
         <div className="flex items-center gap-1">
-          <label htmlFor="min-score" className="font-semibold text-muted">
+          <label htmlFor="min-score" className="text-muted">
             Minimum MSI: <span className="num text-fg">{Math.round(p.minScore * 100)}</span>
           </label>
           <InfoButton id="min-score" title="Minimum MSI" open={open.has("min-score")} onToggle={() => toggle("min-score")} />
@@ -146,7 +147,7 @@ export function ScenarioPanel(p: Props) {
       </div>
 
       <div className="grid gap-3 text-sm">
-        <span className="font-semibold text-muted">Logistics and novelty</span>
+        <span className="eyebrow">Logistics and novelty</span>
         <div className="grid gap-1">
           <div className="flex items-center gap-1">
             <label htmlFor="lambda">
@@ -172,6 +173,7 @@ export function ScenarioPanel(p: Props) {
             actionHeading={EXPLANATION_HEADINGS.switch}
           />
         </div>
+      </div>
       </div>
     </aside>
   );
