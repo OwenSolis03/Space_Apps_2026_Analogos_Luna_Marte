@@ -244,13 +244,14 @@ def test_json_no_nan_and_schema(tmp_path: Path) -> None:
 
     meta = parsed["metadata"]
     assert [d["key"] for d in meta["dimensions"]] == [
-        "topography", "roughness", "environment", "thermal", "geology", "dust", "ice",
+        "topography", "roughness", "environment", "thermal", "geology", "dust", "ice", "mineral",
     ]
     assert meta["geology_similarity"]["VOLCANIC_BASIC"]["PYROCLASTIC"] == 0.6
     assert meta["runs"]["T12"] == meta["runs"]["T13"] == meta["runs"]["T14"] == "unknown"
     assert {n["item"] for n in meta["not_modelled"]} == {"mineralogy (spectral)", "biology", "caves (mapped)"}
     assert parsed["mission_presets"]["dust_and_seasons"]["applies_to"] == ["Mars"]
-    assert len(parsed["mission_presets"]) == 5
+    assert len(parsed["mission_presets"]) == 6
+    assert "geology_and_materials_mineral_exp" in parsed["mission_presets"]
 
     olympus_stub = {"top10": [{"geo_class": "SEDIMENTARY"}, {"geo_class": "VOLCANIC_BASIC"}]}
     checks = run_t7_checks(matches, targets, universe, written, olympus=olympus_stub)

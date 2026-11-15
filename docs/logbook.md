@@ -104,6 +104,58 @@ A record of what happens in the project, newest first. It also feeds the use-of-
 - Verified: `tsc` and the build pass; no emoji, no hard-coded values and no native select; every text and background pair of the system used by the app was measured with `contrast.py` and passes AA in both themes (15 pairs); looked at in the browser in light at 1366 by 768 and 390 px and in dark at 1366 by 768; no horizontal scroll at 390 px. Not checked: dark theme on a phone, and the Moon view.
 - A note for whoever reads the artifact with a tool: its automatic summary said the page only contains the text "Design System", but the artifact has 54 files (README, `tokens.json`, component CSS). Read the files, not the summary.
 
+## 2026-11-14: Experiment B executed on Yuca (HPC) & Verdict: Drop scored dimension; promote Option A
+
+**Execution and Results** (Slurm jobs `2242540`, `2242541`, `2242549`, `2242550` on Yuca):
+
+1. **Dataset Ingestion (`jobs/download_minerals.slurm`, job `2242541`):**
+   - Downloaded ASU TES 4 ppd mineral ENVI map (53.9 MB).
+   - Downloaded ESA OMEGA global maps `FERRIC_BD530` (207.4 MB) and `FERRIC_NNPHS` (207.4 MB) using authenticated HTTP basic auth via `~/.netrc` (COSMOS user `osolis`).
+   - Retrieved NASA EMIT L3 ASA V002 spectral abundance NetCDF granule via `earthaccess`.
+   - Generated `mineral_probe.json` confirming OMEGA equirectangular projection centered at (0, 0) in linear meters (1481.78 m/pixel = 40 ppd).
+
+2. **Mineral Layer Extraction (`jobs/t_mineral.slurm`, job `2242549`):**
+   - Sampled and ranked all **140,916** Mars T3 patches from OMEGA BD530 GeoTIFF (`mineral_mars.parquet`).
+   - Sampled all **76** targets (`mineral_targets.parquet`). Check M3 passed with **89.6%** global valid coverage on Mars.
+   - Sampled Earth candidate patches (`mineral_earth.parquet`) with `h5netcdf` / `h5py` engine.
+   - Diagnostic check M5 passed (`verdict: "keep"`, not redundant with Mars dust).
+
+3. **Experimental Match & Export (`jobs/t7_match.slurm`, job `2242550`):**
+   - Matched 40,244 Earth candidate patches across 76 targets with 6 presets, including `geology_and_materials_mineral_exp`.
+   - All 17 verification checks passed with **0 violations** (`MSI recomputation violations: 0`, `top-1 missing dimension: 0`). Total runtime: 4.4 s.
+
+4. **Empirical Evaluation (`tools/compare_mineral.py`, run `2242550`):**
+   - **Median Top-30 Jaccard Overlap:** `1.000`
+   - **Median Spearman rho:** `1.000`
+   - **Mean Top-10 Turnover:** `0.0` analogs
+   - **Mean Case C (Missing EMIT) Share:** `94.7%`
+
+**Scientific Verdict:**
+- **Drop the scored 8th mineral dimension for the submission.**
+- **Reason:** NASA's EMIT coverage on Earth is restricted to narrow arid dust-emission swaths from the ISS. Over 94.7% of Earth's surface lacks EMIT data. Under the principled missing data policy (Case C: score 0.0 with no renormalization), the unmapped penalty dominates, leaving top rankings 100% determined by the other 7 dimensions.
+- **Decision:** Maintain the 7 core physical dimensions for MSI scoring, and deliver mineralogy through **Option A (display-only context cards for Moon Kaguya, Mars TES, and Earth EMIT in the UI)**, which provides full scientific context without penalizing analogs for orbital track gaps.
+
+## 2026-11-14: Experiment B implemented (branch `exp/mars-mineral-dimension`)
+
+**What was done** (implemented per `docs/plan_mineral_dimension.md` §4):
+
+- **Downloads & probe (`pipeline/minerals_download.py` + `jobs/download_minerals.slurm`):** Automated retrieval for TES (public HTTP), OMEGA (curl with `--netrc` checking for COSMOS 401), and EMIT V002 (`earthaccess`), plus `mineral_probe.json` inspection.
+- **Layer processing (`pipeline/mineral.py` + `jobs/t_mineral.slurm`):** Windowed `ferric_box_mean` over OMEGA BD530 raster, percentile ranking `mineral_rank` over Mars T3, target sampling, Earth EMIT hematite+goethite extraction, and `t_mineral_checks.json`.
+- **Wiring in `pipeline/match.py`:** Added `"mineral"` dimension to `DIMENSION_KEYS` and `DIMENSIONS`, 0.00 weight to 5 existing presets, added `geology_and_materials_mineral_exp` preset, optional `--mineral-dir` flag in `load_layers` and CLI, `EarthArrays.mineral_rank`, `TargetVec.mineral_rank`, `mineral_scores()`, `available_dims` inclusion for Mars targets with finite mineral rank, and `mineral_rank` mismatch reporting (|Δ| > 0.30).
+- **Matching Slurm job (`jobs/t7_match.slurm`):** Conditionally passes `--mineral-dir "$MINERAL_DIR"` when defined.
+- **Testing (`tests/test_mineral.py`):** Added 7 synthetic unit tests covering RBF kernel properties, boundary clipping, Case C scoring, non-regression of existing presets, preset coverage when mineral dir is missing, and mismatch reporting. Updated `tests/test_match.py` and `tests/test_export.py` to recognize 8 dimensions and the experimental preset. All 39 test cases pass.
+- **Comparison tool (`tools/compare_mineral.py`):** Computes top-30 Jaccard overlap, Spearman rho, top-10 turnover, and Case C share between `geology_and_materials` and `geology_and_materials_mineral_exp`.
+
+## 2026-11-14: Experiment B spec, scored Mars-only mineral dimension (branch `exp/mars-mineral-dimension`)
+
+**What was done** (Claude, spec only; code to be written by another model; not for `main` without Owen's OK):
+
+- New [plan_mineral_dimension.md](plan_mineral_dimension.md) with the data sources checked live on 2026-11-14: OMEGA DDR global maps (ESA PSA), TES mineral maps (ASU), EMIT `EMITL3ASA` V001/V002 (CMR).
+- **Only one pairing holds up physically:** Mars OMEGA `FERRIC_BD530` (VNIR Fe³⁺ band depth) against EMIT hematite + goethite (VNIR mass fraction), compared as within-planet ranks like dust. TES hematite (coarse grey hematite, thermal IR) is a different material and is ruled out.
+- **Hydrated minerals and carbonates are not scored:** Mars has no continuous global hydration map in these sources (OMEGA gives a site list; TES sulfate and sheet-silicate abundances are near detection limits). They stay as display-only context (option A).
+- **Blocker:** the ESA PSA archive now returns 401 without a COSMOS login (checked 2026-11-14), so Owen has to register before the OMEGA download job can run. Without it, the pre-registered verdict is "drop for the submission".
+- Built-in stop rule: drop if the Mars ferric rank duplicates the dust dimension (|Spearman ρ| > 0.7 against `dust_level_rank`).
+
 ## 2026-11-14: Architecture and pipeline diagram suite (Archify)
 
 **What was done** (requested by Owen, drawn by Claude with the Archify skill from the code at commit `b9cfa1f`):

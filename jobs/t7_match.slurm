@@ -32,6 +32,11 @@ conda activate spaceapps_2026
 cd "$CODE_DIR"
 echo "job=${SLURM_JOB_ID:-local} t3_dir=$T3_DIR t4_dir=$T4_DIR t5_dir=$T5_DIR t12_dir=$T12_DIR t13_dir=$T13_DIR t14_dir=$T14_DIR out_dir=$OUT_DIR node=$(hostname) start=$(date -Is) commit=$(git -C "$CODE_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
 
+MINERAL_FLAG=()
+if [[ -n "${MINERAL_DIR:-}" ]]; then
+  MINERAL_FLAG=(--mineral-dir "$MINERAL_DIR")
+fi
+
 python -m pipeline.match \
   --t3-dir "$T3_DIR" \
   --t4-dir "$T4_DIR" \
@@ -40,6 +45,7 @@ python -m pipeline.match \
   --t13-dir "$T13_DIR" \
   --t14-dir "$T14_DIR" \
   --out-dir "$OUT_DIR" \
+  "${MINERAL_FLAG[@]}" \
   "$@"
 
 python -m pipeline.export \
