@@ -7,9 +7,11 @@ import { useReducedMotion } from "@/composables/useReducedMotion";
 const props = withDefaults(
   defineProps<{
     targetSelector?: string;
+    layout?: "auto" | "horizontal" | "vertical";
   }>(),
   {
     targetSelector: "#home-resting-logo",
+    layout: "auto",
   },
 );
 
@@ -19,6 +21,7 @@ const emit = defineEmits<{
 
 const uid = useId();
 const reduced = useReducedMotion();
+const isVertical = ref(false);
 
 const overlayRef = ref<HTMLDivElement | null>(null);
 const stageRef = ref<HTMLDivElement | null>(null);
@@ -134,6 +137,13 @@ onMounted(() => {
     return;
   }
 
+  const checkVertical = () => {
+    if (props.layout === "vertical") return true;
+    if (props.layout === "horizontal") return false;
+    return typeof window !== "undefined" && window.innerWidth <= 640;
+  };
+  isVertical.value = checkVertical();
+
   window.addEventListener("keydown", handleKeyDown);
 
   const stage = stageRef.value;
@@ -192,11 +202,19 @@ onMounted(() => {
   const startAnimation = () => {
     if (isFinished) return;
 
-    // Center icon in the stage before typography enters
     const iconRect = icon.getBoundingClientRect();
     const stageRect = stage.getBoundingClientRect();
-    const shift = stageRect.width / 2 - (iconRect.left - stageRect.left + iconRect.width / 2);
-    (utils as any).set(icon, { translateX: shift });
+
+    let shiftX = 0;
+    let shiftY = 0;
+
+    if (isVertical.value) {
+      shiftY = stageRect.height / 2 - (iconRect.top - stageRect.top + iconRect.height / 2);
+      (utils as any).set(icon, { translateY: shiftY, translateX: 0 });
+    } else {
+      shiftX = stageRect.width / 2 - (iconRect.left - stageRect.left + iconRect.width / 2);
+      (utils as any).set(icon, { translateX: shiftX, translateY: 0 });
+    }
 
     const tl: any = createTimeline({
       defaults: { ease: "outQuart" },
@@ -252,29 +270,55 @@ onMounted(() => {
       1650,
     );
 
-    // 4 · Icon slides left to final position and name appears
-    tl.add(icon, { translateX: { from: shift, to: 0 }, duration: 750, ease: "inOutQuart" }, 2150);
-    tl.add(
-      bar,
-      {
-        opacity: { from: 0, to: 1, duration: 150, ease: "linear" },
-        clipPath: { from: "inset(0% 100% 0% 0%)", to: "inset(0% 0% 0% 0%)" },
-        duration: 450,
-        ease: "outCubic",
-      },
-      2250,
-    );
-    tl.add(
-      name,
-      {
-        opacity: { from: 0, to: 1, duration: 300, ease: "linear" },
-        translateX: { from: -22, to: 0 },
-        clipPath: { from: "inset(-20% 100% -20% 0%)", to: "inset(-20% -6% -20% 0%)" },
-        duration: 700,
-        ease: "outQuart",
-      },
-      2350,
-    );
+    if (isVertical.value) {
+      // 4 · Vertical: Icon moves up to top position; horizontal bar expands; name rises from below
+      tl.add(icon, { translateY: { from: shiftY, to: 0 }, duration: 750, ease: "inOutQuart" }, 2150);
+      tl.add(
+        bar,
+        {
+          opacity: { from: 0, to: 1, duration: 150, ease: "linear" },
+          clipPath: { from: "inset(0% 50% 0% 50%)", to: "inset(0% 0% 0% 0%)" },
+          duration: 450,
+          ease: "outCubic",
+        },
+        2250,
+      );
+      tl.add(
+        name,
+        {
+          opacity: { from: 0, to: 1, duration: 300, ease: "linear" },
+          translateY: { from: 24, to: 0 },
+          clipPath: { from: "inset(100% -10% 0% -10%)", to: "inset(0% -10% 0% -10%)" },
+          duration: 700,
+          ease: "outQuart",
+        },
+        2350,
+      );
+    } else {
+      // 4 · Horizontal: Icon slides left to final position and name appears
+      tl.add(icon, { translateX: { from: shiftX, to: 0 }, duration: 750, ease: "inOutQuart" }, 2150);
+      tl.add(
+        bar,
+        {
+          opacity: { from: 0, to: 1, duration: 150, ease: "linear" },
+          clipPath: { from: "inset(0% 100% 0% 0%)", to: "inset(0% 0% 0% 0%)" },
+          duration: 450,
+          ease: "outCubic",
+        },
+        2250,
+      );
+      tl.add(
+        name,
+        {
+          opacity: { from: 0, to: 1, duration: 300, ease: "linear" },
+          translateX: { from: -22, to: 0 },
+          clipPath: { from: "inset(-20% 100% -20% 0%)", to: "inset(-20% -6% -20% 0%)" },
+          duration: 700,
+          ease: "outQuart",
+        },
+        2350,
+      );
+    }
   };
 
   const fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
@@ -307,6 +351,7 @@ onBeforeUnmount(() => {
     <div
       ref="stageRef"
       class="logo-intro__stage"
+      :class="{ 'logo-intro__stage--vertical': isVertical }"
       role="img"
       aria-label="PROTOTERRA: imagotipo con la Luna y Marte delante de la Tierra"
     >
@@ -407,6 +452,26 @@ onBeforeUnmount(() => {
   transform-origin: center center;
   pointer-events: none;
   max-width: min(94vw, 1100px);
+
+  &--vertical {
+    flex-direction: column;
+    gap: clamp(12px, 2.5vh, 22px);
+    max-width: min(90vw, 360px);
+
+    .logo-intro__icon {
+      width: clamp(200px, 60vw, 280px);
+    }
+
+    .logo-intro__bar {
+      width: clamp(40px, 12vw, 56px);
+      height: 3.5px;
+    }
+
+    .logo-intro__name-text {
+      font-size: clamp(22px, 6.5vw, 32px);
+      text-align: center;
+    }
+  }
 }
 
 .logo-intro__icon {

@@ -43,8 +43,9 @@
 .tm-btn:disabled { background: var(--surface-sunken); border-color: var(--surface-sunken); color: var(--ink-muted); cursor: not-allowed; }
 
 /* IconButton */
-.tm-ibtn-wrap { display: inline-flex; align-items: center; gap: var(--space-1); }
-.tm-ibtn { box-sizing: border-box; width: 40px; height: 40px; padding: 0; display: inline-grid; place-items: center; border-radius: var(--radius-round); border: var(--stroke-line) solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+.tm-ibtn-wrap { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-1); }
+.tm-ibtn { box-sizing: border-box; width: 40px; height: 40px; padding: 0; margin: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: var(--radius-round); border: var(--stroke-line) solid var(--line); background: transparent; color: var(--ink); cursor: pointer; line-height: 1; vertical-align: middle; -webkit-appearance: none; appearance: none; }
+.tm-ibtn svg, .tm-ibtn .tm-glyph { display: block; margin: auto; flex: none; }
 .tm-ibtn:hover, .tm-ibtn[aria-pressed="true"] { border-color: var(--ink); }
 .tm-ibtn:active { background: var(--ink); color: var(--surface); }
 .tm-ibtn:disabled { border-color: var(--line-faint); color: var(--ink-muted); cursor: not-allowed; }

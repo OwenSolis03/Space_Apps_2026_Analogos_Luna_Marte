@@ -16,7 +16,7 @@ const current = computed(() => route.name);
   <header class="app-header">
     <div class="page app-header__inner">
       <RouterLink to="/" class="app-header__brand" :aria-label="`${PROJECT_NAME}, home`">
-        <AppLogo size="sm" />
+        <AppLogo size="sm" layout="horizontal" />
       </RouterLink>
 
       <nav class="app-header__nav" :class="{ 'is-open': open }" aria-label="Sections">
@@ -120,6 +120,9 @@ const current = computed(() => route.name);
 
 .app-header__toggle {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
 }
 
 

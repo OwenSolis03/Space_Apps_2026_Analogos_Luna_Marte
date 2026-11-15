@@ -74,3 +74,11 @@ const def = computed<GlyphDef>(() => GLYPHS[props.name] ?? GLYPHS.plus);
     />
   </svg>
 </template>
+
+<style lang="scss" scoped>
+.tm-glyph {
+  display: inline-block;
+  vertical-align: middle;
+  flex: none;
+}
+</style>

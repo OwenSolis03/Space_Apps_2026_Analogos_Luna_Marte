@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" width="880" height="560" role="img" aria-label="PROTOTERRA">
+<rect width="880" height="560" fill="#cfd0d2"/>
+<svg x="140.0" y="117.0" width="600" height="326" viewBox="0 -32 560 304">
+<defs>
+<pattern id="main-odots" width="16" height="16" patternUnits="userSpaceOnUse" x="6" y="6"><rect width="4" height="4" fill="#5f95c6"></rect></pattern>
+<pattern id="main-mdots" width="16" height="16" patternUnits="userSpaceOnUse" x="6" y="6"><rect width="4" height="4" fill="#716f70"></rect></pattern>
+<pattern id="main-hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="12" fill="#8c3418"></rect></pattern>
+<clipPath id="main-earth"><circle cx="280" cy="120" r="104"></circle></clipPath>
+</defs>
+<circle cx="280" cy="120" r="128" fill="none" stroke="#716f70" stroke-width="1.5"></circle>
+<rect x="276" y="-12" width="8" height="8" fill="#ff8500"></rect>
+<path d="M280 236 L280 241 M280 247 L280 252 M272 244 L277 244 M283 244 L288 244" stroke="#716f70" stroke-width="1.5" fill="none"></path>
+<circle cx="280" cy="120" r="104" fill="#3f7cb5"></circle>
+<rect x="176" y="16" width="208" height="208" fill="url(#main-odots)" clip-path="url(#main-earth)"></rect>
+<path d="M232 22 L300 18 L318 34 L300 48 L292 62 L280 70 L272 84 L262 96 L268 104 L276 118 L284 128 L296 132 L318 140 L330 152 L326 172 L312 190 L302 210 L296 224 L290 214 L288 190 L282 168 L276 150 L270 138 L262 124 L254 110 L246 96 L236 78 L226 60 L220 40 Z" fill="#3f8f4f" clip-path="url(#main-earth)"></path>
+<circle cx="152" cy="120" r="110" fill="#cfd0d2"></circle>
+<circle cx="152" cy="120" r="104" fill="#8f8d8e"></circle>
+<circle cx="152" cy="120" r="102" fill="url(#main-mdots)"></circle>
+<circle cx="408" cy="120" r="110" fill="#cfd0d2"></circle>
+<circle cx="408" cy="120" r="104" fill="#a8401f"></circle>
+<circle cx="408" cy="120" r="102" fill="url(#main-hatch)"></circle>
+</svg>
+</svg>

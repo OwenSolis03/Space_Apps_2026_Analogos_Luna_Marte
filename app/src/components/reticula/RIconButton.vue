@@ -42,3 +42,27 @@ defineEmits<{ click: [event: MouseEvent] }>();
     <RGlyph :name="glyph" :size="20" />
   </button>
 </template>
+
+<style lang="scss" scoped>
+.tm-ibtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  margin: 0;
+
+  :deep(.tm-glyph),
+  svg {
+    display: block;
+    margin: auto;
+    flex: none;
+  }
+}
+
+.tm-ibtn-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>

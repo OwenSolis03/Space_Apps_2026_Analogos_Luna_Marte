@@ -56,7 +56,7 @@ function replayIntro() {
               @keydown.enter="replayIntro"
               @keydown.space.prevent="replayIntro"
             >
-              <AppLogo size="md" />
+              <AppLogo size="md" layout="responsive" />
             </div>
           </template>
         </RHeadline>
