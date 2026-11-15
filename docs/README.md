@@ -57,4 +57,4 @@ Where to find what. The newest state of the project is in the [logbook](logbook.
 | [logbook.md](logbook.md) | Day-by-day record, newest first. Also the base of the use-of-AI description |
 | [HISTORY.md](HISTORY.md) | The same story by phase, with the reasoning behind each decision |
 
-The v1 prototype (scripts, jobs, outputs and logs) lives in [`../legacy_v1/`](../legacy_v1/) and is kept as reference only.
+The v1 prototype (scripts, jobs, outputs and logs) lives in [`../scripts/legacy_v1/`](../scripts/legacy_v1/) and is kept as reference only.

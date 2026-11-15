@@ -2,7 +2,7 @@
 
 Specification written by Claude on 2026-11-14 for the coding agent. Implement it task by task, in order. Do not change anything that is not listed here; if something here looks wrong, stop and report instead of improvising.
 
-**Read first:** [plan_t7_t8.md](plan_t7_t8.md) (MSI, presets, selection), [plan_t12_t15.md](plan_t12_t15.md) (geology, dust, ice), [pipeline.md](pipeline.md) (runs), and the code in `pipeline/match.py` (`msi`, `select_by_preset`, `match_all`), `pipeline/export.py` (`sub_scores`, `run_t7_checks`), `pipeline/dust.py` (`S_dust`), `pipeline/ice.py` (`S_ice`).
+**Read first:** [plan_t7_t8.md](plan_t7_t8.md) (MSI, presets, selection), [plan_t12_t15.md](plan_t12_t15.md) (geology, dust, ice), [pipeline.md](pipeline.md) (runs), and the code in `scripts/pipeline/match.py` (`msi`, `select_by_preset`, `match_all`), `scripts/pipeline/export.py` (`sub_scores`, `run_t7_checks`), `scripts/pipeline/dust.py` (`S_dust`), `scripts/pipeline/ice.py` (`S_ice`).
 
 ---
 
@@ -60,7 +60,7 @@ The verification script in §9.3 is for the new export: on run 2242490 it runs w
 
 ## 2. Definitions
 
-All of these live in `pipeline/match.py` next to the other constants.
+All of these live in `scripts/pipeline/match.py` next to the other constants.
 
 ```python
 EARTH_MISSING_SCORE: float = 0.0       # case C
@@ -103,7 +103,7 @@ coverage     = available_w / applicable_w        (1.0 if applicable_w == 0)
 
 ---
 
-## 3. Task T16.1: scoring in `pipeline/match.py`
+## 3. Task T16.1: scoring in `scripts/pipeline/match.py`
 
 ### 3.1 `available_dims(tv: TargetVec) -> frozenset[str]`
 
@@ -200,7 +200,7 @@ Keep `json.dumps(mm, allow_nan=False)` working (no NaN in these entries).
 
 ---
 
-## 4. Task T16.2: export contract in `pipeline/export.py`
+## 4. Task T16.2: export contract in `scripts/pipeline/export.py`
 
 Additive changes only; nothing existing is removed or renamed.
 
@@ -345,7 +345,7 @@ cd /lustre/proyectos/p089/code && git pull
 ```
 
 ```bash
-cd /lustre/proyectos/p089/code && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/2242487,T13_DIR=/lustre/proyectos/p089/runs/2242484,T14_DIR=/lustre/proyectos/p089/runs/2242486 jobs/t7_match.slurm
+cd /lustre/proyectos/p089/code && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/2242487,T13_DIR=/lustre/proyectos/p089/runs/2242484,T14_DIR=/lustre/proyectos/p089/runs/2242486 scripts/jobs/t7_match.slurm
 ```
 
 Check before trusting the output: the T12, T13 and T14 directories above are the ones listed in the run 2242490 metadata (`metadata.runs`). If the export metadata of the new run lists different inputs, stop.

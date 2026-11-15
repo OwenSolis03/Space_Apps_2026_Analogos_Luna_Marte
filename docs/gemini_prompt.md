@@ -50,15 +50,15 @@ HOW TO WORK
 - In the same commit, add an entry at the top of docs/logbook.md (in English): date, what was done, why, what is
   left, and that the code was written by Gemini from Claude's plan. If you change data, runs or the pipeline,
   also update docs/pipeline.md and the table in docs/handoff.md.
-- Do not delete or rewrite the v1 scripts in legacy_v1/ (process_analogs.py, match_earth_analogs.py,
+- Do not delete or rewrite the v1 scripts in scripts/legacy_v1/ (process_analogs.py, match_earth_analogs.py,
   enrich_nomenclature.py) and do NOT import them: they have no `if __name__ == "__main__"` guard and importing
   them runs them and rewrites files in /lustre/proyectos/p089/output/.
-- New code goes in pipeline/, jobs/ and tests/; the app in app/.
+- New code goes in scripts/pipeline/, scripts/jobs/ and tests/; the app in app/.
 - Do not commit heavy data: no .tif, .hdf, .parquet or shards. Only code, docs and the final app JSON if it is
   under 20 MB.
 - If you need a URL, coordinate or fact you cannot verify, do NOT invent it: leave null and a TODO(verify)
   comment with the suggested source.
-- Add new dependencies to pipeline/requirements.txt.
+- Add new dependencies to scripts/pipeline/requirements.txt.
 - Before every push: `git pull --rebase`. More than one agent uses the same Yuca clone (Claude commits docs there).
 - Commit and push BEFORE submitting a job, so the job log records the right commit.
 
@@ -126,8 +126,8 @@ WHEN YOU FINISH A TASK, answer with:
 
 The documentation is in English since 2026-11-13. The code still has Spanish comments, docstrings and log messages, and some files reference old document names. When there is time, and **not** in the middle of a run:
 
-- Translate comments, docstrings and log messages in `pipeline/`, `jobs/`, `tests/`, `tools/` and `app/`. Do not rename public functions or JSON fields, because the app and the runs depend on them.
-- Update references to old document names, for example in `app/src/lib/types.ts`, `app/src/lib/content.ts` and `tools/v1_to_sample.py`:
+- Translate comments, docstrings and log messages in `scripts/pipeline/`, `scripts/jobs/`, `tests/`, `scripts/tools/` and `app/`. Do not rename public functions or JSON fields, because the app and the runs depend on them.
+- Update references to old document names, for example in `app/src/lib/types.ts`, `app/src/lib/content.ts` and `scripts/tools/v1_to_sample.py`:
 
 | Old name | New name |
 | --- | --- |

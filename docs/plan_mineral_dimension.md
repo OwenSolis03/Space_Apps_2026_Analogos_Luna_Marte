@@ -89,7 +89,7 @@ Checked in NASA CMR on 2026-11-14. Use **version 002**: it covers more time and 
 
 ### 3.1 Per-patch value
 
-- **Mars (T3 patches and T4 targets):** `ferric_bd530` is the mean of valid BD530 pixels in a lat/lon box centred on the patch centre, with a half-width of 16 km: Δlat = 16 / (R_mars · π/180) degrees and Δlon = Δlat / cos(lat), with R_mars from `BODY_RADII_M["Mars"]`. At 1.48 km/px this is about 22 × 22 px, which approximates the 32 km AEQD patch of `pipeline/geo.py` closely enough for a coarse context layer. (`geo.extract_patch` has DEM-specific filters and a 90 % valid rule, so it is not reused.) Require **≥ 50 % valid pixels**, otherwise NaN. Skip boxes that cross the antimeridian or reach |lat| > 88° (NaN). Count and log the skipped boxes.
+- **Mars (T3 patches and T4 targets):** `ferric_bd530` is the mean of valid BD530 pixels in a lat/lon box centred on the patch centre, with a half-width of 16 km: Δlat = 16 / (R_mars · π/180) degrees and Δlon = Δlat / cos(lat), with R_mars from `BODY_RADII_M["Mars"]`. At 1.48 km/px this is about 22 × 22 px, which approximates the 32 km AEQD patch of `scripts/pipeline/geo.py` closely enough for a coarse context layer. (`geo.extract_patch` has DEM-specific filters and a 90 % valid rule, so it is not reused.) Require **≥ 50 % valid pixels**, otherwise NaN. Skip boxes that cross the antimeridian or reach |lat| > 88° (NaN). Count and log the skipped boxes.
 - **Earth (T5 patches):** `ferric_emit = Hematite + Goethite` (median grain-size layers) from the nearest EMIT cell. A 0.5° cell (~55 km) is larger than a patch, so use nearest-cell sampling like `dust._sample_grid_nearest`, with cell centres = corner + (−0.25° lat, +0.25° lon). Confirm the latitude direction in the probe. If either mineral is fill (`-9999`) or non-finite, the value is NaN. Also store `Hematite`, `Goethite` and the uncertainty half-width `0.5 · ((H_high+G_high) − (H_low+G_low))`. They are reported only and not scored.
 
 ### 3.2 Ranks and score
@@ -139,7 +139,7 @@ It is `geology_and_materials` with 0.20 moved from geology to mineral, so a befo
 
 Rules: run GitNexus `impact` before editing any existing symbol (CLAUDE.md), commits in English, never `nohup` (Slurm `sbatch` only, account `p089`, partition `cpu`), and Owen runs every Yuca command himself through Open OnDemand.
 
-### 4.1 Download and probe job: `jobs/download_minerals.slurm` + `pipeline/minerals_download.py`
+### 4.1 Download and probe job: `scripts/jobs/download_minerals.slurm` + `scripts/pipeline/minerals_download.py`
 
 - EMIT V002 through `earthaccess` (netrc) into `data/raw/earth/emit/l3asa/`.
 - OMEGA FERRIC_BD530 and FERRIC_NNPHS (TIF + LBL) into `data/raw/mars/omega_global/`, with `curl --netrc --fail`. If the request returns 401, exit non-zero with the message "COSMOS credentials missing in ~/.netrc (machine archives.esac.esa.int)".
@@ -147,7 +147,7 @@ Rules: run GitNexus `impact` before editing any existing symbol (CLAUDE.md), com
 - Probe output `mineral_probe.json`: `ncdump -h`-equivalent variable list, fill values and lat/lon first and last values for EMIT; the full text of both OMEGA `.LBL` files plus the GeoTIFF CRS, transform, dtype and nodata (rasterio); the TES header and the band-8 argmax location. **Do not write scoring code against an unverified field name.** If the probe disagrees with §1, update this document first.
 - Resources: 1 CPU, 4 GB, 1 h. Idempotent: skip a file that already exists with the expected size.
 
-### 4.2 Layer module: `pipeline/mineral.py` (template: `pipeline/dust.py::run_dust`)
+### 4.2 Layer module: `scripts/pipeline/mineral.py` (template: `scripts/pipeline/dust.py::run_dust`)
 
 `run_mineral(project_dir, t3_dir, t4_dir, t5_dir, out_dir)` writes:
 
@@ -156,16 +156,16 @@ Rules: run GitNexus `impact` before editing any existing symbol (CLAUDE.md), com
 - `mineral_targets.parquet`: `target_id, ferric_bd530, mineral_rank_T` (NaN for the Moon).
 - `t_mineral_checks.json` (§4.4); fails on hard checks like T13. Two diagnostic PNG maps (Mars ferric rank, Earth ferric rank) are optional.
 - Pure functions `ferric_box_mean(...)` and `S_mineral(...)`, testable without data.
-- Job `jobs/t_mineral.slurm` (copy of `t13_dust.slurm`: 4 CPU, 32 GB, 45 min; the 400 MB OMEGA raster is read with windowed reads, never loaded whole).
+- Job `scripts/jobs/t_mineral.slurm` (copy of `t13_dust.slurm`: 4 CPU, 32 GB, 45 min; the 400 MB OMEGA raster is read with windowed reads, never loaded whole).
 
-### 4.3 Wiring in `pipeline/match.py`
+### 4.3 Wiring in `scripts/pipeline/match.py`
 
 - `DIMENSION_KEYS` += `"mineral"`; `DIMENSIONS` += entry (§3.3); all presets get `"mineral": 0.00` plus the new preset (§3.4).
 - `LAYER_EARTH_COLUMNS["tmin"] = ("mineral_earth.parquet", ["mineral_rank_E"])`; `LAYER_TARGET_COLUMNS["tmin"] = ("mineral_targets.parquet", {"mineral_rank_T": "mineral_rank_T"})`.
 - `load_layers` and the CLI get an **optional** `--mineral-dir`. When it is absent, the mineral columns are NaN, `S_mineral` is all NaN, the dimension is never in `available_dims` and the new preset runs with mineral excluded (coverage 0.8, see §4.5 item 7). This keeps the branch runnable without the new data, and `main`-like output must result (check A1).
 - `EarthArrays.mineral_rank`, `TargetVec.mineral_rank`, `build_earth_arrays`, `target_vec_from_row`, `score_target` (`scores["mineral"] = mineral_scores(...)`), `available_dims`, `layer_mismatches`.
-- `jobs/t7_match.slurm`: pass `--mineral-dir "$MINERAL_DIR"` only when `MINERAL_DIR` is set.
-- **Export and app: out of scope** for the experiment. Check that `pipeline/export.py` still runs: it iterates `PRESET_KEYS`, so the new preset flows into the JSON. If an export check hard-codes five presets or seven dimensions, relax it on this branch only and say so in the commit. The app is not changed.
+- `scripts/jobs/t7_match.slurm`: pass `--mineral-dir "$MINERAL_DIR"` only when `MINERAL_DIR` is set.
+- **Export and app: out of scope** for the experiment. Check that `scripts/pipeline/export.py` still runs: it iterates `PRESET_KEYS`, so the new preset flows into the JSON. If an export check hard-codes five presets or seven dimensions, relax it on this branch only and say so in the commit. The app is not changed.
 
 ### 4.4 Checks in `t_mineral_checks.json`
 
@@ -197,7 +197,7 @@ Run with `python -m pytest tests -q` locally (no cluster needed). All existing t
 
 ---
 
-## 5. Before/after comparison: `tools/compare_mineral.py`
+## 5. Before/after comparison: `scripts/tools/compare_mineral.py`
 
 Input: a `matches.parquet` from the new T7 run. Output: `mineral_comparison.md` + `.csv` in the run directory. For each Mars target:
 
@@ -231,25 +231,25 @@ cd /lustre/proyectos/p089/code && git fetch origin && git worktree add /lustre/p
 ```
 
 ```bash
-cd /lustre/proyectos/p089/code_exp_mineral && git pull && sbatch jobs/download_minerals.slurm
+cd /lustre/proyectos/p089/code_exp_mineral && git pull && sbatch scripts/jobs/download_minerals.slurm
 ```
 
 Paste back `output/download_minerals_<job>.log` and `mineral_probe.json`. If the probe changes anything in §1, the implementing model updates this doc and the code before continuing.
 
 ```bash
-cd /lustre/proyectos/p089/code_exp_mineral && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t_mineral.slurm
+cd /lustre/proyectos/p089/code_exp_mineral && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 scripts/jobs/t_mineral.slurm
 ```
 
 Paste back the log and `t_mineral_checks.json`. Stop here if a hard check fails or check M5 says drop.
 
 ```bash
-cd /lustre/proyectos/p089/code_exp_mineral && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/2242487,T13_DIR=/lustre/proyectos/p089/runs/2242484,T14_DIR=/lustre/proyectos/p089/runs/2242486,MINERAL_DIR=/lustre/proyectos/p089/runs/<t_mineral job id> jobs/t7_match.slurm
+cd /lustre/proyectos/p089/code_exp_mineral && sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/2242487,T13_DIR=/lustre/proyectos/p089/runs/2242484,T14_DIR=/lustre/proyectos/p089/runs/2242486,MINERAL_DIR=/lustre/proyectos/p089/runs/<t_mineral job id> scripts/jobs/t7_match.slurm
 ```
 
 The T5/T12/T13/T14 directories are those of production run 2242490 (`docs/plan_t16_missing_data.md` §8). `<t_mineral job id>` is the number `sbatch` printed for the previous job: Owen fills it in from his own output.
 
 ```bash
-cd /lustre/proyectos/p089/code_exp_mineral && conda run -n spaceapps_2026 python tools/compare_mineral.py --run-dir /lustre/proyectos/p089/runs/<t7 job id>
+cd /lustre/proyectos/p089/code_exp_mineral && conda run -n spaceapps_2026 python scripts/tools/compare_mineral.py --run-dir /lustre/proyectos/p089/runs/<t7 job id>
 ```
 
 (This last step is a few seconds of pandas on one parquet. If the login node policy forbids even that, wrap it in a 5-minute `sbatch --wrap`.)

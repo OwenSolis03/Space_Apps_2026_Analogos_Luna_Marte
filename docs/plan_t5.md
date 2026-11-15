@@ -17,9 +17,9 @@ Full specification of T5. It expands section T5 of [implementation_plan.md](impl
 
 | What | Where |
 | --- | --- |
-| Virtual mosaic, prefilter, extraction and merge | `pipeline/earth_features.py` |
-| Jobs (3 chained stages) | `jobs/t5_prepare.slurm`, `jobs/t5_earth_features.slurm`, `jobs/t5_merge.slurm` |
-| Submitting the 3 stages with one command | `jobs/t5_submit.sh` |
+| Virtual mosaic, prefilter, extraction and merge | `scripts/pipeline/earth_features.py` |
+| Jobs (3 chained stages) | `scripts/jobs/t5_prepare.slurm`, `scripts/jobs/t5_earth_features.slurm`, `scripts/jobs/t5_merge.slurm` |
+| Submitting the 3 stages with one command | `scripts/jobs/t5_submit.sh` |
 | Tests | `tests/test_earth_features.py` |
 | Shared cache (not committed) | `data/derived/copernicus_90m.vrt` |
 | Outputs (in `runs/<PREP_JOBID>/`) | `candidates.parquet`, `prefilter_stats.json`, `features_earth_<i>.parquet`, `features_earth.parquet`, `t5_checks.json`, `map_earth_mean_slope_deg.png`, `map_earth_classification.png` |
@@ -91,7 +91,7 @@ Commit: `T5: Earth sweep`. **Commit and push before submitting the jobs.**
 
 ---
 
-## 3. `pipeline/earth_features.py`
+## 3. `scripts/pipeline/earth_features.py`
 
 ### 3.1 Tiles and VRT
 
@@ -191,7 +191,7 @@ python -m pipeline.earth_features merge   --run-dir R --num-stripes K [--allow-m
 
 ## 4. Jobs
 
-All three `.slurm` files follow the shape of `jobs/t4_targets.slurm`: `#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit, and **no `pip install`** (everything is already in the environment). `RUN_DIR` comes in through `--export`.
+All three `.slurm` files follow the shape of `scripts/jobs/t4_targets.slurm`: `#!/usr/bin/env bash`, `set -euo pipefail`, conda, an echo with the commit, and **no `pip install`** (everything is already in the environment). `RUN_DIR` comes in through `--export`.
 
 | Script | Resources | Command |
 | --- | --- | --- |
@@ -201,22 +201,22 @@ All three `.slurm` files follow the shape of `jobs/t4_targets.slurm`: `#!/usr/bi
 
 **Group limit:** 30 simultaneous tasks × 16 CPUs = 480 CPUs, under 500. If other group jobs are running, `%30` keeps the total from going over.
 
-**`jobs/t5_submit.sh`** runs on the login node and only calls `sbatch`. That is a short command, also allowed in the OOD shell.
+**`scripts/jobs/t5_submit.sh`** runs on the login node and only calls `sbatch`. That is a short command, also allowed in the OOD shell.
 
 ```bash
 #!/usr/bin/env bash
-# Usage: bash jobs/t5_submit.sh            (full run, 32 stripes)
-#        bash jobs/t5_submit.sh --limit 500 (test: 1 stripe)
+# Usage: bash scripts/jobs/t5_submit.sh            (full run, 32 stripes)
+#        bash scripts/jobs/t5_submit.sh --limit 500 (test: 1 stripe)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 LIMIT_ARGS=(); NUM_STRIPES=32; ARRAY="0-31%30"
 if [[ "${1:-}" == "--limit" ]]; then LIMIT_ARGS=(--limit "$2"); NUM_STRIPES=1; ARRAY="0-0"; fi
-PREP=$(sbatch --parsable jobs/t5_prepare.slurm "${LIMIT_ARGS[@]}")
+PREP=$(sbatch --parsable scripts/jobs/t5_prepare.slurm "${LIMIT_ARGS[@]}")
 RUN_DIR=/lustre/proyectos/p089/runs/$PREP
 ARR=$(sbatch --parsable --dependency=afterok:$PREP --array="$ARRAY" \
-      --export=ALL,RUN_DIR=$RUN_DIR,NUM_STRIPES=$NUM_STRIPES jobs/t5_earth_features.slurm)
+      --export=ALL,RUN_DIR=$RUN_DIR,NUM_STRIPES=$NUM_STRIPES scripts/jobs/t5_earth_features.slurm)
 MRG=$(sbatch --parsable --dependency=afterok:$ARR \
-      --export=ALL,RUN_DIR=$RUN_DIR,NUM_STRIPES=$NUM_STRIPES jobs/t5_merge.slurm)
+      --export=ALL,RUN_DIR=$RUN_DIR,NUM_STRIPES=$NUM_STRIPES scripts/jobs/t5_merge.slurm)
 echo "prepare=$PREP array=$ARR merge=$MRG run_dir=$RUN_DIR"
 ```
 
@@ -225,7 +225,7 @@ echo "prepare=$PREP array=$ARR merge=$MRG run_dir=$RUN_DIR"
 **Plan B,** if a stripe fails and there is no time to repeat it:
 
 ```bash
-sbatch --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32,ALLOW_MISSING=1 jobs/t5_merge.slurm
+sbatch --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32,ALLOW_MISSING=1 scripts/jobs/t5_merge.slurm
 ```
 
 The app must then say "partial coverage: X % of the candidates".
@@ -274,7 +274,7 @@ The app must then say "partial coverage: X % of the candidates".
 - `kept` between 35,000 and 80,000. The estimate from the T6 cache is ~45,000: 30,245 with NDVI ≤ 0.25 plus ~15,000 in Antarctica. If it falls outside, **stop and report** before launching the array.
 - Print `ndvi_missing` and `no_land_data` with their distribution by latitude. `ndvi_missing` is expected almost entirely south of −60°.
 
-### 6.2 Test run (`bash jobs/t5_submit.sh --limit 500`)
+### 6.2 Test run (`bash scripts/jobs/t5_submit.sh --limit 500`)
 
 - All three stages finish without errors.
 - At least 70 % of the 500 are valid; the rest are mostly coastal patches with more than 10 % sea.
@@ -332,7 +332,7 @@ sbatch -A p089 -p cpu --time=00:15:00 --mem=4G -o /lustre/proyectos/p089/output/
 ```
 
 ```bash
-bash jobs/t5_submit.sh --limit 500
+bash scripts/jobs/t5_submit.sh --limit 500
 ```
 
 ```bash
@@ -342,7 +342,7 @@ squeue -u owen
 Check `t5_prepare_<PREP>.log`, `t5_earth_<ARR>_0.log` and `t5_merge_<MRG>.log` in `/lustre/proyectos/p089/output/`. If everything meets §6.2:
 
 ```bash
-bash jobs/t5_submit.sh
+bash scripts/jobs/t5_submit.sh
 ```
 
 When it finishes, pack the output for the offline kit (a few MB), since T7 needs it to develop on the laptop:
@@ -374,5 +374,5 @@ cd /lustre/proyectos/p089 && tar -czf kit/t5_<PREP>.tar.gz runs/<PREP>/features_
 - Do not overwrite `copernicus_90m.vrt`. To rebuild it, move the old one to `/lustre/proyectos/p089/_to_delete/`.
 - Do not launch the full run without reviewing the `--limit 500` run.
 - Do not resubmit the whole array if it fails. Diagnose the failed stripe from its log, then:
-  1. resubmit only that stripe: `sbatch --array=<i> --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32 jobs/t5_earth_features.slurm`;
+  1. resubmit only that stripe: `sbatch --array=<i> --export=ALL,RUN_DIR=<run_dir>,NUM_STRIPES=32 scripts/jobs/t5_earth_features.slurm`;
   2. run `merge` again with the same `--export`.

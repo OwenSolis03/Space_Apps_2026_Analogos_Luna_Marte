@@ -6,7 +6,7 @@ Written by Claude on 2026-11-14. Short version for the submission: **the weights
 
 ## 1. What they are
 
-The five mission cases (`mobility_and_traction`, `construction_and_base`, `geology_and_materials`, `dust_and_seasons`, `isru_and_ice`) and their weights over the seven dimensions were chosen by the team, with Claude, between 2026-11-13 and 2026-11-14. The first three-case version came from the project's master plan; the current table is section 5.2 of [plan_t12_t15.md](plan_t12_t15.md) and `PRESETS` in `pipeline/match.py`. No document cites a source for the numbers, because there was none: they are judgment.
+The five mission cases (`mobility_and_traction`, `construction_and_base`, `geology_and_materials`, `dust_and_seasons`, `isru_and_ice`) and their weights over the seven dimensions were chosen by the team, with Claude, between 2026-11-13 and 2026-11-14. The first three-case version came from the project's master plan; the current table is section 5.2 of [plan_t12_t15.md](plan_t12_t15.md) and `PRESETS` in `scripts/pipeline/match.py`. No document cites a source for the numbers, because there was none: they are judgment.
 
 ## 2. What published work says about the priorities
 
@@ -25,7 +25,7 @@ Pass or fail limits (for example a maximum slope) are the other common practice 
 
 ## 3. Does the exact number matter? Sensitivity test
 
-`tools/weight_sensitivity.py` re-ranks the analogs of every target with perturbed weights and compares with the published weights. Result on run 2242506 plus the T18 data (300 draws per target):
+`scripts/tools/weight_sensitivity.py` re-ranks the analogs of every target with perturbed weights and compares with the published weights. Result on run 2242506 plus the T18 data (300 draws per target):
 
 | Mission case | Targets | `near`: top-10 kept | `near`: rank correlation | `random`: top-10 kept | `random`: rank correlation |
 | --- | --- | --- | --- | --- | --- |

@@ -1,9 +1,7 @@
-# Heavy rasters and raw data (hosted on Yuca: /lustre/proyectos/p089/data)
-data/
-# Exception: JSON consumed by the web app tracked in repo (plan, rule 3)
-!app/public/data/
-# Exception: hand-curated pipeline definitions (targets.json, known_analogs.json, limits.json)
-!pipeline/data/
+# Heavy rasters and raw data (hosted on Yuca: /lustre/proyectos/p089/data).
+# data/ itself is tracked: it holds the hand-written definitions the pipeline reads.
+/data/raw/
+/data/derived/
 *.tif
 *.tiff
 *.aria2

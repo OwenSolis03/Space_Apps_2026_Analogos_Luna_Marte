@@ -26,7 +26,7 @@ Notes that came out of the checks:
 
 ## 2. What the code does
 
-`pipeline/minerals.py` reads the maps and adds a `mineralogy` block to `analogs_universe.json`. It never touches the matching or the scores (a test compares every other field before and after).
+`scripts/pipeline/minerals.py` reads the maps and adds a `mineralogy` block to `analogs_universe.json`. It never touches the matching or the scores (a test compares every other field before and after).
 
 ```json
 "mineralogy": {
@@ -57,7 +57,7 @@ App: `MineralogyPanel.tsx` shows both sides of the selected pair with labels and
 **Run on Yuca** (Owen, in the OOD shell; about a minute):
 
 ```bash
-cd /lustre/proyectos/p089/code && git pull && sbatch jobs/t18_minerals.slurm
+cd /lustre/proyectos/p089/code && git pull && sbatch scripts/jobs/t18_minerals.slurm
 ```
 
 The log prints which readers the environment has, the EMIT variables it found, how many Earth analogs have a value, and a short report. Then bring `runs/<job>/analogs_universe.json` into `app/public/data/` as for the earlier runs and commit it.

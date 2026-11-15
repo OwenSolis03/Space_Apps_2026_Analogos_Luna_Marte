@@ -2,16 +2,16 @@
 // Code comes from the pipeline files through ?raw imports and lib/extract.ts, so the page cannot drift
 // from the code. Parameter values are read from the same sources with `constOf`.
 
-import planetFeaturesPy from "../../../pipeline/planet_features.py?raw";
-import geoPy from "../../../pipeline/geo.py?raw";
-import featuresPy from "../../../pipeline/features.py?raw";
-import targetsPy from "../../../pipeline/targets.py?raw";
-import earthFeaturesPy from "../../../pipeline/earth_features.py?raw";
-import matchPy from "../../../pipeline/match.py?raw";
-import dustPy from "../../../pipeline/dust.py?raw";
-import icePy from "../../../pipeline/ice.py?raw";
-import geologyRulesPy from "../../../pipeline/geology_rules.py?raw";
-import configPy from "../../../pipeline/config.py?raw";
+import planetFeaturesPy from "../../../scripts/pipeline/planet_features.py?raw";
+import geoPy from "../../../scripts/pipeline/geo.py?raw";
+import featuresPy from "../../../scripts/pipeline/features.py?raw";
+import targetsPy from "../../../scripts/pipeline/targets.py?raw";
+import earthFeaturesPy from "../../../scripts/pipeline/earth_features.py?raw";
+import matchPy from "../../../scripts/pipeline/match.py?raw";
+import dustPy from "../../../scripts/pipeline/dust.py?raw";
+import icePy from "../../../scripts/pipeline/ice.py?raw";
+import geologyRulesPy from "../../../scripts/pipeline/geology_rules.py?raw";
+import configPy from "../../../scripts/pipeline/config.py?raw";
 import msiTs from "../lib/msi.ts?raw";
 import { extractBetween, extractBlock } from "../lib/extract";
 
@@ -84,7 +84,7 @@ export const STEPS: Step[] = [
       param("R MARS", `${radiusOf("Mars")} m`),
       param("PATCH L", `${constOf(configPy, "PATCH_SIZE_KM")} km`),
     ],
-    snippets: [{ file: "pipeline/planet_features.py", lang: "python", code: extractBlock(planetFeaturesPy, "def generate_grid(") }],
+    snippets: [{ file: "scripts/pipeline/planet_features.py", lang: "python", code: extractBlock(planetFeaturesPy, "def generate_grid(") }],
   },
   {
     code: "STEP.02",
@@ -103,8 +103,8 @@ export const STEPS: Step[] = [
     ],
     notes: ["c is the angular distance to the patch centre and α the azimuth."],
     snippets: [
-      { file: "pipeline/geo.py", lang: "python", code: extractBlock(geoPy, "def extract_patch(") },
-      { file: "pipeline/geo.py", lang: "python", code: extractBlock(geoPy, "def _clean_nodata(") },
+      { file: "scripts/pipeline/geo.py", lang: "python", code: extractBlock(geoPy, "def extract_patch(") },
+      { file: "scripts/pipeline/geo.py", lang: "python", code: extractBlock(geoPy, "def _clean_nodata(") },
     ],
   },
   {
@@ -124,7 +124,7 @@ export const STEPS: Step[] = [
       param("ROUGHNESS", "σd · TRI"),
       param("SHAPE", "RELIEF · HI"),
     ],
-    snippets: [{ file: "pipeline/features.py", lang: "python", code: extractBlock(featuresPy, "def compute_features(") }],
+    snippets: [{ file: "scripts/pipeline/features.py", lang: "python", code: extractBlock(featuresPy, "def compute_features(") }],
   },
   {
     code: "STEP.04",
@@ -141,8 +141,8 @@ export const STEPS: Step[] = [
       param("CLUSTER FEATURES", listOf(targetsPy, "CLUSTER_FEATURES").join(" · ")),
     ],
     snippets: [
-      { file: "pipeline/targets.py", lang: "python", code: extractBlock(targetsPy, "def anchor_points(") },
-      { file: "pipeline/targets.py", lang: "python", code: extractBlock(targetsPy, "def build_clusters(") },
+      { file: "scripts/pipeline/targets.py", lang: "python", code: extractBlock(targetsPy, "def anchor_points(") },
+      { file: "scripts/pipeline/targets.py", lang: "python", code: extractBlock(targetsPy, "def build_clusters(") },
     ],
   },
   {
@@ -160,7 +160,7 @@ export const STEPS: Step[] = [
     ],
     live: ["funnel"],
     snippets: [
-      { file: "pipeline/earth_features.py", lang: "python", code: extractBlock(earthFeaturesPy, "def _compute_prefilter_masks(") },
+      { file: "scripts/pipeline/earth_features.py", lang: "python", code: extractBlock(earthFeaturesPy, "def _compute_prefilter_masks(") },
     ],
   },
   {
@@ -177,7 +177,7 @@ export const STEPS: Step[] = [
       param("MAD FLOOR", constOf(matchPy, "MAD_FLOOR")),
     ],
     live: ["normalization"],
-    snippets: [{ file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "class Normalizer") }],
+    snippets: [{ file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "class Normalizer") }],
   },
   {
     code: "STEP.07",
@@ -212,11 +212,11 @@ export const STEPS: Step[] = [
     ],
     live: ["geology"],
     snippets: [
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def dimension_scores(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def geology_scores(") },
-      { file: "pipeline/dust.py", lang: "python", code: extractBlock(dustPy, "def S_dust(") },
-      { file: "pipeline/ice.py", lang: "python", code: extractBlock(icePy, "def S_ice(") },
-      { file: "pipeline/geology_rules.py", lang: "python", code: extractBetween(geologyRulesPy, "_OFF_DIAGONAL_SIMILARITIES", "class SimilarityMatrix") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def dimension_scores(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def geology_scores(") },
+      { file: "scripts/pipeline/dust.py", lang: "python", code: extractBlock(dustPy, "def S_dust(") },
+      { file: "scripts/pipeline/ice.py", lang: "python", code: extractBlock(icePy, "def S_ice(") },
+      { file: "scripts/pipeline/geology_rules.py", lang: "python", code: extractBetween(geologyRulesPy, "_OFF_DIAGONAL_SIMILARITIES", "class SimilarityMatrix") },
     ],
   },
   {
@@ -236,9 +236,9 @@ export const STEPS: Step[] = [
     live: ["presets"],
     notes: ["The scoring rules below are copied from metadata.scoring_policy in the exported file."],
     snippets: [
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def msi(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def preset_status(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def available_dims(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def msi(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def preset_status(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def available_dims(") },
     ],
   },
   {
@@ -256,9 +256,9 @@ export const STEPS: Step[] = [
       param("EARTH RADIUS", `${(radiusM("Earth") / 1000).toLocaleString("en-US")} km`),
     ],
     snippets: [
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def haversine_km(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def select_diverse(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def select_by_preset(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def haversine_km(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def select_diverse(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def select_by_preset(") },
     ],
   },
   {
@@ -276,8 +276,8 @@ export const STEPS: Step[] = [
     ],
     live: ["limits-moon", "limits-mars"],
     snippets: [
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def mismatches(") },
-      { file: "pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def layer_mismatches(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def mismatches(") },
+      { file: "scripts/pipeline/match.py", lang: "python", code: extractBlock(matchPy, "def layer_mismatches(") },
     ],
   },
   {

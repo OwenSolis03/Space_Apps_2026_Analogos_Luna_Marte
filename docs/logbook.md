@@ -2,6 +2,14 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: Repository reorganized into data / models / scripts / docs
+
+**What was done** (branch `chore/reorganize-data-models-scripts`, on top of the tidy-up in PR #7): the layout suggested for the code and data was applied. `pipeline/data/*.json` moved to `data/`; `pipeline/`, `jobs/`, `tools/` and `legacy_v1/` moved under `scripts/`; `models/` was added with a README only, because there are no trained networks (the model is the similarity score and the k-means clusters); `docs/`, `tests/` and `app/` stay where they were.
+
+**What had to change with it:** the five JSON lookups and the repository-root lookups in `scripts/pipeline/*.py` and `scripts/tools/v1_to_sample.py`; every Slurm job (it now exports `PYTHONPATH=$CODE_DIR/scripts`, and tool and requirements paths gained `scripts/`; `t5_submit.sh` goes up two levels); a `pytest.ini` that puts `scripts/` on the import path; the Algorithm page's `?raw` imports and the Vite comment; `.gitignore` (it ignored every folder called `data/`, so it now ignores only `/data/raw/` and `/data/derived/`); and about 280 path mentions in the README and the docs. `docs/logbook.md` and `docs/HISTORY.md` keep their old paths on purpose, because they describe what was true when written.
+
+**Verified:** 117 tests pass, 2 skipped (the same count as before the move; they need `gdalbuildvrt`), `npm run build` (vue-tsc and vite) passes, and each moved JSON resolves from its module. **Not verified:** no job was submitted on Yuca. **On Yuca,** after merging, submit from the repository root with the new path, for example `sbatch scripts/jobs/t3_planet_features.slurm`. **Not changed:** the diagrams in `docs/diagrams/` still show the old paths, because their source links are pinned to an earlier commit and regenerating the six diagrams was left out.
+
 ## 2026-11-14: Repository tidy-up
 
 **What was done** (Claude, branch `chore/tidy-repo`; files moved with `git mv`, so their history follows them). The root had 15 files from three different eras; it now has `README.md`, `.gitignore`, `.gitattributes` and `guion.txt` (a teammate's file, left alone).
@@ -439,7 +447,7 @@ A record of what happens in the project, newest first. It also feeds the use-of-
       - Hard PASS: `earth_pinacate_tibesti` (`vb -> VOLCANIC_BASIC`), `earth_dry_valleys` (`sm -> SEDIMENTARY`), `earth_ice_interiors` (`ig -> ICE`), `moon_maria` (`Im2 -> VOLCANIC_BASIC`), `mars_tharsis_volcanoes` (`Ave -> VOLCANIC_BASIC`), `mars_north_polar_cap` (`lApc -> ICE`).
       - Soft PASS: `moon_shackleton_rim` (`IMPACT`), `default_or_null_area_share` (Moon `7.34%` across 5 `[REVIEW]` units: `Ioho` `3.78%`, `Iif` `1.37%`, `Iohs` `0.93%`, `Iork` `0.73%`, `Iia` `0.54%`; Mars `0.00%`).
       - Soft FAIL: `mars_arcadia_utopia` (`arcadia_swim: VOLCANIC_BASIC`, `utopia_zhurong: SEDIMENTARY`).
-  - **Post-run review commit `16db5db`:** Claude reviewed `runs/2242482/geology_mapping_review.md` and added [`pipeline/data/geology_overrides.json`](../pipeline/data/geology_overrides.json) (Moon: `Nt, pNt, INt, It -> CRYSTALLINE`, `Ioho, Iohs, Iif, Iork, Iia, Iom -> IMPACT`, `Itd -> VOLCANIC_OTHER`; Mars: `lApd -> SEDIMENTARY`; `arcadia_swim` kept on `lAv` with shallow ice handled via `ice_hints.json`). A clean re-run of `jobs/t14_geology.slurm` on `16db5db`+ awaits §5.6 sign-off together with T13.
+  - **Post-run review commit `16db5db`:** Claude reviewed `runs/2242482/geology_mapping_review.md` and added [`pipeline/data/geology_overrides.json`](../data/geology_overrides.json) (Moon: `Nt, pNt, INt, It -> CRYSTALLINE`, `Ioho, Iohs, Iif, Iork, Iia, Iom -> IMPACT`, `Itd -> VOLCANIC_OTHER`; Mars: `lApd -> SEDIMENTARY`; `arcadia_swim` kept on `lAv` with shallow ice handled via `ice_hints.json`). A clean re-run of `jobs/t14_geology.slurm` on `16db5db`+ awaits §5.6 sign-off together with T13.
 - **T13 Dust & Seasons (`pipeline/dust.py`, `jobs/t13_dust.slurm`):**
   - First run (`job 2242483`) printed Montabone & MOD08 metadata and exited on `NameError: name 'math' is not defined`; fixed by adding `import math` (`commit c834727`, merged before `16db5db`).
   - **`job 2242484` (`FAILED`, exit `1:0` at final hard-check guard after writing all parquets, maps and checks, runtime `13.638 s`, commit `16db5db`, output `/lustre/proyectos/p089/runs/2242484/`):**

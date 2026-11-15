@@ -4,10 +4,10 @@ Full specification of the new evidence dimensions, so the analog search goes **b
 
 | Task | Dimension | Bodies | Module |
 | --- | --- | --- | --- |
-| T14 | **Geology and surface materials** (+ subsurface and ice-surface labels) | Earth, Moon, Mars | `pipeline/geology.py` |
-| T13 | **Processes: dust and seasons** | Earth, Mars | `pipeline/dust.py` |
-| T12 | **Water and ice / cold traps** | Earth, Moon (+ Mars through geology) | `pipeline/ice.py` |
-| T15 | **Integration** of the three into matching and export | all | `pipeline/match.py`, `pipeline/export.py` |
+| T14 | **Geology and surface materials** (+ subsurface and ice-surface labels) | Earth, Moon, Mars | `scripts/pipeline/geology.py` |
+| T13 | **Processes: dust and seasons** | Earth, Mars | `scripts/pipeline/dust.py` |
+| T12 | **Water and ice / cold traps** | Earth, Moon (+ Mars through geology) | `scripts/pipeline/ice.py` |
+| T15 | **Integration** of the three into matching and export | all | `scripts/pipeline/match.py`, `scripts/pipeline/export.py` |
 
 **Why these dimensions.** The challenge lists geology and surface materials, water and ice, and dust and atmospheric processes as dimensions of analogy, and asks to "think about processes as well as places". The T7 run showed the two limits of terrain alone:
 
@@ -107,7 +107,7 @@ Implementation order: **downloads → T14 and T13 (in parallel) → T12 → T15.
 
 ## 1. Downloads (one job)
 
-**New file:** `jobs/download_t12_t14.slurm`. It has the same shape as the other jobs, with 2 CPUs, 8G, `--time=02:00:00` and the log `download_t12_t14_%j.log`.
+**New file:** `scripts/jobs/download_t12_t14.slurm`. It has the same shape as the other jobs, with 2 CPUs, 8G, `--time=02:00:00` and the log `download_t12_t14_%j.log`.
 
 - **Tool:** `curl -L --fail --retry 3 --retry-delay 10 -o <tmp> <url> && mv <tmp> <final>`.
 - **Skip:** if the final file already exists with a non-zero size, skip it.
@@ -122,12 +122,12 @@ Implementation order: **downloads → T14 and T13 (in parallel) → T12 → T15.
 | Mars dust (kriged, all years) | `https://www-mars.lmd.jussieu.fr/mars/dust_climatology/dataset_v2/krigedcdod_v2.tar.gz` | `mars/dust_montabone/` (untar) |
 | Earth AOD | `earthaccess.search_data(short_name="MOD08_M3", version="061", temporal=("2019-01-01","2023-12-31"))` → 60 files | `earth/modis/aod/` |
 
-- **MOD08_M3 step:** a small new script, `download_aod.py` next to `download_earthdata.py` (both now in `tools/`), run inside the same job. Check the granule count (expected 60) and fail if it is lower.
+- **MOD08_M3 step:** a small new script, `download_aod.py` next to `download_earthdata.py` (both now in `scripts/tools/`), run inside the same job. Check the granule count (expected 60) and fail if it is lower.
 - **Disk:** about 4–5 GB in total, well within the 18 TB quota.
 
 ---
 
-## 2. T14 — Geology and surface materials (`pipeline/geology.py`)
+## 2. T14 — Geology and surface materials (`scripts/pipeline/geology.py`)
 
 ### 2.1 Shared class taxonomy
 
@@ -184,7 +184,7 @@ def glim_at(grid, lat, lon) -> np.ndarray: ...    # code per point (vectorised);
 1. **Read the polygons with `geopandas.read_file` (pyogrio).**
    - Print the CRS, the attribute columns, and the list of unique units with their names or descriptions. Write it all to `geology_units_{moon,mars}.csv` in the run directory.
    - Use whichever attribute holds the unit symbol (for example `FIRST_Unit` or `UnitSymbol`; check, do not assume) and the description, if there is one.
-2. **Map units to classes by rule.** `pipeline/geology_rules.py` holds ordered keyword rules applied to the unit **name or description**, case-insensitive; the first match wins:
+2. **Map units to classes by rule.** `scripts/pipeline/geology_rules.py` holds ordered keyword rules applied to the unit **name or description**, case-insensitive; the first match wins:
    - **Moon:**
      - `mare` / `maria` → `VOLCANIC_BASIC`;
      - `dark mantle` / `pyroclastic` → `PYROCLASTIC`;
@@ -226,7 +226,7 @@ def glim_at(grid, lat, lon) -> np.ndarray: ...    # code per point (vectorised);
 
 ---
 
-## 3. T13 — Processes: dust and seasons (`pipeline/dust.py`)
+## 3. T13 — Processes: dust and seasons (`scripts/pipeline/dust.py`)
 
 **Idea (Owen's):** compare Mars's dust seasons with Earth's. A site on Earth is a **dust-process analog** of a Martian site when three things match, **each ranked within its own planet**:
 
@@ -298,7 +298,7 @@ The Moon has no atmosphere: dust is null for every Moon target. Lunar dust is lo
 
 ---
 
-## 4. T12 — Water and ice / cold traps (`pipeline/ice.py`)
+## 4. T12 — Water and ice / cold traps (`scripts/pipeline/ice.py`)
 
 **Idea:** permanent lunar base sites matter because of cold traps and water ice. The analog question is: which places on Earth are, **within Earth**, as extremely cold and ice-bearing as the target is **within the Moon**? Absolute temperatures differ by ~200 K, so ranks again. Mars gets the ice part through geology (`ICE` units) and one curated hint (Arcadia SWIM).
 
@@ -317,7 +317,7 @@ The Moon has no atmosphere: dust is null for every Moon target. Lunar dust is lo
 **Mars:**
 
 - `cold_rank_T` = null, because there is no comparable surface temperature layer;
-- `ice_T` = 1.0 if the T14 class is `ICE`, or if the target is listed in `pipeline/data/ice_hints.json`, which is new and hand-written:
+- `ice_T` = 1.0 if the T14 class is `ICE`, or if the target is listed in `data/ice_hints.json`, which is new and hand-written:
 
   ```json
   {"version":"2026-11-14","hints":[{"target_id":"mars-arcadia-swim","ice_T":1.0,
@@ -423,7 +423,7 @@ Owen sends Claude:
 - the T13 maps and `t13_checks.json`;
 - `t12_checks.json`.
 
-Claude confirms the unit mapping or corrects it, as a commit to `pipeline/data/geology_overrides.json`, which `geology.py` applies after the rules. Only then does T15 run.
+Claude confirms the unit mapping or corrects it, as a commit to `data/geology_overrides.json`, which `geology.py` applies after the rules. Only then does T15 run.
 
 ### 5.7 Report and checks (`t7_checks.json` / `t7_report.md`, extended)
 
@@ -441,7 +441,7 @@ Claude confirms the unit mapping or corrects it, as a commit to `pipeline/data/g
 
 ### 5.8 Review outcome (Claude, 2026-11-14, runs 2242482 / 2242484 / 2242485)
 
-**T14 geology (2242482): approved with overrides.** They are in `pipeline/data/geology_overrides.json` (commit `16db5db`), each with its reason in the file:
+**T14 geology (2242482): approved with overrides.** They are in `data/geology_overrides.json` (commit `16db5db`), each with its reason in the file:
 
 - Moon terra units → `CRYSTALLINE`;
 - the basin formations and Maunder → `IMPACT`;
@@ -481,32 +481,32 @@ Re-run it after T14 for consistency; it takes minutes.
 
 | Job | Resources | What |
 | --- | --- | --- |
-| `jobs/download_t12_t14.slurm` | 2 CPUs, 8G, 2 h | §1 |
-| `jobs/t14_geology.slurm` | 4 CPUs, 32G, 45 min | `python -m pipeline.geology --project-dir P --out-dir R` |
-| `jobs/t13_dust.slurm` | 4 CPUs, 32G, 45 min | `python -m pipeline.dust --project-dir P --out-dir R` |
-| `jobs/t12_ice.slurm` | 2 CPUs, 8G, 15 min | `python -m pipeline.ice --t14-dir … --out-dir R` |
-| `jobs/t7_match.slurm` (extended) | as before | New exported variables `T12_DIR`, `T13_DIR`, `T14_DIR` passed to `match` and `export` |
+| `scripts/jobs/download_t12_t14.slurm` | 2 CPUs, 8G, 2 h | §1 |
+| `scripts/jobs/t14_geology.slurm` | 4 CPUs, 32G, 45 min | `python -m pipeline.geology --project-dir P --out-dir R` |
+| `scripts/jobs/t13_dust.slurm` | 4 CPUs, 32G, 45 min | `python -m pipeline.dust --project-dir P --out-dir R` |
+| `scripts/jobs/t12_ice.slurm` | 2 CPUs, 8G, 15 min | `python -m pipeline.ice --t14-dir … --out-dir R` |
+| `scripts/jobs/t7_match.slurm` (extended) | as before | New exported variables `T12_DIR`, `T13_DIR`, `T14_DIR` passed to `match` and `export` |
 
 **Commands for Owen** (SSH or the Open OnDemand shell, from `/lustre/proyectos/p089/code`). Commit and push before every job.
 
 ```bash
-cd /lustre/proyectos/p089/code && git pull && sbatch jobs/download_t12_t14.slurm
+cd /lustre/proyectos/p089/code && git pull && sbatch scripts/jobs/download_t12_t14.slurm
 ```
 
 After the download log shows every file with its size:
 
 ```bash
-sbatch jobs/t14_geology.slurm && sbatch jobs/t13_dust.slurm
+sbatch scripts/jobs/t14_geology.slurm && sbatch scripts/jobs/t13_dust.slurm
 ```
 
 ```bash
-sbatch --export=ALL,T14_DIR=/lustre/proyectos/p089/runs/<T14> jobs/t12_ice.slurm
+sbatch --export=ALL,T14_DIR=/lustre/proyectos/p089/runs/<T14> scripts/jobs/t12_ice.slurm
 ```
 
 Then comes the review stop (§5.6). After it:
 
 ```bash
-sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/<T12>,T13_DIR=/lustre/proyectos/p089/runs/<T13>,T14_DIR=/lustre/proyectos/p089/runs/<T14> jobs/t7_match.slurm
+sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438,T12_DIR=/lustre/proyectos/p089/runs/<T12>,T13_DIR=/lustre/proyectos/p089/runs/<T13>,T14_DIR=/lustre/proyectos/p089/runs/<T14> scripts/jobs/t7_match.slurm
 ```
 
 ---

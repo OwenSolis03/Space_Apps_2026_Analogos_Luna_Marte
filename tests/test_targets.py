@@ -23,7 +23,7 @@ from pipeline.targets import (
 
 
 def test_load_curated_real_file() -> None:
-    """Validates real pipeline/data/targets.json without reading large raster files."""
+    """Validates real data/targets.json without reading large raster files."""
     targets = load_curated(TARGETS_JSON)
     moon = [t for t in targets if t["body"] == "Moon"]
     mars = [t for t in targets if t["body"] == "Mars"]

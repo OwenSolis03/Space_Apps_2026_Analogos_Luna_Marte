@@ -9,6 +9,6 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
-  // Lets the Algorithm page import ../pipeline/*.py?raw from the repository root.
+  // Lets the Algorithm page import ../scripts/pipeline/*.py?raw from the repository root.
   server: { fs: { allow: [".."] } },
 });

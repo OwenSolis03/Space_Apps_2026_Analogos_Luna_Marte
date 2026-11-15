@@ -86,23 +86,35 @@ cd /lustre/proyectos/p089/code && git pull
 ```
 
 ```bash
-sbatch jobs/t3_planet_features.slurm
+sbatch scripts/jobs/t3_planet_features.slurm
 ```
 
-The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md) and [plan_t7_t8.md](docs/plan_t7_t8.md). To run the Python dependencies elsewhere: `pip install -r pipeline/requirements.txt`. The tests (`pytest -q tests`) are synthetic and do not need the raw data.
+The command for every task (tests, T4, T5, T6, T7) is in its plan: [plan_t4.md](docs/plan_t4.md), [plan_t5.md](docs/plan_t5.md), [plan_t6.md](docs/plan_t6.md) and [plan_t7_t8.md](docs/plan_t7_t8.md). To run the Python dependencies elsewhere: `pip install -r scripts/pipeline/requirements.txt`. The tests (`pytest -q tests`) are synthetic and do not need the raw data.
 
 ## Repository layout
 
+```text
+data/      hand-written definitions the pipeline reads (targets, known analogs, limits, overrides, ice hints)
+models/    the similarity model: documentation only, there are no trained networks
+scripts/   everything that processes data: pipeline/, jobs/ (Slurm), tools/, legacy_v1/
+docs/      technical documentation and diagrams
+tests/     synthetic unit tests (no raw data needed)
+app/       website and explorer (Vue 3)
+```
+
 | Path | Content |
 | --- | --- |
-| `pipeline/` | v2 pipeline: patch extraction (`geo.py`), features (`features.py`), Mars/Moon sweep (`planet_features.py`), targets (`targets.py`, `iau.py`), Earth layers (`earth_layers.py`), Earth sweep (`earth_features.py`) |
-| `pipeline/data/` | Hand-written definitions: curated targets, known analog regions, physical limits |
-| `jobs/` | Slurm jobs: the data downloads and one per task |
-| `tests/` | Synthetic unit tests |
-| `app/` | Website and explorer: Vue 3, Vite, TypeScript, Sass, anime.js, vue-router, Leaflet, KaTeX, highlight.js. Seven hash-routed views: Home (solar system navigation), Results, Challenge, How It Works, Algorithm, Data, About |
-| `tools/` | Data downloaders (`download_*.py`), dataset explorer, T16 verifier, weight sensitivity test and the v1-to-v2 sample converter |
-| `docs/` | Documentation (see below) |
-| `legacy_v1/` | v1 prototype (scripts, Slurm jobs, outputs and logs), kept as reference and never imported |
+| [`data/`](data/) | Hand-written definitions: curated targets, known analog regions, physical limits, geology overrides, ice hints. Raw rasters stay on Yuca and are not in the repository; the exported result the app reads is `app/public/data/analogs_universe.json` |
+| [`models/`](models/) | Explains the model. There are no trained neural networks: the model is the weighted similarity score (`scripts/pipeline/match.py`) and the k-means terrain clusters (`scripts/pipeline/targets.py`) |
+| [`scripts/pipeline/`](scripts/pipeline/) | v2 pipeline: patch extraction (`geo.py`), features (`features.py`), Mars/Moon sweep (`planet_features.py`), targets (`targets.py`, `iau.py`), Earth layers (`earth_layers.py`), Earth sweep (`earth_features.py`), context layers, matching and export |
+| [`scripts/jobs/`](scripts/jobs/) | Slurm jobs: the data downloads and one per task |
+| [`scripts/tools/`](scripts/tools/) | Data downloaders (`download_*.py`), dataset explorer, T16 verifier, weight sensitivity test and the v1-to-v2 sample converter |
+| [`scripts/legacy_v1/`](scripts/legacy_v1/) | v1 prototype (scripts, Slurm jobs, outputs and logs), kept as reference and never imported |
+| [`docs/`](docs/) | Documentation (see below) |
+| [`tests/`](tests/) | Synthetic unit tests. `pytest.ini` puts `scripts/` on the import path |
+| [`app/`](app/) | Website and explorer: Vue 3, Vite, TypeScript, Sass, anime.js, vue-router, Leaflet, KaTeX, highlight.js. Seven hash-routed views: Home (solar system navigation), Results, Challenge, How It Works, Algorithm, Data, About |
+
+**Running the pipeline after the move.** The Slurm jobs set `PYTHONPATH` to `scripts/` themselves, so submit them from the repository root: `sbatch scripts/jobs/t3_planet_features.slurm`. To run a module by hand: `PYTHONPATH=scripts python -m pipeline.targets --help`.
 
 ## Documentation
 

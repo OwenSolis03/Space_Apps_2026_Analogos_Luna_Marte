@@ -19,18 +19,18 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 
 | Task | Main files | Status | Evidence |
 | --- | --- | --- | --- |
-| **T0** data | `jobs/download_missing.slurm`, `jobs/download_extra.slurm`, `jobs/download_diviner.slurm` | **Done** | See below |
-| **T1** patch extraction | `pipeline/config.py`, `pipeline/geo.py`, `tests/test_geo.py` | **Done** (`ac743ce`, adjusted in `920f812`, `bcf10de`; polar branch in `115e0c3`) | Local AEQD 64 × 64 patch at 500 m/px; `scale`/`offset` applied after masking nodata |
-| **T2** features | `pipeline/features.py`, `tests/test_features.py` | **Done** (`a661bb7`, `920f812`) | 7 float32 features |
-| **T3** Mars and Moon sweep | `pipeline/planet_features.py`, `jobs/t3_planet_features.slurm` | **Done and run** (`19e3899`…`57f4f36`) | Jobs 2242278 (array 0–15) and 2242279 (merge): 140,916 Mars patches and 36,741 Moon patches. Visual check passed |
-| **T4** targets | `pipeline/targets.py`, `pipeline/iau.py`, `pipeline/data/targets.json`, `jobs/t4_targets.slurm` | **Done and run** (`115e0c3`) | Job 2242423: 76 targets (16 curated, all ok; 60 clusters) |
-| **T6** Earth layers | `pipeline/earth_layers.py`, `pipeline/data/known_analogs.json`, `jobs/t6_earth_layers.slurm` | **Done and run** (`29fbb88`, `84888cd`) | Jobs 2242426 (cache) and 2242430 (checks): 8/8 hard, 5/5 soft |
-| **T5** Earth sweep | `pipeline/earth_features.py`, `jobs/t5_*.slurm`, `jobs/t5_submit.sh` | **Done and run** (`52bf3d7`) | Jobs 2242438 (prepare), 2242439 (array 0–31), 2242440 (merge): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard checks, 4/5 soft checks (`runs/2242438/features_earth.parquet`, kit `t5_2242438.tar.gz`) |
-| **T7/T8/T15** matching and export | `pipeline/match.py`, `pipeline/export.py`, `jobs/t7_match.slurm` | **Done and run; report ready for review** (`bda0acf`) | Job `2242489`: 7 dimensions, 5 presets, 5,010 pairs across 76 targets, `7/7` hard checks, `4/4` soft checks, `/lustre/proyectos/p089/runs/2242489/analogs_universe.json` (6.23 MB) + `t7_report.md` (pending Claude review before copy to `app/`) |
+| **T0** data | `scripts/jobs/download_missing.slurm`, `scripts/jobs/download_extra.slurm`, `scripts/jobs/download_diviner.slurm` | **Done** | See below |
+| **T1** patch extraction | `scripts/pipeline/config.py`, `scripts/pipeline/geo.py`, `tests/test_geo.py` | **Done** (`ac743ce`, adjusted in `920f812`, `bcf10de`; polar branch in `115e0c3`) | Local AEQD 64 × 64 patch at 500 m/px; `scale`/`offset` applied after masking nodata |
+| **T2** features | `scripts/pipeline/features.py`, `tests/test_features.py` | **Done** (`a661bb7`, `920f812`) | 7 float32 features |
+| **T3** Mars and Moon sweep | `scripts/pipeline/planet_features.py`, `scripts/jobs/t3_planet_features.slurm` | **Done and run** (`19e3899`…`57f4f36`) | Jobs 2242278 (array 0–15) and 2242279 (merge): 140,916 Mars patches and 36,741 Moon patches. Visual check passed |
+| **T4** targets | `scripts/pipeline/targets.py`, `scripts/pipeline/iau.py`, `data/targets.json`, `scripts/jobs/t4_targets.slurm` | **Done and run** (`115e0c3`) | Job 2242423: 76 targets (16 curated, all ok; 60 clusters) |
+| **T6** Earth layers | `scripts/pipeline/earth_layers.py`, `data/known_analogs.json`, `scripts/jobs/t6_earth_layers.slurm` | **Done and run** (`29fbb88`, `84888cd`) | Jobs 2242426 (cache) and 2242430 (checks): 8/8 hard, 5/5 soft |
+| **T5** Earth sweep | `scripts/pipeline/earth_features.py`, `scripts/jobs/t5_*.slurm`, `scripts/jobs/t5_submit.sh` | **Done and run** (`52bf3d7`) | Jobs 2242438 (prepare), 2242439 (array 0–31), 2242440 (merge): 44,375 candidates, 40,244 valid patches (90.69 %), 6/6 hard checks, 4/5 soft checks (`runs/2242438/features_earth.parquet`, kit `t5_2242438.tar.gz`) |
+| **T7/T8/T15** matching and export | `scripts/pipeline/match.py`, `scripts/pipeline/export.py`, `scripts/jobs/t7_match.slurm` | **Done and run; report ready for review** (`bda0acf`) | Job `2242489`: 7 dimensions, 5 presets, 5,010 pairs across 76 targets, `7/7` hard checks, `4/4` soft checks, `/lustre/proyectos/p089/runs/2242489/analogs_universe.json` (6.23 MB) + `t7_report.md` (pending Claude review before copy to `app/`) |
 | **T9** tests | `tests/` | Ongoing | 81 synthetic tests pass (job `2242488`) |
 | **T10** app | `app/`, `docs/plan_t18_website.md`, `docs/design-system/reticula/` | **Website built in Vue on `feat/website-vue`** (one local commit per phase, not pushed) | Vue 3 + TypeScript + Sass + anime.js site with seven views (Home solar system, Results explorer ported from React, Challenge, How It Works, Algorithm with live pipeline source, Data with EDA, About). Build passes. Home planets are 3D (three.js). Open items: project logo placeholder, Slicker "CXXV" in the team logos, EDA figures on Yuca. The React prototype is gone from `app/` |
-| **T12–T15** geology, dust and seasons, water and ice | `pipeline/geology.py`, `geology_rules.py`, `pipeline/data/geology_overrides.json`, `dust.py`, `ice.py`, `pipeline/data/ice_hints.json` | **Done and run** (`bda0acf`) | Downloads `2242481` (60 `MOD08_M3` v6.1 + GLiM/SIM3292/Moon/Montabone); `T14=runs/2242486` (overrides applied, 0.0% null/default, 6/6 hard, 2/3 soft), `T13=runs/2242484` (cdod610 + Deep Blue AOD, all parquets + 4 PNGs), `T12=runs/2242487` (ice parquets, 1/1 hard, 3/3 soft); feed into T15 `runs/2242489` |
-| **T11** limits | `pipeline/data/limits.json` | **Done** (`e24162e`) | 6 sourced limits per body; used by the final export (job 2242490) |
+| **T12–T15** geology, dust and seasons, water and ice | `scripts/pipeline/geology.py`, `geology_rules.py`, `data/geology_overrides.json`, `dust.py`, `ice.py`, `data/ice_hints.json` | **Done and run** (`bda0acf`) | Downloads `2242481` (60 `MOD08_M3` v6.1 + GLiM/SIM3292/Moon/Montabone); `T14=runs/2242486` (overrides applied, 0.0% null/default, 6/6 hard, 2/3 soft), `T13=runs/2242484` (cdod610 + Deep Blue AOD, all parquets + 4 PNGs), `T12=runs/2242487` (ice parquets, 1/1 hard, 3/3 soft); feed into T15 `runs/2242489` |
+| **T11** limits | `data/limits.json` | **Done** (`e24162e`) | 6 sourced limits per body; used by the final export (job 2242490) |
 
 **T0 data verified on Yuca:**
 
@@ -42,13 +42,13 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 
 ## 2. What is implemented (`main`)
 
-**`pipeline/config.py`**
+**`scripts/pipeline/config.py`**
 
 - Patch constants: `PATCH_SIZE_KM = 32.0`, `PATCH_RES_M = 500.0`, `PATCH_PIXELS = 64`, `MIN_VALID_FRAC = 0.90`, `MAX_ABS_ELEV_M = 1e5`, `WINDOW_MARGIN_PX = 2`.
 - Radii: Earth 6,371,000 m, Moon 1,737,400 m, Mars 3,396,190 m. `FEATURE_NAMES`.
 - Yuca paths, raw file maps per body (`MARS_RAW_FILES`, `MOON_RAW_FILES`, `EARTH_RAW_FILES`) and derived files.
 
-**`pipeline/geo.py`** — `extract_patch(src, lat, lon, body, size_km=32, res_m=500)` returns a 64 × 64 float32 array or `None`. It:
+**`scripts/pipeline/geo.py`** — `extract_patch(src, lat, lon, body, size_km=32, res_m=500)` returns a 64 × 64 float32 array or `None`. It:
 
 1. Checks the body radius against the CRS.
 2. Skips and counts patches crossing ±180°.
@@ -59,9 +59,9 @@ At the venue, Yuca stays reachable through Open OnDemand (HTTPS): the agent work
 
 Patches that contain a pole read a full latitude band; Shackleton is the only one that needs it.
 
-**`pipeline/features.py`** — `compute_features(z, res_m)` returns mean and p90 slope, relief (p95−p5), hypsometric integral, detrended roughness, Riley TRI and mean elevation.
+**`scripts/pipeline/features.py`** — `compute_features(z, res_m)` returns mean and p90 slope, relief (p95−p5), hypsometric integral, detrended roughness, Riley TRI and mean elevation.
 
-**`pipeline/planet_features.py`**
+**`scripts/pipeline/planet_features.py`**
 
 - Near equal-area global grid (−88° to 88°), latitude stripes, `--limit` for tests and `--merge`.
 - Diviner PRP cached once and queried per polar patch with a KD-tree in south polar stereographic (`ice_depth = -999` becomes NaN).
@@ -69,7 +69,7 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 - LROC WAC compared as a percentile within the Moon.
 - `resolve_body_paths()` and `PointSampler` reuse the exact T3 point computation for T4.
 
-**`pipeline/iau.py`, `pipeline/targets.py`, `pipeline/data/targets.json`**
+**`scripts/pipeline/iau.py`, `scripts/pipeline/targets.py`, `data/targets.json`**
 
 - **Gazetteer:** loaded with geopandas; longitudes converted from 0–360 to −180..180.
 - **16 curated targets:**
@@ -78,24 +78,24 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 - **Sampling:** each curated target averages either a `point` anchor (5 patches, at least 3 valid) or a `rim` anchor (8 patches, at least 5 valid).
 - **Clusters:** 30 k-means clusters per body.
 
-**`pipeline/earth_layers.py`**
+**`scripts/pipeline/earth_layers.py`**
 
 - **MODIS with `pyhdf`** (GDAL has no HDF4 driver): NDVI is `raw / 10000` and LST is `raw × 0.02` K. The cache is `data/derived/ndvi_max_2023.tif` and `lst_2023.tif`.
 - **Logistics:** roads without ferries, densified to 0.02°; non-military airports; country.
 - **Known analog regions:** 12.
 - **`EarthLayers`:** the façade used by T5.
 
-**`pipeline/earth_features.py`**
+**`scripts/pipeline/earth_features.py`**
 
 - **Mosaic:** a Copernicus VRT with `-srcnodata 0 -vrtnodata -9999`, so the sea is masked.
 - **Three stages:** prepare (prefilter and Earth layers), a 32-stripe array, and merge with checks.
 - **Prefilter:** NDVI > 0.25 is dropped; NaN NDVI passes only if LST exists.
 
-**`pipeline/match.py` and `pipeline/export.py`**
+**`scripts/pipeline/match.py` and `scripts/pipeline/export.py`**
 
 - **Normalization & scores:** Earth-only `log1p` + median/`1.4826 * MAD` normalization, Mars-only percentile thermal ranks (`themis_delta` vs `lst_amplitude_c`), 7 similarity dimensions (`topography`, `roughness`, `environment`, `thermal`, `geology`, `dust`, `ice`), and 5 weighted mission presets (`mobility_and_traction`, `construction_and_base`, `geology_and_materials`, `dust_and_seasons`, `isru_and_ice`).
 - **Selection:** Whole Earth table (`40,244` patches) evaluated per target (candidate pool dropped) -> greedy top-30 per preset with `>= 150 km` separation and `<= 3` `ice_surface` (GLiM `ig`) analogs (exempt on `isru_and_ice`), plus physical (`|z_diff| > 1.5`), thermal (`> 0.30`), and layer mismatches (`geo_class`, `dust_level_rank`, `dust_seasonality_rank`, `dust_peak_phase_deg`, `cold_rank`).
-- **Export & checks:** writes `analogs_universe.json` matching `types.ts` (falling back to provisional `sample.json` limits while `pipeline/data/limits.json` is absent), runs 7 hard checks and 4 soft checks (`t7_checks.json`), and emits `t7_report.md` (with Olympus Mons sanity check, Mars plains spread, dust top 5, and ISRU ice top 5).
+- **Export & checks:** writes `analogs_universe.json` matching `types.ts` (falling back to provisional `sample.json` limits while `data/limits.json` is absent), runs 7 hard checks and 4 soft checks (`t7_checks.json`), and emits `t7_report.md` (with Olympus Mons sanity check, Mars plains spread, dust top 5, and ISRU ice top 5).
 
 ---
 
@@ -128,7 +128,7 @@ Patches that contain a pole read a full latitude band; Shackleton is the only on
 ## 4. Operational notes
 
 1. **`sbatch --wrap` runs under `/bin/sh`,** where `conda activate spaceapps_2026` fails with exit code 2. Use `.slurm` scripts with `#!/usr/bin/env bash`, or `--wrap 'bash -c "..."'`.
-2. **Do not touch or import the v1 scripts** in `legacy_v1/` (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`). They have no `__main__` guard.
+2. **Do not touch or import the v1 scripts** in `scripts/legacy_v1/` (`process_analogs.py`, `match_earth_analogs.py`, `enrich_nomenclature.py`). They have no `__main__` guard.
 3. **Cluster rules:**
    - `-A p089`, `-p cpu`, `--time`, `--mem`;
    - logs in `/lustre/proyectos/p089/output/`;
@@ -156,10 +156,10 @@ Commands waiting to be run on Yuca, in order. Whoever works without SSH (MODE B)
 | # | Command (from `/lustre/proyectos/p089/code`, after `git pull`) | Check in the log |
 | --- | --- | --- |
 | 1 | ~~Tests~~ (job 2242421) | 31 passed |
-| 2 | ~~T4 smoke: `sbatch jobs/t4_targets.slurm --k 5 --body Moon`~~ (job 2242422) | 8/8 lunar targets ok |
-| 3 | ~~T4 full: `sbatch jobs/t4_targets.slurm`~~ (job 2242423) | 76 targets |
-| 4 | ~~T6: `sbatch jobs/t6_earth_layers.slurm`~~ (jobs 2242426, 2242430) | 8/8 hard checks |
-| 5 | ~~T5 smoke: `bash jobs/t5_submit.sh --limit 500`~~ (jobs 2242432–2242434) | 5/5 hard checks |
-| 6 | ~~T5 full: `bash jobs/t5_submit.sh`~~ (jobs 2242438–2242440) | 40,244 valid patches, 6/6 hard checks |
-| 7 | ~~T7/T8 smoke: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 jobs/t7_match.slurm`~~ (job 2242473) | 3,342 pairs, 5/5 hard checks |
-| 8 | ~~T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 jobs/t7_match.slurm`~~ (job 2242474) | 3,908 pairs, 5/5 hard checks |
+| 2 | ~~T4 smoke: `sbatch scripts/jobs/t4_targets.slurm --k 5 --body Moon`~~ (job 2242422) | 8/8 lunar targets ok |
+| 3 | ~~T4 full: `sbatch scripts/jobs/t4_targets.slurm`~~ (job 2242423) | 76 targets |
+| 4 | ~~T6: `sbatch scripts/jobs/t6_earth_layers.slurm`~~ (jobs 2242426, 2242430) | 8/8 hard checks |
+| 5 | ~~T5 smoke: `bash scripts/jobs/t5_submit.sh --limit 500`~~ (jobs 2242432–2242434) | 5/5 hard checks |
+| 6 | ~~T5 full: `bash scripts/jobs/t5_submit.sh`~~ (jobs 2242438–2242440) | 40,244 valid patches, 6/6 hard checks |
+| 7 | ~~T7/T8 smoke: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242432 scripts/jobs/t7_match.slurm`~~ (job 2242473) | 3,342 pairs, 5/5 hard checks |
+| 8 | ~~T7/T8 real: `sbatch --export=ALL,T5_DIR=/lustre/proyectos/p089/runs/2242438 scripts/jobs/t7_match.slurm`~~ (job 2242474) | 3,908 pairs, 5/5 hard checks |
