@@ -28,6 +28,7 @@ output.zip
 node_modules/
 dist/
 app/dist/
+app/public/diagrams/
 *.tsbuildinfo
 .vite/
 .turbo/

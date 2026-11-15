@@ -27,7 +27,7 @@
 <p align="center">
   <a href="https://prototerra.web.app/#/"><b>🚀 Launch Deployed Web App</b></a> •
   <a href="#quick-access--qr-code"><b>📱 Scan QR Code</b></a> •
-  <a href="docs/diagrams/system-architecture.html"><b>🏛 System Architecture</b></a> •
+  <a href="https://prototerra.web.app/diagrams/system-architecture.html" target="_blank"><b>🏛 Interactive Architecture (Live)</b></a> •
   <a href="docs/submission.md"><b>📑 Submission Guide</b></a> •
   <a href="#map-of-contents"><b>🗺 Map of Contents</b></a>
 </p>
@@ -207,22 +207,12 @@ flowchart TD
     class CLIENT,APP,ORBIT,MSI,BREAK,MAP client;
 ```
 
-```text
-Raw Datasets (Cluster)
-  │
-  ├─ T3 Planet Sweeps ──────► 140,916 Mars + 36,741 Moon patches (500 m/px, 32 km AEQD)
-  ├─ T4 Targets ────────────► 76 Anchored Targets (Artemis III, Mars Landing Sites, K-Means Clusters)
-  ├─ T6 Earth Layers ───────► MODIS NDVI & LST, Natural Earth Roads, Airports, Countries
-  ├─ T5 Earth Sweep ────────► ~45,000 Unvegetated Terrestrial Candidate Patches
-  ├─ T7 Matching Engine ────► Multi-Dimensional RBF Kernels, 150 km Spatial Diversity, Mismatch Vectors
-  └─ T8 Web Packaging ──────► analogs_universe.json ──► Client-side In-Memory Reactive Vue 3 Engine
-```
-
-For complete technical specifications, see our standalone interactive architecture blueprints:
-- 🏛 [System Architecture Diagram](docs/diagrams/system-architecture.html)
-- 🔄 [Pipeline Lineage & Data Flow](docs/diagrams/pipeline-lineage.html)
-- ⚙️ [Pipeline Execution Stages](docs/diagrams/pipeline-stages.html)
-- ⚡ [Frontend Sequence & Event Bus](docs/diagrams/app-sequence.html)
+> **Interactive Architecture Blueprints (Live Web Viewers):**
+> Experience our deep-dive interactive diagrams with smooth pan, semantic zoom, radar minimaps, and component inspectors, served live on our deployment:
+> - 🏛 [**Interactive System Architecture**](https://prototerra.web.app/diagrams/system-architecture.html)
+> - 🔄 [**Interactive Pipeline Lineage & Data Flow**](https://prototerra.web.app/diagrams/pipeline-lineage.html)
+> - ⚙️ [**Interactive Pipeline Execution Stages**](https://prototerra.web.app/diagrams/pipeline-stages.html)
+> - ⚡ [**Interactive Frontend Sequence & Event Bus**](https://prototerra.web.app/diagrams/app-sequence.html)
 
 ---
 
