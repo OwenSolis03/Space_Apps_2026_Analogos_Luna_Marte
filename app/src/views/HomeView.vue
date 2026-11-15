@@ -1,11 +1,9 @@
 <script setup lang="ts">
 // Home: the solar system is the navigation. Results is the sun; each planet opens one of the other sections.
 import RHeadline from "@/components/reticula/RHeadline.vue";
-import RReadout from "@/components/reticula/RReadout.vue";
 import RDotGrid from "@/components/reticula/RDotGrid.vue";
 import SolarSystem from "@/components/home/SolarSystem.vue";
 import SectionRail from "@/components/home/SectionRail.vue";
-import { HOME_FACTS } from "@/content/facts";
 import { PROJECT_NAME } from "@/content/sections";
 </script>
 
@@ -30,10 +28,6 @@ import { PROJECT_NAME } from "@/content/sections";
 
       <SolarSystem class="home__solar" />
 
-      <div class="home__facts">
-        <RReadout :items="HOME_FACTS.map((f) => ({ label: f.label, value: f.value }))" />
-      </div>
-
       <div class="home__cue">
         <RDotGrid :cols="6" :rows="2" tone="graphite" lead />
         <p class="label">SELECT A BODY TO NAVIGATE</p>
@@ -54,9 +48,6 @@ import { PROJECT_NAME } from "@/content/sections";
   max-width: 320px;
 }
 
-.home__facts {
-  width: min(320px, 100%);
-}
 
 .home__cue {
   display: flex;
@@ -78,12 +69,6 @@ import { PROJECT_NAME } from "@/content/sections";
     z-index: 1;
   }
 
-  .home__facts {
-    position: absolute;
-    left: var(--space-6);
-    bottom: var(--space-6);
-    z-index: 1;
-  }
 
   .home__cue {
     position: absolute;
@@ -107,7 +92,6 @@ import { PROJECT_NAME } from "@/content/sections";
   }
 
   .home__intro,
-  .home__facts,
   .home__cue {
     order: 0;
   }

@@ -2,6 +2,19 @@
 
 A record of what happens in the project, newest first. It also feeds the use-of-AI description of the submission. Until the evening of 2026-11-13 the entries were written in Spanish; they were translated to English on 2026-11-13, and new entries are written in English. The reasoning behind each decision is summarised in [HISTORY.md](HISTORY.md).
 
+## 2026-11-14: T18 review round (branch `feat/website-vue`)
+
+**What was done** (list from Fer):
+
+- Header: the team isotipo image is gone.
+- About: Isotipo instead of Imagotipo, larger. Summer of Research removed from the track record. "IN PROGRESS" changed to "CURRENTLY PARTICIPATING". Crew reduced to the six members with a photo, and the portraits are now in colour.
+- Algorithm: the pipeline boxes are no longer links, and each box is sized to its text (measured at 8.8 units per character).
+- How It Works: the Measure labels are rotated so they no longer overlap.
+- Results: the explorer comes first. Map tiles are in colour. Scenario is now a full-width band: mission cases in one row, the seven weights in a 3 to 4 column grid, filters in a side column. Maps and ranking sit below.
+- Home: the facts readout is removed. The planets are 3D (three.js, loaded on demand) in the RETÍCULA style: flat-shaded low-poly spheres, line and hatch textures drawn in token colours. All five are the same size. Each spins on its own axis at its own speed. Earth (How It Works) and Mars (Challenge) take the two inner orbits and have a signal ring. Orbits are stronger (2 px; graphite and longer dashes for Earth and Mars). Without WebGL the flat SVG planets are drawn.
+
+**What was verified:** build passes. Planet rotation changes and position stays fixed. The sun and every planet link to the right route. The WebGL fallback works. No page-level horizontal scroll at 375 px. Results: the slider re-orders, MOON disables Thermal and Dust, the switch opens 10 panels. Pipeline text fits every box.
+
 ## 2026-11-14: T18 website in Vue (branch `feat/website-vue`)
 
 **What was done** (plan: `docs/plan_t18_website.md`, executed phase by phase on `feat/website-vue`, one local commit per phase, no push and no PR):
