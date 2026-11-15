@@ -785,32 +785,32 @@ def _git_short_commit(code_dir: Path) -> str:
 
 
 def _print_sanity_checks(targets_df: pd.DataFrame, t3_dfs: dict[str, pd.DataFrame]) -> None:
-    print("[CHECKS] Revisión de sentido común (sección 10 de plan_t4.md):")
+    print("[CHECKS] Sanity checks (section 10 of plan_t4.md):")
     cur = targets_df[(targets_df["type"] == "CURATED") & (targets_df["status"] == "ok")]
 
     if "Mars" in t3_dfs:
         mars_global_med = float(t3_dfs["Mars"]["mean_slope_deg"].median())
         mars_cur = cur[cur["body"] == "Mars"].sort_values("mean_slope_deg")
         top3_ids = list(mars_cur["target_id"].head(3))
-        print(f"  Mars mediana global mean_slope_deg = {mars_global_med:.2f}°; top-3 más planos = {top3_ids}")
+        print(f"  Mars global median mean_slope_deg = {mars_global_med:.2f}°; top-3 flattest = {top3_ids}")
         for _, r in mars_cur.iterrows():
             print(
-                f"    Mars curado {r['target_id']}: mean_slope={float(r['mean_slope_deg']):.2f}°, "
+                f"    Mars curated {r['target_id']}: mean_slope={float(r['mean_slope_deg']):.2f}°, "
                 f"relief={float(r['relief_m']):.1f} m"
             )
         if {"mars-gale-curiosity", "mars-elysium-insight"}.issubset(set(mars_cur["target_id"])):
             gale_rel = float(mars_cur.loc[mars_cur["target_id"] == "mars-gale-curiosity", "relief_m"].iloc[0])
             insight_rel = float(mars_cur.loc[mars_cur["target_id"] == "mars-elysium-insight", "relief_m"].iloc[0])
-            print(f"    Gale vs InSight relief_m: {gale_rel:.1f} m vs {insight_rel:.1f} m (esperado Gale > InSight)")
+            print(f"    Gale vs InSight relief_m: {gale_rel:.1f} m vs {insight_rel:.1f} m (expected Gale > InSight)")
 
     if "Moon" in t3_dfs:
         moon_global_med = float(t3_dfs["Moon"]["mean_slope_deg"].median())
         moon_cur = cur[cur["body"] == "Moon"].sort_values("mean_slope_deg")
-        print(f"  Moon mediana global mean_slope_deg = {moon_global_med:.2f}°:")
+        print(f"  Moon global median mean_slope_deg = {moon_global_med:.2f}°:")
         for _, r in moon_cur.iterrows():
             s = float(r["mean_slope_deg"])
             rel_txt = ">=" if s >= moon_global_med else "<"
-            print(f"    Moon curado {r['target_id']}: mean_slope={s:.2f}° ({rel_txt} mediana global)")
+            print(f"    Moon curated {r['target_id']}: mean_slope={s:.2f}° ({rel_txt} global median)")
 
 
 def run(
@@ -821,7 +821,7 @@ def run(
     k: int = N_CLUSTERS,
     skip_curated: bool = False,
 ) -> Path:
-    """Orquesta extracción de blancos curados, clustering y escritura de salidas T4."""
+    """Orchestrates curated target extraction, clustering, and writing T4 outputs."""
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_dir = project_dir / "data" / "raw"
     derived_dir = project_dir / "data" / "derived"

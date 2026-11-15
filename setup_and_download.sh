@@ -10,16 +10,16 @@ mkdir -p "$RAW_EARTH" "$RAW_MOON" "$RAW_MARS" "$PROJECT_DIR/output"
 source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate spaceapps_2026
 
-echo "[1/3] Descargando DEM global de Marte (MOLA 463m)..."
+echo "[1/3] Downloading Mars global DEM (MOLA 463m)..."
 aria2c -c -x 2 -s 2 -d "$RAW_MARS" -o "Mars_MGS_MOLA_DEM_mosaic_global_463m.tif" \
   "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif"
 
-echo "[2/3] Descargando mosaico térmico THEMIS de Marte (100m)..."
+echo "[2/3] Downloading Mars THEMIS IR daytime thermal mosaic (100m)..."
 aria2c -c -x 2 -s 2 -d "$RAW_MARS" -o "Mars_ODY_THEMIS_IR_Day_Mosaic_100m.tif" \
   "https://planetarymaps.usgs.gov/mosaic/Mars_MO_THEMIS-IR-Day_mosaic_global_100m_v12.tif"
 
-echo "[3/3] Descargando índice Copernicus DEM GLO-90..."
+echo "[3/3] Downloading Copernicus DEM GLO-90 index..."
 aws s3 cp --no-sign-request s3://copernicus-dem-90m/tileList.txt "$RAW_EARTH/copernicus_90m_tileList.txt"
 
-echo "[OK] Todas las descargas base finalizaron."
+echo "[OK] All baseline downloads finished."
 ls -lh "$RAW_MOON" "$RAW_MARS" "$RAW_EARTH"

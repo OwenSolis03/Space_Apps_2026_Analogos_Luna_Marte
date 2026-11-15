@@ -29,9 +29,9 @@ source /apps/miniconda3/etc/profile.d/conda.sh
 conda activate spaceapps_2026
 cd "$CODE_DIR"
 
-echo "job=${SLURM_JOB_ID:-local} nodos=${SLURM_JOB_NUM_NODES:-1} cpus=${SLURM_CPUS_PER_TASK:-1} nodo=$(hostname) inicio=$(date -Is) commit=$(git -C "$CODE_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
+echo "job=${SLURM_JOB_ID:-local} nodes=${SLURM_JOB_NUM_NODES:-1} cpus=${SLURM_CPUS_PER_TASK:-1} node=$(hostname) start=$(date -Is) commit=$(git -C "$CODE_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
 
-python -c "import pyhdf" || { echo "Falta pyhdf en spaceapps_2026"; exit 2; }
+python -c "import pyhdf" || { echo "Missing pyhdf in spaceapps_2026"; exit 2; }
 python -m pipeline.earth_layers --project-dir "$PROJECT_DIR" --out-dir "$OUT_DIR" --build --check "$@"
 
-echo "fin=$(date -Is) out_dir=$OUT_DIR"
+echo "end=$(date -Is) out_dir=$OUT_DIR"
