@@ -277,11 +277,12 @@ The composite **Mission Similarity Index (MSI)** is the normalized weighted comb
 $$\text{MSI} = \frac{\sum_{i=1}^{M} w_i \cdot S_i}{\sum_{i=1}^{M} w_i}$$
 
 ### 4. Mission Presets
-Engineers can instantly tailor site rankings for specific operational testing goals:
-- 🚜 **Rover Mobility:** Focuses on slope limits, surface roughness, and terrain ruggedness (TRI).
-- 🏗 **Habitat & Base Construction:** Emphasizes flat relief, low slopes, and stable regolith analogs.
-- 🌡 **Thermal & Atmospheric:** Prioritizes day/night thermal amplitude and extreme temperature contrasts.
-- 🌪 **Dust & Regolith Dynamics:** Emphasizes arid, vegetation-free environments with high aeolian activity.
+Engineers can instantly tailor site rankings for specific operational testing goals (calibrated in `scripts/pipeline/match.py`):
+- 🚗 **Rover mobility and traction:** Focuses on slope limits, surface roughness, and terrain ruggedness (TRI).
+- 🏗 **Base construction and landing:** Emphasizes flat relief, low slopes, and stable regolith foundation analogs.
+- 🪨 **Geology and surface materials:** Heavy weight on lithologic, rock substrate, and mineralogical compatibility.
+- 🌪 **Dust storms and seasons:** Focuses on atmospheric aerosols, aeolian saltation, and seasonal thermal swings (Mars).
+- 🧊 **Water ice and cold traps (ISRU):** Prioritizes volatiles stability, subsurface permafrost, and permanently shadowed regions (Moon & Mars).
 
 ---
 

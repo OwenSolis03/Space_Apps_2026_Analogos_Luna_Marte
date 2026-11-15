@@ -51,13 +51,15 @@ $$S_d(E, T) = \exp\left(-\frac{D_d(E, T)^2}{2\sigma_d^2}\right)$$
 Where $\sigma_d$ represents the characteristic tolerance bandwidth for dimension $d$, empirically calibrated against known analog stations.
 
 #### The 7 Physical Similarity Dimensions:
-1. **$S_{\text{topo}}$ (Topography & Relief):** RBF distance across normalized relief $\Delta z$ and elevation distributions.
-2. **$S_{\text{rough}}$ (Roughness & Slope Hazards):** RBF distance across $\bar{s}$, $s_{90}$, and $\text{TRI}$.
-3. **$S_{\text{therm}}$ (Thermal Excursions):** Comparison of annual and diurnal surface temperature ranges (MODIS LST vs. planetary thermal models).
-4. **$S_{\text{geo}}$ (Geologic Substrate):** Categorical compatibility matrix bridging GLiM lithologies with lunar/Martian USGS stratigraphic units.
-5. **$S_{\text{ice}}$ (Volatiles & Permafrost):** Ice stability indicators (Permanently Shadowed Regions on Moon, subsurface permafrost on Mars).
-6. **$S_{\text{dust}}$ (Atmospheric Particulates):** Climatological aerosol optical depth (MODIS MOD08_M3 AOD vs. Martian CDOD).
-7. **$S_{\text{acc}}$ (Logistical Accessibility):** Ground travel distance to nearest paved road network and commercial airport.
+1. **$S_{\text{topo}}$ (Topography):** RBF distance across normalized relief $\Delta z$ and elevation distributions.
+2. **$S_{\text{rough}}$ (Roughness):** RBF distance across $\bar{s}$, $s_{90}$, and Terrain Ruggedness Index ($\text{TRI}$).
+3. **$S_{\text{env}}$ (Environment):** Ambient surface environmental and gravity/atmospheric context.
+4. **$S_{\text{therm}}$ (Thermal):** Comparison of annual and diurnal surface temperature ranges (MODIS LST vs. planetary thermal models).
+5. **$S_{\text{geo}}$ (Geology):** Categorical compatibility matrix bridging GLiM lithologies with lunar/Martian USGS stratigraphic units.
+6. **$S_{\text{dust}}$ (Dust):** Climatological aerosol optical depth (MODIS MOD08_M3 AOD vs. Martian CDOD).
+7. **$S_{\text{ice}}$ (Ice):** Ice stability indicators (Permanently Shadowed Regions on Moon, subsurface permafrost on Mars).
+
+*(Note: Logistical accessibility metrics, such as distance to paved roads and commercial airports, are computed as operational layers, not similarity dimensions).*
 
 ---
 
@@ -73,13 +75,15 @@ Where $\mathbf{w} = [w_1, \dots, w_7]$ represents the mission weight vector.
 
 ## Pre-Calibrated Mission Presets
 
-| Mission Preset | Focus & Test Protocol | Dominant Weights ($w_d$) | Typical Target Analogues |
-| :--- | :--- | :--- | :--- |
-| 🚗 **Mobility & Rover** | Chassis stability, wheel-soil slip, slope traversability, boulder fields | Roughness ($w_2=0.35$), Topography ($w_1=0.25$) | Sand dune fields, basaltic lava flows, boulder pediments |
-| 🏗 **ISRU & Construction** | Regolith sintering, foundation bearing capacity, structural anchoring | Geology ($w_4=0.35$), Topography ($w_1=0.25$) | Volcanic pyroclasts, anorthositic highlands, dry lakebeds |
-| ❄️ **Cryospheric / Ice** | Subsurface ice coring, volatiles prospecting, cold-trap robotics | Ice ($w_5=0.40$), Thermal ($w_3=0.30$) | Permafrost tundra, sub-glacial volcanic calderas, polar icecaps |
-| 🌋 **Volcanology / Caves** | Lava tube exploration, basaltic shield mechanics, speleology | Geology ($w_4=0.40$), Roughness ($w_2=0.25$) | Cinder cones, pahoehoe basalt plains, volcanic collapse pits |
-| 🔬 **Exobiology / Sampling**| Biosignature preservation, evaporite sediments, clay stratigraphy | Geology ($w_4=0.35$), Thermal ($w_3=0.25$) | Hypersaline playas, hydrothermal springs, fossilized river deltas |
+Defined in `scripts/pipeline/match.py` (`PRESETS`):
+
+| Preset Key | Mission Label | Applicable Bodies | Dominant Dimensions & Weights | Primary Engineering Use Case |
+| :--- | :--- | :---: | :--- | :--- |
+| **`mobility_and_traction`** | **Rover mobility and traction** | Moon, Mars | Topography (0.40), Roughness (0.35), Geology (0.15), Environment (0.10) | Rover chassis stability, wheel slip, slope traversability, boulder fields |
+| **`construction_and_base`** | **Base construction and landing** | Moon, Mars | Topography (0.45), Geology (0.25), Roughness (0.20), Environment (0.05), Thermal (0.05) | Landing pad plume dynamics, flat foundation bearing capacity, structural anchoring |
+| **`geology_and_materials`** | **Geology and surface materials** | Moon, Mars | Geology (0.60), Topography (0.20), Roughness (0.10), Environment (0.10) | Regolith composition, volcanic basalt/anorthosite testing, impact melt sampling |
+| **`dust_and_seasons`** | **Dust storms and seasons** | Mars | Dust (0.40), Thermal (0.20), Environment (0.15), Topography (0.10), Geology (0.10), Roughness (0.05) | Atmospheric dust suspension, solar panel obscuration, aeolian abrasion |
+| **`isru_and_ice`** | **Water ice and cold traps (ISRU)** | Moon, Mars | Ice (0.50), Topography (0.20), Geology (0.15), Roughness (0.10), Environment (0.05) | Subsurface ice coring, Permanently Shadowed Regions (PSRs), volatile extraction |
 
 ---
 

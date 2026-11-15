@@ -65,14 +65,14 @@ app/
 1. **Interactive 3D Celestial Selector:**
    Seamlessly switch between the **Moon (Artemis III polar zones & equatorial maria)** and **Mars (Perseverance Jezero, Gale, Valles Marineris)** with 3D coordinate anchoring.
 2. **Real-Time Client-Side Multi-Dimensional Scoring (MSI):**
-   Drag weights across 7 physical dimensions (*Topography*, *Roughness*, *Thermal*, *Geology*, *Ice*, *Dust*, *Accessibility*). The client re-sorts all 5,010 candidates on-the-fly without server round-trips.
+   Drag weights across 7 physical dimensions (*Topography*, *Roughness*, *Environment*, *Thermal*, *Geology*, *Dust*, *Ice*). The client re-sorts all 5,010 candidates on-the-fly in <50 ms without server round-trips.
 3. **Mission Presets:**
-   One-click presets tuned for specific aerospace test protocols:
-   - 🚗 *Mobility & Rover Traverse*
-   - 🏗 *In-Situ Resource Utilization (ISRU) & Construction*
-   - ❄️ *Cryospheric & Volatiles Exploration*
-   - 🌋 *Volcanic & Geomorphic Evolution*
-   - 🔬 *Exobiological Preservation & Sampling*
+   One-click presets calibrated in `scripts/pipeline/match.py` for specific aerospace testing goals:
+   - 🚗 **Rover mobility and traction** (`mobility_and_traction`): Focuses on slope hazards, roughness, and terrain ruggedness (Moon & Mars).
+   - 🏗 **Base construction and landing** (`construction_and_base`): Emphasizes low-relief topography, landing stability, and foundation substrates (Moon & Mars).
+   - 🪨 **Geology and surface materials** (`geology_and_materials`): Heavy weight on lithologic and stratigraphic compatibility (Moon & Mars).
+   - 🌪 **Dust storms and seasons** (`dust_and_seasons`): Focuses on atmospheric aerosols, aeolian saltation, and thermal swings (Mars only).
+   - 🧊 **Water ice and cold traps (ISRU)** (`isru_and_ice`): Prioritizes volatiles stability, cryospheric permafrost, and permanently shadowed regions (Moon & Mars).
 4. **Logistics & Fieldwork Grounding:**
    Calculates travel distances to the nearest paved road and commercial/cargo airport for all candidate Earth sites using global vector networks (Natural Earth).
 5. **"Where the Analogy Breaks":**
