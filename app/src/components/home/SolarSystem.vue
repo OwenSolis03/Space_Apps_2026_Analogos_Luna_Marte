@@ -5,6 +5,7 @@
 // Planets stay in place and spin on their own axis at different speeds. Without WebGL the flat SVG
 // planets are drawn instead. Under prefers-reduced-motion a single still frame is drawn.
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 import { animate, createScope, createTimeline, stagger, svg } from "animejs";
 import { SECTIONS, sectionByName, type OrbitSpec, type SiteSection } from "@/content/sections";
 import { useMediaQuery } from "@/composables/useMediaQuery";
@@ -52,6 +53,32 @@ const labelWidth = (text: string) => Math.round(text.length * 8.2 + 16);
 const view = computed(() => (narrow.value ? { x: -420, y: -240, w: 840, h: 480 } : { x: -640, y: -360, w: 1280, h: 720 }));
 const viewBox = computed(() => `${view.value.x} ${view.value.y} ${view.value.w} ${view.value.h}`);
 const sunLabel = `${sun.code} / ${sun.label}`;
+
+const router = useRouter();
+let transitioning = false;
+
+/**
+ * Clicking a planet plays the full-screen transition (planetTransition.ts) and opens its section when
+ * the planet fills the screen. Modified clicks, reduced motion and the no-WebGL fallback keep the plain link.
+ */
+async function onPlanetClick(e: MouseEvent, p: Planet) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (reduced.value || !webgl.value || !planetScene) return;
+  e.preventDefault();
+  if (transitioning) return;
+  transitioning = true;
+  const hit = (e.currentTarget as Element).querySelector(".planet__hit")!.getBoundingClientRect();
+  const start = { x: hit.left + hit.width / 2, y: hit.top + hit.height / 2, r: (hit.width / 2) * (R / HIT_R) };
+  // The planet leaves the solar system: the transition layer draws it from here on.
+  planetScene.setVisible(new Set(shownPlanets.value.filter((q) => q.name !== p.name).map((q) => q.name)));
+  try {
+    const { playPlanetTransition } = await import("./planetTransition");
+    await playPlanetTransition({ body: p.orbit.body, start, tilt: p.orbit.tilt, onCovered: () => router.push(p.path) });
+  } catch {
+    router.push(p.path);
+  }
+  transitioning = false;
+}
 
 let scope: ReturnType<typeof createScope> | undefined;
 let planetScene: PlanetScene | undefined;
@@ -221,6 +248,7 @@ onBeforeUnmount(() => {
           :data-body="p.name"
           :href="`#${p.path}`"
           :aria-label="`Go to ${p.label}`"
+          @click="onPlanetClick($event, p)"
         >
           <!-- Larger invisible target so a planet is a reasonable touch target (about 44px on phones) -->
           <circle class="planet__hit" :r="HIT_R" fill="transparent" />
