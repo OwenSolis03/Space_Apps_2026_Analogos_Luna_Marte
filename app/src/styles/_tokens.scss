@@ -8,6 +8,8 @@
 //    and chamfer. Leaflet map tiles keep their original colours.
 // 3. Long text. The .prose class (Challenge, Algorithm, Data) uses Roboto 16/26px, --ink, max 64ch.
 // 4. Language. The site is written in English; the design system examples are in Spanish.
+// 5. Earth colours. The 3D Earth (Home and How It Works) uses three natural colours outside the
+//    RETÍCULA palette: sea blue, land green and soil brown. They are used nowhere else.
 
 :root {
   // Surfaces
@@ -31,6 +33,11 @@
   // Lines and focus
   --line: #716f70;
   --line-faint: #bfbfbf;
+
+  // 3D Earth only (exception 5)
+  --earth-sea: #2f6e9e;
+  --earth-land: #5b8c4a;
+  --earth-soil: #8a6440;
   --focus: #121212;
 
   // Spacing scale (4px base)
