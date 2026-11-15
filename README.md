@@ -113,9 +113,9 @@ Test the platform instantly on any desktop, tablet, or smartphone:
 
 <table>
   <tr>
-    <td align="center" width="300">
+    <td align="center" width="280">
       <a href="https://prototerra.web.app/#/">
-        <img src="prototerra_qr.png" alt="Scan QR Code to access PROTOTERRA" width="220">
+        <img src="docs/assets/prototerra_qr.png" alt="Scan QR Code to access PROTOTERRA" width="220">
       </a>
       <br>
       <sub><b>Scan to open on mobile</b></sub>
@@ -128,6 +128,7 @@ Test the platform instantly on any desktop, tablet, or smartphone:
         <li><b>Explore the Solar System:</b> Interactive 3D orbital selector for Moon and Mars targets.</li>
         <li><b>Dynamic Mission Tuning:</b> Drag weights in real time (&lt;50 ms re-sorting) for <i>Mobility</i>, <i>Construction</i>, or <i>Thermal</i> tests.</li>
         <li><b>Interactive Earth Analog Map:</b> High-resolution Leaflet cartography with satellite overlays and field accessibility metrics.</li>
+        <li><b>Full Algorithmic Explainability:</b> Live inspection of 7-dimensional RBF kernel distance breakdowns and coordinate mismatch vectors.</li>
       </ul>
     </td>
   </tr>
@@ -412,11 +413,12 @@ In compliance with NASA Space Apps Challenge regulations, AI usage in PROTOTERRA
 ```text
 Space_Apps_2026_Analogos_Luna_Marte/
 ├── app/                          # Official Vue 3 + Vite web application
-│   ├── public/                   # Static assets, QR codes, analogs_universe.json
+│   ├── public/                   # Static assets, analogs_universe.json, icons
 │   ├── src/                      # TypeScript components, views, algorithms, styles
 │   └── package.json              # Frontend dependencies and build scripts
 ├── data/                         # Hand-written definitions (targets, limits, overrides)
 ├── docs/                         # Scientific documentation, implementation plans, lineage
+│   ├── assets/                   # Vector logos, visual assets & QR codes
 │   ├── diagrams/                 # Interactive HTML system architecture diagrams
 │   ├── submission.md             # Space Apps submission checklists & timelines
 │   ├── value_proposition.md      # Pitch deck talking points & differentiators
@@ -427,8 +429,6 @@ Space_Apps_2026_Analogos_Luna_Marte/
 │   ├── jobs/                     # Slurm cluster submission scripts for Yuca HPC
 │   └── tools/                    # Data downloaders and verification utilities
 ├── tests/                        # Automated unit tests (synthetic data, pytest)
-├── prototerra_qr.png             # High-resolution (1000x1000) QR Code
-├── prototerra_qr.svg             # Scalable Vector Graphics QR Code
 └── README.md                     # Project documentation & overview
 ```
 
