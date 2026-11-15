@@ -17,5 +17,5 @@ conda activate spaceapps_2026
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 export OPENBLAS_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-echo "[*] Ejecutando pipeline en $(hostname) | Proyecto: $PROJECT_DIR"
+echo "[*] Running pipeline on $(hostname) | Project: $PROJECT_DIR"
 python3 "$PROJECT_DIR/process_analogs.py" --project-dir "$PROJECT_DIR" --n-clusters 40

@@ -44,6 +44,7 @@ DIMENSION_KEYS: tuple[str, ...] = (
     "geology",
     "dust",
     "ice",
+    "mineral",
 )
 
 DIMENSIONS: list[dict[str, object]] = [
@@ -96,6 +97,13 @@ DIMENSIONS: list[dict[str, object]] = [
         "bodies": ["Moon", "Mars"],
         "source": "LRO Diviner, MODIS MOD11C3, GLiM ice, curated SWIM hint (T12)",
     },
+    {
+        "key": "mineral",
+        "label": "Iron oxides (rank)",
+        "description": "Within-planet rank of optical-surface iron oxides (Mars OMEGA BD530 Fe3+ band depth vs Earth EMIT hematite+goethite mass fraction).",
+        "bodies": ["Mars"],
+        "source": "OMEGA BD530 ferric index (Mars), EMIT L3 ASA hematite+goethite (Earth)",
+    },
 ]
 
 DIMENSION_BODIES: dict[str, tuple[str, ...]] = {d["key"]: tuple(d["bodies"]) for d in DIMENSIONS}
@@ -114,6 +122,7 @@ PRESETS: dict[str, dict[str, object]] = {
             "geology": 0.15,
             "dust": 0.00,
             "ice": 0.00,
+            "mineral": 0.00,
         },
     },
     "construction_and_base": {
@@ -127,6 +136,7 @@ PRESETS: dict[str, dict[str, object]] = {
             "geology": 0.25,
             "dust": 0.00,
             "ice": 0.00,
+            "mineral": 0.00,
         },
     },
     "geology_and_materials": {
@@ -140,6 +150,7 @@ PRESETS: dict[str, dict[str, object]] = {
             "geology": 0.60,
             "dust": 0.00,
             "ice": 0.00,
+            "mineral": 0.00,
         },
     },
     "dust_and_seasons": {
@@ -153,6 +164,7 @@ PRESETS: dict[str, dict[str, object]] = {
             "geology": 0.10,
             "dust": 0.40,
             "ice": 0.00,
+            "mineral": 0.00,
         },
     },
     "isru_and_ice": {
@@ -166,6 +178,21 @@ PRESETS: dict[str, dict[str, object]] = {
             "geology": 0.15,
             "dust": 0.00,
             "ice": 0.50,
+            "mineral": 0.00,
+        },
+    },
+    "geology_and_materials_mineral_exp": {
+        "label": "Geology and surface materials + iron oxides (experimental)",
+        "applies_to": ["Mars"],
+        "weights": {
+            "topography": 0.20,
+            "roughness": 0.10,
+            "environment": 0.10,
+            "thermal": 0.00,
+            "geology": 0.40,
+            "dust": 0.00,
+            "ice": 0.00,
+            "mineral": 0.20,
         },
     },
 }
@@ -175,6 +202,7 @@ ICE_CAP_EXEMPT_PRESETS: tuple[str, ...] = ("isru_and_ice",)
 NDVI_FREE: float = 0.10
 NDVI_SCALE: float = 0.10
 THERMAL_UNIT: float = 0.15
+MINERAL_RANK_SIGMA: float = 0.15
 POLAR_COLD_LST_C: float = -10.0
 MAX_POLAR_PER_PRESET: int = 3
 MAX_ICE_SURFACE_PER_PRESET: int = 3
@@ -618,8 +646,10 @@ def layer_mismatches(
     t_lat: float,
     e_cold: float,
     t_cold: float,
+    e_min: float = float("nan"),
+    t_min: float = float("nan"),
 ) -> list[dict[str, object]]:
-    """T15 mismatches: geology class change, dust rank/phase gaps, and cold-rank gap."""
+    """T15 mismatches: geology class change, dust rank/phase gaps, cold-rank gap, and mineral rank gap."""
     out: list[dict[str, object]] = []
     e_cls, t_cls = _as_class(e_geo), _as_class(t_geo)
     if e_cls is not None and t_cls is not None and e_cls != t_cls:
@@ -655,6 +685,16 @@ def layer_mismatches(
                     }
                 )
 
+        if np.isfinite(e_min) and np.isfinite(t_min) and abs(e_min - t_min) > MISMATCH_RANK:
+            out.append(
+                {
+                    "feature": "mineral_rank",
+                    "earth": round(float(e_min), 2),
+                    "target": round(float(t_min), 2),
+                    "z_diff": round((float(e_min) - float(t_min)) / MINERAL_RANK_SIGMA, 2),
+                }
+            )
+
     if np.isfinite(e_cold) and np.isfinite(t_cold) and abs(e_cold - t_cold) > MISMATCH_RANK:
         out.append(
             {
@@ -671,6 +711,7 @@ LAYER_EARTH_COLUMNS: dict[str, tuple[str, list[str]]] = {
     "t14": ("geology_earth.parquet", ["glim_code", "geo_class", "ice_surface", "lava_tube_terrain"]),
     "t13": ("dust_earth.parquet", ["dust_level_rank", "dust_seasonality_rank", "dust_peak_phase_deg"]),
     "t12": ("ice_earth.parquet", ["cold_rank_E", "ice_E"]),
+    "tmin": ("mineral_earth.parquet", ["mineral_rank_E"]),
 }
 LAYER_TARGET_COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
     "t14": (
@@ -689,6 +730,10 @@ LAYER_TARGET_COLUMNS: dict[str, tuple[str, dict[str, str]]] = {
         "ice_targets.parquet",
         {"cold_rank_T": "cold_rank_T", "ice_T": "ice_T", "ice_source": "ice_source"},
     ),
+    "tmin": (
+        "mineral_targets.parquet",
+        {"mineral_rank_T": "mineral_rank_T"},
+    ),
 }
 
 
@@ -698,8 +743,49 @@ def load_layers(
     t12_dir: Path,
     t13_dir: Path,
     t14_dir: Path,
+    mineral_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Attach T12/T13/T14 Earth-patch and target columns (row-aligned, verified by lat/lon)."""
+    """Attach T12/T13/T14/mineral Earth-patch and target columns (row-aligned, verified by lat/lon)."""
+    dirs = {"t12": Path(t12_dir), "t13": Path(t13_dir), "t14": Path(t14_dir)}
+    if mineral_dir is not None and Path(mineral_dir).exists():
+        dirs["tmin"] = Path(mineral_dir)
+
+    earth_out = earth.reset_index(drop=True).copy()
+    lat = earth_out["lat"].to_numpy(dtype=np.float64)
+    lon = earth_out["lon"].to_numpy(dtype=np.float64)
+    for key, (fname, cols) in LAYER_EARTH_COLUMNS.items():
+        if key not in dirs:
+            for col in cols:
+                earth_out[col] = np.nan
+            continue
+        layer = pd.read_parquet(dirs[key] / fname)
+        if len(layer) != len(earth_out):
+            raise ValueError(f"{dirs[key] / fname}: {len(layer)} rows != {len(earth_out)} Earth patches")
+        if not (
+            np.allclose(layer["lat"].to_numpy(dtype=np.float64), lat, atol=1e-6)
+            and np.allclose(layer["lon"].to_numpy(dtype=np.float64), lon, atol=1e-6)
+        ):
+            raise ValueError(f"{dirs[key] / fname}: lat/lon are not aligned with the Earth patch table")
+        for col in cols:
+            if col in earth_out.columns:
+                raise ValueError(f"Earth table already has column {col!r}")
+            earth_out[col] = layer[col].reset_index(drop=True)
+
+    targets_out = targets.reset_index(drop=True).copy()
+    targets_out["target_id"] = targets_out["target_id"].astype(str)
+    for key, (fname, colmap) in LAYER_TARGET_COLUMNS.items():
+        if key not in dirs:
+            for out_col in colmap.values():
+                targets_out[out_col] = np.nan
+            continue
+        layer = pd.read_parquet(dirs[key] / fname)
+        layer = layer.assign(target_id=layer["target_id"].astype(str))
+        sub = layer[["target_id", *colmap.keys()]].rename(columns=colmap)
+        clash = [c for c in colmap.values() if c in targets_out.columns]
+        if clash:
+            raise ValueError(f"Targets table already has column(s) {clash}")
+        targets_out = targets_out.merge(sub, on="target_id", how="left", validate="one_to_one")
+    return earth_out, targets_out
     dirs = {"t12": Path(t12_dir), "t13": Path(t13_dir), "t14": Path(t14_dir)}
     earth_out = earth.reset_index(drop=True).copy()
     lat = earth_out["lat"].to_numpy(dtype=np.float64)
@@ -747,6 +833,7 @@ class EarthArrays:
     dust_phase: np.ndarray
     cold_rank: np.ndarray
     ice_e: np.ndarray
+    mineral_rank: np.ndarray | None = None
 
 
 @dataclass
@@ -763,6 +850,7 @@ class TargetVec:
     dust_phase: float
     cold_rank: float
     ice_t: float
+    mineral_rank: float = float("nan")
 
 
 def _num_col(df: pd.DataFrame, name: str) -> np.ndarray:
@@ -795,11 +883,33 @@ def build_earth_arrays(earth_df: pd.DataFrame, z_e: np.ndarray, zt_e: np.ndarray
         dust_phase=_num_col(earth_df, "dust_peak_phase_deg"),
         cold_rank=_num_col(earth_df, "cold_rank_E"),
         ice_e=_num_col(earth_df, "ice_E"),
+        mineral_rank=_num_col(earth_df, "mineral_rank_E"),
     )
 
 
+def mineral_scores(
+    body: str,
+    earth_mineral_rank: np.ndarray | None,
+    target_mineral_rank: float,
+    n_patches: int = 0,
+) -> np.ndarray:
+    """Compute S_mineral for all Earth patches against one target."""
+    if earth_mineral_rank is None:
+        return np.full(n_patches, np.nan, dtype=np.float64)
+    n = len(earth_mineral_rank)
+    if str(body).strip().capitalize() != "Mars" or not np.isfinite(target_mineral_rank):
+        return np.full(n, np.nan, dtype=np.float64)
+    e = np.asarray(earth_mineral_rank, dtype=np.float64)
+    out = np.full(n, np.nan, dtype=np.float64)
+    valid = np.isfinite(e)
+    if valid.any():
+        diff = (e[valid] - target_mineral_rank) / MINERAL_RANK_SIGMA
+        out[valid] = np.exp(-0.5 * (diff ** 2))
+    return out
+
+
 def score_target(ea: EarthArrays, tv: TargetVec, sigma_scale: float = 1.0) -> dict[str, np.ndarray]:
-    """Score all Earth patches on the seven dimensions for one target."""
+    """Score all Earth patches on the eight dimensions for one target."""
     scores = dimension_scores(ea.z_e, tv.z_t, ea.ndvi, ea.zt_e, tv.zt_t, sigma_scale=sigma_scale)
     scores["geology"] = geology_scores(ea.geo_class, tv.geo_class)
     scores["dust"] = dust_scores(
@@ -814,6 +924,7 @@ def score_target(ea: EarthArrays, tv: TargetVec, sigma_scale: float = 1.0) -> di
         tv.lat,
     )
     scores["ice"] = ice_scores(tv.body, ea.cold_rank, ea.ice_e, tv.cold_rank, tv.ice_t)
+    scores["mineral"] = mineral_scores(tv.body, ea.mineral_rank, tv.mineral_rank, n_patches=len(ea.z_e))
     return scores
 
 
@@ -885,6 +996,7 @@ def target_vec_from_row(t_row: pd.Series, z_t: np.ndarray, zt_t: float) -> Targe
         dust_phase=_as_float(t_row.get("dust_peak_phase_deg")),
         cold_rank=_as_float(t_row.get("cold_rank_T")),
         ice_t=_as_float(t_row.get("ice_T")),
+        mineral_rank=_as_float(t_row.get("mineral_rank_T")),
     )
 
 
@@ -917,6 +1029,10 @@ def available_dims(tv: TargetVec) -> frozenset[str]:
             dims.add("ice")
         elif body_norm == "Mars" and t_ice > 0.0:
             dims.add("ice")
+
+    # mineral: body is Mars and tv.mineral_rank is finite
+    if body_norm == "Mars" and np.isfinite(float(tv.mineral_rank)):
+        dims.add("mineral")
 
     return frozenset(dims)
 
@@ -1078,6 +1194,8 @@ def match_all(
                     tv.lat,
                     float(ea.cold_rank[g_idx]),
                     tv.cold_rank,
+                    float(ea.mineral_rank[g_idx]),
+                    tv.mineral_rank,
                 )
             )
             for dim in earth_missing:
@@ -1152,6 +1270,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--t12-dir", type=Path, required=True, help="T12 ice run directory")
     p.add_argument("--t13-dir", type=Path, required=True, help="T13 dust run directory")
     p.add_argument("--t14-dir", type=Path, required=True, help="T14 geology run directory")
+    p.add_argument("--mineral-dir", type=Path, default=None, help="T18 mineral run directory (optional)")
     p.add_argument("--out-dir", type=Path, required=True)
     p.add_argument("--sigma-scale", type=float, default=1.0)
     p.add_argument("--targets", type=str, default=None, help="Comma-separated target_id list")
@@ -1178,9 +1297,20 @@ def main(argv: list[str] | None = None) -> None:
     logger.info("Loading Mars T3 features from %s", mars_path)
     mars_t3 = pd.read_parquet(mars_path, columns=["themis_delta"])
     logger.info(
-        "Attaching T12 %s, T13 %s and T14 %s layers", args.t12_dir, args.t13_dir, args.t14_dir
+        "Attaching T12 %s, T13 %s, T14 %s and mineral %s layers",
+        args.t12_dir,
+        args.t13_dir,
+        args.t14_dir,
+        args.mineral_dir,
     )
-    earth, targets = load_layers(earth, targets, args.t12_dir, args.t13_dir, args.t14_dir)
+    earth, targets = load_layers(
+        earth,
+        targets,
+        args.t12_dir,
+        args.t13_dir,
+        args.t14_dir,
+        mineral_dir=args.mineral_dir,
+    )
 
     target_filter = (
         [tok.strip() for tok in args.targets.split(",") if tok.strip()]
@@ -1207,6 +1337,7 @@ def main(argv: list[str] | None = None) -> None:
             "t12_dir": str(args.t12_dir),
             "t13_dir": str(args.t13_dir),
             "t14_dir": str(args.t14_dir),
+            "mineral_dir": str(args.mineral_dir) if args.mineral_dir else None,
             "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
             "commit": _git_short_sha(Path(__file__).resolve().parents[1]),
             "match_runtime_s": round(elapsed_s, 3),

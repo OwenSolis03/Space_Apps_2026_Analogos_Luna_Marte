@@ -1,8 +1,8 @@
-# Rasters y datos pesados (viven en Yuca: /lustre/proyectos/p089/data)
+# Heavy rasters and raw data (hosted on Yuca: /lustre/proyectos/p089/data)
 data/
-# Excepcion: el JSON que consume la app si va al repo (plan, regla 3)
+# Exception: JSON consumed by the web app tracked in repo (plan, rule 3)
 !app/public/data/
-# Excepcion: definiciones del pipeline escritas a mano (targets.json, known_analogs.json, limits.json)
+# Exception: hand-curated pipeline definitions (targets.json, known_analogs.json, limits.json)
 !pipeline/data/
 *.tif
 *.tiff
@@ -11,7 +11,7 @@ data/
 *.shp
 *.shx
 
-# Paquetes descargados de Yuca (ya extraídos en output/ y logs/)
+# Packages downloaded from Yuca (already extracted into output/ and logs/)
 output.zip
 
 # Python
@@ -20,7 +20,8 @@ __pycache__/
 .venv/
 .ipynb_checkpoints/
 
-# Sistema
+# System
 .DS_Store
 Thumbs.db
 .pytest_cache/
+.archify/

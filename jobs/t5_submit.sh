@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Uso: bash jobs/t5_submit.sh            (corrida completa, 32 franjas)
-#      bash jobs/t5_submit.sh --limit 500 (prueba: 1 franja)
+# Usage: bash jobs/t5_submit.sh            (full run, 32 stripes)
+#        bash jobs/t5_submit.sh --limit 500 (test run: 1 stripe)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 LIMIT_ARGS=(); NUM_STRIPES=32; ARRAY="0-31%30"
