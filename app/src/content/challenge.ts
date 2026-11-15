@@ -34,8 +34,10 @@ export const WARNINGS: string[] = [
   "Earth cannot reproduce reduced gravity, vacuum, the thin Martian atmosphere or space radiation.",
 ];
 
+export const DIFFERENTIATOR_LABEL = "OUR DIFFERENTIATOR IN ONE SENTENCE";
+
 export const DIFFERENTIATOR =
-  "Our differentiator in one sentence: we are the team that measures the analogy at planetary scale, with supercomputing, and shows just as clearly where it breaks.";
+  "We are the team that measures the analogy at planetary scale, with supercomputing, and shows just as clearly where it breaks.";
 
 export const NASA_ASKS_ROWS: { ask: string; does: string; different: string }[] = [
   { ask: "\"Identify one or more locations\"", does: "A systematic search over every bare-land 32 km patch on Earth (~45,000 candidates after the vegetation filter), against 76 lunar and Martian targets", different: "We do not start from a list of sites; the sites come out of the computation" },

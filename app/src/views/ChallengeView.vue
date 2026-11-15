@@ -10,6 +10,7 @@ import {
   CALENDAR,
   CHALLENGE_TITLE,
   DIFFERENTIATOR,
+  DIFFERENTIATOR_LABEL,
   HACKATHON_COPY,
   LOCAL_EVENT,
   NASA_ASKS_ROWS,
@@ -88,9 +89,14 @@ const eventUrl: string = LOCAL_EVENT.url;
           </tr>
         </tbody>
       </DataTable>
-      <p class="quote differentiator">{{ DIFFERENTIATOR }}</p>
-      <div>
-        <RButton to="/how-it-works" arrow>SEE HOW IT WORKS</RButton>
+      <div class="differentiator-box">
+        <p class="label differentiator-eyebrow">{{ DIFFERENTIATOR_LABEL }}</p>
+        <blockquote class="differentiator-quote">
+          “{{ DIFFERENTIATOR }}”
+        </blockquote>
+        <div class="differentiator-action">
+          <RButton to="/how-it-works" arrow>SEE HOW IT WORKS</RButton>
+        </div>
       </div>
     </SectionBlock>
   </main>
@@ -148,9 +154,33 @@ const eventUrl: string = LOCAL_EVENT.url;
   max-width: 64ch;
 }
 
-.differentiator {
-  max-width: 64ch;
-  margin: var(--space-5) 0 0;
+.differentiator-box {
+  max-width: 72ch;
+  margin: var(--space-6) 0 0;
+  padding: var(--space-5);
+  background: var(--surface-raised);
+  border-left: 3px solid var(--signal);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.differentiator-eyebrow {
+  color: var(--signal);
+  letter-spacing: 0.12em;
+  margin: 0;
+}
+
+.differentiator-quote {
+  font-family: var(--font-display);
+  font-size: 17px;
+  line-height: 1.5;
   color: var(--ink);
+  margin: 0;
+  font-weight: 500;
+  text-transform: none;
+}
+
+.differentiator-action {
+  margin-top: var(--space-2);
 }
 </style>

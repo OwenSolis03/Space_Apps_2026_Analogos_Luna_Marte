@@ -34,3 +34,9 @@ const classes = computed(() => ["tm-btn", `tm-btn--${props.variant}`, "tm-focusa
     <RGlyph v-if="arrow" name="chevron-right" :size="16" />
   </button>
 </template>
+
+<style scoped>
+.tm-btn {
+  text-decoration: none;
+}
+</style>
