@@ -1,0 +1,35 @@
+<!-- @dsCard height=320 -->
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@300;400;500;700&family=Roboto:wght@300;400;500&family=Roboto+Condensed:wght@400&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;background:var(--surface)}
+svg{display:block;width:960px;height:320px}
+.ground{fill:var(--surface)}
+.b-signal{fill:var(--signal)}
+.b-graphite{fill:var(--graphite)}
+.b-ink{fill:var(--ink)}
+.b-tint{fill:var(--signal-tint)}
+.dots{fill:var(--graphite)}
+.lead{fill:var(--signal)}
+.name{font-family:var(--font-display);font-weight:300;letter-spacing:.04em;fill:var(--ink)}
+.tag{font-family:var(--font-text);font-weight:400;fill:var(--ink-muted)}
+</style></head>
+<body>
+<svg viewBox="0 0 960 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="RETÍCULA">
+<!-- derivación
+bloques: signal 224×208 (dot-pitch ×14 por ×13) con chaflán chamfer-lg; graphite 176×96; ink 96×96; signal-tint 64×96; todos a múltiplos de dot-pitch (16).
+disposición: losa naranja alta a la izquierda y tres satélites escalonados a su derecha, alineados a la línea inferior de la losa; el nombre queda en el suelo, abajo a la izquierda.
+patrón: retícula de puntos (dot-size 4, dot-pitch 16, 2 filas × 27) con barra guía de stroke-bar; elegida porque el sistema es técnico, monoespaciado y se mide en pasos de 16.
+pasos y radios: sin radios (radius-0), un solo chaflán de 24px en el bloque signal; márgenes de 32 y 48 (space-6, space-7).
+-->
+<rect class="ground" x="0" y="0" width="960" height="320"/>
+<polygon class="b-signal" points="512,32 712,32 736,56 736,240 512,240"/>
+<rect class="b-graphite" x="752" y="32" width="176" height="96"/>
+<rect class="b-ink" x="752" y="144" width="96" height="96"/>
+<rect class="b-tint" x="864" y="144" width="64" height="96"/>
+<rect class="lead" x="496" y="262" width="4" height="24"/>
+<path class="dots" d="M512 264h4v4h-4zM528 264h4v4h-4zM544 264h4v4h-4zM560 264h4v4h-4zM576 264h4v4h-4zM592 264h4v4h-4zM608 264h4v4h-4zM624 264h4v4h-4zM640 264h4v4h-4zM656 264h4v4h-4zM672 264h4v4h-4zM688 264h4v4h-4zM704 264h4v4h-4zM720 264h4v4h-4zM736 264h4v4h-4zM752 264h4v4h-4zM768 264h4v4h-4zM784 264h4v4h-4zM800 264h4v4h-4zM816 264h4v4h-4zM832 264h4v4h-4zM848 264h4v4h-4zM864 264h4v4h-4zM880 264h4v4h-4zM896 264h4v4h-4zM912 264h4v4h-4zM928 264h4v4h-4zM512 280h4v4h-4zM528 280h4v4h-4zM544 280h4v4h-4zM560 280h4v4h-4zM576 280h4v4h-4zM592 280h4v4h-4zM608 280h4v4h-4zM624 280h4v4h-4zM640 280h4v4h-4zM656 280h4v4h-4zM672 280h4v4h-4zM688 280h4v4h-4zM704 280h4v4h-4zM720 280h4v4h-4zM736 280h4v4h-4zM752 280h4v4h-4zM768 280h4v4h-4zM784 280h4v4h-4zM800 280h4v4h-4zM816 280h4v4h-4zM832 280h4v4h-4zM848 280h4v4h-4zM864 280h4v4h-4zM880 280h4v4h-4zM896 280h4v4h-4zM912 280h4v4h-4zM928 280h4v4h-4z"/>
+<text class="name" x="48" y="252" font-size="72">RETÍCULA</text>
+<text class="tag" x="48" y="288" font-size="13">Interfaz de telemetría en gris y naranja.</text>
+</svg>
+</body></html>
