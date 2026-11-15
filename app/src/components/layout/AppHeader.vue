@@ -4,6 +4,7 @@ import { computed, ref } from "vue";
 import { RouterLink, useRoute } from "vue-router";
 import RGlyph from "@/components/reticula/RGlyph.vue";
 import RIconButton from "@/components/reticula/RIconButton.vue";
+import AppLogo from "@/components/layout/AppLogo.vue";
 import { NAV_SECTIONS, PROJECT_NAME } from "@/content/sections";
 
 const route = useRoute();
@@ -15,11 +16,7 @@ const current = computed(() => route.name);
   <header class="app-header">
     <div class="page app-header__inner">
       <RouterLink to="/" class="app-header__brand" :aria-label="`${PROJECT_NAME}, home`">
-        <!-- TODO: replace with project logo when available -->
-        <span class="app-header__mark" aria-hidden="true">
-          <RGlyph name="bracket" :size="24" />
-        </span>
-        <span class="label">{{ PROJECT_NAME }}</span>
+        <AppLogo size="sm" />
       </RouterLink>
 
       <nav class="app-header__nav" :class="{ 'is-open': open }" aria-label="Sections">
