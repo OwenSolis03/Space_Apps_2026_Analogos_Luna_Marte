@@ -106,13 +106,7 @@ onMounted(() => {
   if (!root.value || reduced.value) return; // final state is already in the markup
 
   scope = createScope({ root: root.value }).add(() => {
-    // Sun: frames counter-rotate, tick ring turns, pulse ring breathes.
-    animate(".sun__frame", {
-      rotate: (_el: unknown, i?: number) => ((i ?? 0) % 2 ? -360 : 360),
-      duration: (_el: unknown, i?: number) => 70000 + (i ?? 0) * 25000,
-      ease: "linear",
-      loop: true,
-    });
+    // Sun: tick ring turns, pulse ring breathes.
     animate(".sun__ticks", { rotate: 360, duration: 90000, ease: "linear", loop: true });
     animate(".sun__pulse", { scale: [1, 1.22], opacity: [0.7, 0], duration: 2600, ease: "outQuad", loop: true });
 
@@ -187,11 +181,6 @@ onBeforeUnmount(() => {
 
       <!-- Sun: RESULTS -->
       <a class="sun" :href="`#${sun.path}`" :aria-label="`Go to ${sun.label}`">
-        <g transform="rotate(45)">
-          <rect class="sun__frame" x="-115" y="-115" width="230" height="230" fill="none" stroke-width="1" />
-          <rect class="sun__frame" x="-135" y="-135" width="270" height="270" fill="none" stroke-width="1" />
-          <rect class="sun__frame" x="-155" y="-155" width="310" height="310" fill="none" stroke-width="1" />
-        </g>
         <circle class="sun__ticks" r="108" fill="none" stroke-width="6" stroke-dasharray="1 11" />
         <circle class="sun__pulse" r="92" fill="none" stroke-width="2" />
         <circle class="sun__disc" r="92" />
@@ -323,7 +312,6 @@ onBeforeUnmount(() => {
 }
 
 // Rotations and scales pivot on each element's own centre.
-.sun__frame,
 .sun__ticks,
 .sun__pulse,
 .sun,
@@ -360,9 +348,6 @@ onBeforeUnmount(() => {
   text-decoration: none;
 }
 
-.sun__frame {
-  stroke: var(--line);
-}
 
 .sun__ticks {
   stroke: var(--graphite);
@@ -389,8 +374,8 @@ onBeforeUnmount(() => {
   fill: var(--on-signal);
 }
 
-.sun:hover .sun__frame,
-.sun:focus-visible .sun__frame {
+.sun:hover .sun__ticks,
+.sun:focus-visible .sun__ticks {
   stroke: var(--ink);
 }
 
