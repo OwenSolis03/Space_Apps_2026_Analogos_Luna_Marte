@@ -19,9 +19,23 @@
 <p align="center">
   <a href="https://prototerra.web.app/#/"><img src="https://img.shields.io/badge/Live_App-prototerra.web.app-10b981?style=for-the-badge&logo=firebase&logoColor=white" alt="Live App"></a>
   <a href="https://github.com/OwenSolis03/Space_Apps_2026_Analogos_Luna_Marte"><img src="https://img.shields.io/badge/GitHub-Repository-24292e?style=for-the-badge&logo=github&logoColor=white" alt="GitHub Repo"></a>
-  <a href="https://www.spaceappschallenge.org/"><img src="https://img.shields.io/badge/NASA_Space_Apps-2026-blue?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA Space Apps"></a>
-  <a href="#high-performance-supercomputing-acarus--yuca"><img src="https://img.shields.io/badge/Supercomputing-ACARUS_Yuca_HPC-purple?style=for-the-badge" alt="Yuca HPC"></a>
-  <a href="#the-crew--acknowledgments"><img src="https://img.shields.io/badge/Team-Endurance_CXXV-red?style=for-the-badge" alt="Team Endurance CXXV"></a>
+  <a href="https://www.spaceappschallenge.org/"><img src="https://img.shields.io/badge/NASA_Space_Apps-2026-0B3D91?style=for-the-badge&logo=nasa&logoColor=white" alt="NASA Space Apps"></a>
+  <a href="#high-performance-supercomputing-acarus--yuca"><img src="https://img.shields.io/badge/Supercomputing-ACARUS_Yuca_HPC-6b21a8?style=for-the-badge" alt="Yuca HPC"></a>
+  <a href="#the-crew--acknowledgments"><img src="https://img.shields.io/badge/Team-Endurance_CXXV-ff8500?style=for-the-badge" alt="Team Endurance CXXV"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Vue.js_3-4FC08D?style=flat-square&logo=vuedotjs&logoColor=white" alt="Vue 3">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Python_3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11">
+  <img src="https://img.shields.io/badge/Slurm_HPC-00599C?style=flat-square&logo=linux&logoColor=white" alt="Slurm">
+  <img src="https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikitlearn&logoColor=white" alt="Scikit-Learn">
+  <img src="https://img.shields.io/badge/NumPy_%26_SciPy-013243?style=flat-square&logo=numpy&logoColor=white" alt="NumPy">
+  <img src="https://img.shields.io/badge/GDAL_%26_Rasterio-2C5D3B?style=flat-square&logo=qgis&logoColor=white" alt="GDAL">
+  <img src="https://img.shields.io/badge/Leaflet-199900?style=flat-square&logo=leaflet&logoColor=white" alt="Leaflet">
+  <img src="https://img.shields.io/badge/Three.js-000000?style=flat-square&logo=threedotjs&logoColor=white" alt="Three.js">
+  <img src="https://img.shields.io/badge/Firebase_Hosting-FFCA28?style=flat-square&logo=firebase&logoColor=black" alt="Firebase">
 </p>
 
 <p align="center">
@@ -50,12 +64,13 @@
 8. [Where the Analogy Breaks: Physical Limitations](#where-the-analogy-breaks-physical-limitations)
 9. [Social Impact & Democratizing Space Exploration](#social-impact--democratizing-space-exploration)
 10. [Web Application Overview](#web-application-overview)
-11. [Quick Start & Installation](#quick-start--installation)
+11. [Technologies, Libraries & Frameworks](#technologies-libraries--frameworks)
+12. [Quick Start & Installation](#quick-start--installation)
     - [Frontend Web App](#frontend-web-app-vue-3--vite)
     - [High-Performance Python Pipeline](#high-performance-python-pipeline)
-12. [Use of Artificial Intelligence](#use-of-artificial-intelligence)
-13. [Repository Structure](#repository-structure)
-14. [The Crew & Acknowledgments](#the-crew--acknowledgments)
+13. [Use of Artificial Intelligence](#use-of-artificial-intelligence)
+14. [Repository Structure](#repository-structure)
+15. [The Crew & Acknowledgments](#the-crew--acknowledgments)
 
 ---
 
@@ -302,6 +317,30 @@ The client application is built with **Vue 3**, **Vite**, and **TypeScript**, op
 - ⚡ **Real-Time Client-Side Filtering:** Moving any weight slider re-calculates MSI across all targets and re-sorts thousands of candidate pairings in **&lt;50 ms** without server round-trips.
 - 🗺 **Spatial Radar & Leaflet Mapping:** High-contrast tactical cartography showing candidate site coordinates, satellite imagery, and road network proximity.
 - 🔒 **Hardened Security Posture:** Zero external runtime vulnerabilities, self-hosted typography (eliminating third-party CDN tracking), and strict HTTP security headers (`Content-Security-Policy`, `X-Frame-Options: DENY`, `Strict-Transport-Security`).
+
+---
+
+## Technologies, Libraries & Frameworks
+
+PROTOTERRA combines modern reactive web technologies, high-performance supercomputing libraries, and planetary GIS frameworks:
+
+| Domain | Technology / Library | Application in PROTOTERRA |
+| :--- | :--- | :--- |
+| **Frontend Reactive Core** | **Vue 3 (Composition API)** | Reactive Single Page Application (SPA), state management, and real-time DOM updates |
+| **Tooling & Bundler** | **Vite 6 / 8 & Rolldown** | Sub-second HMR development and optimized production asset bundling |
+| **Type Safety** | **TypeScript 5.6** | Strict end-to-end typed data contracts (`Universe`, `AnalogMatch`, `Target`) |
+| **Cartography & GIS** | **Leaflet 1.9** | Interactive geospatial tactical mapping, satellite tiles, and candidate coordinates |
+| **3D Celestial Engine** | **Three.js** | Interactive 3D celestial orbital selector for Moon and Mars destinations |
+| **Design System** | **RETÍCULA (SCSS)** | Custom telemetry console design system, technical layouts, and chamfered panels |
+| **Micro-Interactions** | **Anime.js 4.5** | Smooth orbital transitions and planetary navigation animation engine |
+| **Math & Formulas** | **KaTeX 0.19** | Fast client-side LaTeX formula rendering for algorithmic explainability |
+| **HPC & Analytics** | **Python 3.11+** | High-performance planetary data processing and scientific feature extraction |
+| **Job Scheduling** | **Slurm Workload Manager** | Batch computing orchestration across parallel nodes on the Yuca supercomputer |
+| **Geoprocessing** | **GDAL / OGR & Rasterio** | Reprojection to 32 km local AEQD, raster tiling, and geospatial transform operations |
+| **Scientific Computing** | **NumPy & SciPy** | Fast vectorized morphometric operations (slopes, TRI, hypsometry) and RBF distance kernels |
+| **Machine Learning** | **Scikit-Learn** | Unsupervised K-Means clustering generating 30 global geomorphological archetypes |
+| **Unit Testing** | **Pytest** | Automated test suite validating feature extraction and pipeline math with synthetic data |
+| **Cloud & Deployment** | **Firebase Hosting** | Global edge CDN hosting with strict HTTP security headers (`CSP`, `HSTS`, `X-Frame`) |
 
 ---
 
