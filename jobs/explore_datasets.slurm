@@ -10,11 +10,11 @@
 #SBATCH -o /lustre/proyectos/p089/output/exploracion_%j.log
 #SBATCH -e /lustre/proyectos/p089/output/exploracion_%j.log
 
-# Reporte de exploración de todos los datasets descargados.
-# Enviar desde /lustre/proyectos/p089/code:   sbatch jobs/explore_datasets.slurm
-# Para explorar solo una parte:               sbatch jobs/explore_datasets.slurm --only planets
-# Salida: /lustre/proyectos/p089/runs/<JOBID>/exploracion/{index.html,resumen.md,resumen.json}
-# Solo lee datos; no modifica nada en data/.
+# Exploration report for all downloaded datasets.
+# Submit from /lustre/proyectos/p089/code:   sbatch jobs/explore_datasets.slurm
+# To explore only a subset:                  sbatch jobs/explore_datasets.slurm --only planets
+# Output: /lustre/proyectos/p089/runs/<JOBID>/exploration/{index.html,summary.md,summary.json}
+# Read-only; does not modify data/.
 
 set -euo pipefail
 
@@ -29,15 +29,15 @@ conda activate spaceapps_2026
 export GDAL_CACHEMAX=4096
 export OMP_NUM_THREADS=1
 
-echo "job=$SLURM_JOB_ID nodo=$(hostname) inicio=$(date -Is) commit=$(git -C "$CODE_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
+echo "job=$SLURM_JOB_ID node=$(hostname) start=$(date -Is) commit=$(git -C "$CODE_DIR" rev-parse --short HEAD 2>/dev/null || echo '?')"
 
-# MODIS viene en HDF4: si GDAL no lo soporta, el script usa pyhdf.
-python -c "import pyhdf" 2>/dev/null || pip install --quiet pyhdf || echo "[WARN] no se pudo instalar pyhdf; MODIS puede quedar sin leer"
+# MODIS comes in HDF4: if GDAL lacks the driver, the script uses pyhdf.
+python -c "import pyhdf" 2>/dev/null || pip install --quiet pyhdf || echo "[WARN] could not install pyhdf; MODIS may remain unread"
 
 python "$CODE_DIR/tools/explore_datasets.py" \
   --data-root "$PROJECT_DIR/data/raw" \
   --out-dir "$OUT" \
   --workers "$SLURM_CPUS_PER_TASK" "$@"
 
-echo "fin=$(date -Is)"
-echo "Reporte: $OUT/index.html"
+echo "end=$(date -Is)"
+echo "Report: $OUT/index.html"

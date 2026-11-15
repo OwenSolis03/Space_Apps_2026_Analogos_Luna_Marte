@@ -70,7 +70,7 @@ export const LIMIT_LABEL: Record<string, string> = {
 export const limitLabel = (factor: string) =>
   LIMIT_LABEL[factor] ?? factor.charAt(0).toUpperCase() + factor.slice(1).replace(/_/g, " ");
 
-// Capas base verificadas en docs/plan_implementacion.md (T10).
+// Base layers verified in docs/plan_implementacion.md (T10).
 export const TILES = {
   Earth: {
     url: "https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg",
