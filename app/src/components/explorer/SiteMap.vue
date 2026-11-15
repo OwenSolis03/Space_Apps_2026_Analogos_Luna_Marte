@@ -32,14 +32,20 @@ function drawPoints(points: MapPoint[]) {
   for (const p of ordered) {
     if (p.selected) sel = p;
     L.circleMarker([p.lat, p.lon], {
-      radius: p.selected ? 9 : 4 + p.weight * 4,
-      weight: 1.5,
+      radius: p.selected ? 10 : 4 + p.weight * 4,
+      weight: p.selected ? 3 : 1.5,
       fillOpacity: 1,
       className: `mk-${props.kind}${p.selected ? " is-on" : ""}`,
     })
       .bindTooltip(p.label)
       .on("click", () => emit("select", p.id))
       .addTo(layer);
+  }
+  const hasSel = points.some((p) => p.selected);
+  const container = map.getContainer();
+  if (container) {
+    if (hasSel) container.classList.add("has-selected");
+    else container.classList.remove("has-selected");
   }
   if (sel && props.kind === "earth") {
     map.flyTo([sel.lat, sel.lon], Math.max(map.getZoom(), 2), { duration: 0.6 });
@@ -89,7 +95,13 @@ onBeforeUnmount(() => {
       <span v-if="note" class="footnote">{{ note }}</span>
     </figcaption>
     <div class="map__frame">
-      <div ref="el" class="map__canvas" role="application" :aria-label="title" />
+      <div
+        ref="el"
+        class="map__canvas"
+        :class="{ 'has-selected': props.points.some((p) => p.selected) }"
+        role="application"
+        :aria-label="title"
+      />
     </div>
   </figure>
 </template>

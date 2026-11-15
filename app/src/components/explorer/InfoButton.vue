@@ -17,12 +17,15 @@ defineEmits<{ toggle: [] }>();
   <button
     type="button"
     class="info-btn tm-focusable"
+    :class="{ 'is-open': open }"
     :aria-expanded="open"
     :aria-controls="`exp-${props.id}`"
     :aria-label="`What does ${props.title} mean?`"
     @click="$emit('toggle')"
   >
-    <RGlyph :name="open ? 'close' : 'plus'" :size="16" />
+    <span class="info-btn__icon" :class="{ 'is-open': open }">
+      <RGlyph name="plus" :size="16" />
+    </span>
   </button>
 </template>
 
@@ -38,10 +41,37 @@ defineEmits<{ toggle: [] }>();
   background: transparent;
   color: var(--ink);
   cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
 
   &:hover,
-  &[aria-expanded="true"] {
+  &[aria-expanded="true"],
+  &.is-open {
     border-color: var(--ink);
+  }
+
+  &[aria-expanded="true"],
+  &.is-open {
+    background: var(--surface-ghost);
+  }
+}
+
+.info-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: center center;
+
+  &.is-open {
+    transform: rotate(45deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .info-btn__icon {
+    transition: none;
   }
 }
 </style>
