@@ -103,4 +103,7 @@ firebase.json
 frontend/
 guion.txt
 montar-sitio.bat
+*.docx
+*.doc
+
 
