@@ -1,8 +1,0 @@
-[*] Ejecutando pipeline en amdcpu-hpc-23 | Proyecto: /lustre/proyectos/p089
-/lustre/proyectos/p089/process_analogs.py:53: RuntimeWarning: All-NaN slice encountered
-  val = float(np.nanmedian(patch))
-[*] Procesando métricas globales y auxiliares para Mars...
-[OK] Mars: 4500 ventanas -> 40 arquetipos con lat/lon y datos auxiliares.
-[*] Procesando métricas globales y auxiliares para Moon...
-[OK] Moon: 4500 ventanas -> 40 arquetipos con lat/lon y datos auxiliares.
-[DONE] Guardado en /lustre/proyectos/p089/output/planetary_baselines.json
